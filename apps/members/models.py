@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel, SoftDeleteModel
 from apps.core.constants import Roles, FamilyStatus, GroupType, PrivacyLevel, Province
+from apps.core.validators import validate_image_file
 
 User = get_user_model()
 
@@ -186,7 +187,8 @@ class Member(SoftDeleteModel):
         upload_to='members/photos/%Y/%m/',
         blank=True,
         null=True,
-        verbose_name=_('Photo')
+        verbose_name=_('Photo'),
+        validators=[validate_image_file],
     )
 
     # Role in the church

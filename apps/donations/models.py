@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel, SoftDeleteModel
 from apps.core.constants import DonationType, PaymentMethod
+from apps.core.validators import validate_image_file
 
 
 # =============================================================================
@@ -61,7 +62,8 @@ class DonationCampaign(BaseModel):
         upload_to='campaigns/%Y/',
         blank=True,
         null=True,
-        verbose_name=_('Image')
+        verbose_name=_('Image'),
+        validators=[validate_image_file],
     )
 
     class Meta:

@@ -1,6 +1,12 @@
 """
 Django development settings for ÉgliseConnect project.
 """
+import os
+
+# Provide a dev-only fallback SECRET_KEY before importing base settings.
+# In production, SECRET_KEY must be set explicitly in the environment.
+os.environ.setdefault('SECRET_KEY', 'django-insecure-dev-only-key-do-not-use-in-production')
+
 from .base import *  # noqa: F401, F403
 
 # SECURITY WARNING: don't run with debug turned on in production!

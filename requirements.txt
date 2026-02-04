@@ -10,6 +10,9 @@ psycopg2-binary>=2.9
 # Image Processing
 Pillow>=10.0
 
+# HTML Sanitization
+bleach>=6.0
+
 # Date/Time Utilities
 python-dateutil>=2.8
 

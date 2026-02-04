@@ -57,7 +57,9 @@ class VolunteerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
     def handle_no_permission(self):
         messages.error(self.request, _("Vous devez être volontaire pour accéder à cette page."))
-        return redirect('frontend:members:member_detail', pk=self.request.user.member_profile.pk)
+        if hasattr(self.request.user, 'member_profile'):
+            return redirect('frontend:members:member_detail', pk=self.request.user.member_profile.pk)
+        return redirect('/')
 
 
 class GroupLeaderRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):

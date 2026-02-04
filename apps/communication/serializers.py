@@ -1,6 +1,8 @@
 """Communication serializers."""
+import bleach
 from rest_framework import serializers
 from .models import Newsletter, NewsletterRecipient, Notification, NotificationPreference
+from .forms import ALLOWED_TAGS, ALLOWED_ATTRIBUTES
 
 
 class NewsletterSerializer(serializers.ModelSerializer):
@@ -10,6 +12,15 @@ class NewsletterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Newsletter
         fields = '__all__'
+
+    def validate_content(self, value):
+        """Sanitize HTML content to prevent XSS."""
+        return bleach.clean(
+            value,
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+            strip=True,
+        )
 
 
 class NewsletterListSerializer(serializers.ModelSerializer):

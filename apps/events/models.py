@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
 from apps.core.constants import EventType, RSVPStatus
+from apps.core.validators import validate_image_file
 
 
 class Event(BaseModel):
@@ -28,7 +29,7 @@ class Event(BaseModel):
     organizer = models.ForeignKey('members.Member', on_delete=models.SET_NULL, null=True, blank=True, related_name='organized_events', verbose_name=_('Organisateur'))
     max_attendees = models.PositiveIntegerField(null=True, blank=True, verbose_name=_('Capacité max'))
     requires_rsvp = models.BooleanField(default=False, verbose_name=_('RSVP requis'))
-    image = models.ImageField(upload_to='events/%Y/%m/', blank=True, null=True, verbose_name=_('Image'))
+    image = models.ImageField(upload_to='events/%Y/%m/', blank=True, null=True, verbose_name=_('Image'), validators=[validate_image_file])
     is_published = models.BooleanField(default=True, verbose_name=_('Publié'))
     is_cancelled = models.BooleanField(default=False, verbose_name=_('Annulé'))
     is_recurring = models.BooleanField(default=False, verbose_name=_('Récurrent'))

@@ -265,6 +265,8 @@ def get_upcoming_birthdays(days=30):
     """
     Get all members with birthdays in the next N days.
 
+    Uses SQL-level filtering to avoid loading all members into Python.
+
     Args:
         days: Number of days to look ahead
 
@@ -272,34 +274,67 @@ def get_upcoming_birthdays(days=30):
         list: List of (member, birthday_date) tuples sorted by date
     """
     from apps.members.models import Member
+    from django.db.models import Q
 
     today = date.today()
-    members = Member.objects.exclude(birth_date__isnull=True)
+    end_date = today + timedelta(days=days)
 
+    # Build month/day range queries at the SQL level
+    if today.month == end_date.month and today.year == end_date.year:
+        # Same month
+        q = Q(
+            birth_date__month=today.month,
+            birth_date__day__gte=today.day,
+            birth_date__day__lte=end_date.day,
+        )
+    elif end_date.year > today.year:
+        # Year boundary crossing (e.g., Dec -> Jan)
+        q = Q(
+            birth_date__month=today.month,
+            birth_date__day__gte=today.day,
+        )
+        for m in range(today.month + 1, 13):
+            q |= Q(birth_date__month=m)
+        for m in range(1, end_date.month):
+            q |= Q(birth_date__month=m)
+        q |= Q(
+            birth_date__month=end_date.month,
+            birth_date__day__lte=end_date.day,
+        )
+    else:
+        # Different months, same year
+        q = Q(
+            birth_date__month=today.month,
+            birth_date__day__gte=today.day,
+        )
+        for m in range(today.month + 1, end_date.month):
+            q |= Q(birth_date__month=m)
+        q |= Q(
+            birth_date__month=end_date.month,
+            birth_date__day__lte=end_date.day,
+        )
+
+    members = Member.objects.filter(q).exclude(birth_date__isnull=True)
+
+    # Calculate actual birthday dates for sorting
     upcoming = []
     for member in members:
-        # Calculate this year's birthday
         try:
             birthday_this_year = member.birth_date.replace(year=today.year)
         except ValueError:
-            # Handle Feb 29 for non-leap years
             birthday_this_year = date(today.year, 3, 1)
 
-        # If birthday has passed, use next year
         if birthday_this_year < today:
             try:
                 birthday_this_year = member.birth_date.replace(year=today.year + 1)
             except ValueError:
                 birthday_this_year = date(today.year + 1, 3, 1)
 
-        # Check if within range
         days_until = (birthday_this_year - today).days
         if 0 <= days_until <= days:
             upcoming.append((member, birthday_this_year, days_until))
 
-    # Sort by days until birthday
     upcoming.sort(key=lambda x: x[2])
-
     return [(m, d) for m, d, _ in upcoming]
 
 
