@@ -215,6 +215,9 @@ class TestIsAdmin:
     def test_superuser_allowed(self, mock_request, mock_view):
         """Test that superusers are allowed."""
         mock_request.user.is_superuser = True
+        # Remove member_profile so IsAdmin falls through to is_superuser check
+        mock_request.user.configure_mock(**{'member_profile': Mock(spec=[])})
+        del mock_request.user.member_profile
         permission = IsAdmin()
         assert permission.has_permission(mock_request, mock_view) is True
 

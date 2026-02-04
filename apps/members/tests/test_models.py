@@ -51,7 +51,7 @@ class TestMemberModel:
     def test_age_property(self):
         """Test age calculation."""
         today = date.today()
-        birth_date = today - timedelta(days=365 * 30)  # 30 years ago
+        birth_date = today.replace(year=today.year - 30)
         member = MemberFactory(birth_date=birth_date)
 
         assert member.age == 30
@@ -180,7 +180,8 @@ class TestDirectoryPrivacyModel:
     def test_create_privacy_settings(self):
         """Test creating privacy settings."""
         member = MemberFactory()
-        privacy = DirectoryPrivacy.objects.create(member=member)
+        # MemberFactory auto-creates privacy via post_generation
+        privacy = member.privacy_settings
 
         assert privacy.id is not None
         assert privacy.visibility == 'public'  # default
@@ -188,7 +189,8 @@ class TestDirectoryPrivacyModel:
     def test_default_values(self):
         """Test default privacy values."""
         member = MemberFactory()
-        privacy = DirectoryPrivacy.objects.create(member=member)
+        # MemberFactory auto-creates privacy via post_generation
+        privacy = member.privacy_settings
 
         assert privacy.show_email is True
         assert privacy.show_phone is True

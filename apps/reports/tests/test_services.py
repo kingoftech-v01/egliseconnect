@@ -92,7 +92,13 @@ class TestReportService:
 
     def test_get_attendance_report(self):
         """Test attendance report."""
-        event = EventFactory(is_cancelled=False)
+        # Create event in the past (within the default 90-day range)
+        past_dt = timezone.now() - timezone.timedelta(days=7)
+        event = EventFactory(
+            is_cancelled=False,
+            start_datetime=past_dt,
+            end_datetime=past_dt + timezone.timedelta(hours=2),
+        )
         EventRSVPFactory(event=event, status='confirmed')
         EventRSVPFactory(event=event, status='declined')
 
@@ -116,9 +122,10 @@ class TestReportService:
 
     def test_get_volunteer_report(self):
         """Test volunteer report."""
+        past_date = date.today() - timezone.timedelta(days=7)
         position = VolunteerPositionFactory()
-        VolunteerScheduleFactory(position=position, status='completed')
-        VolunteerScheduleFactory(position=position, status='no_show')
+        VolunteerScheduleFactory(position=position, status='completed', date=past_date)
+        VolunteerScheduleFactory(position=position, status='no_show', date=past_date)
 
         report = ReportService.get_volunteer_report()
 

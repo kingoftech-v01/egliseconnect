@@ -40,7 +40,7 @@ class TestHelpRequestCategoryAPI:
 
         response = api_client.get('/api/v1/help-requests/categories/')
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) >= 3
+        assert response.data['count'] >= 3
 
 
 @pytest.mark.django_db
@@ -65,7 +65,10 @@ class TestHelpRequestAPI:
         response = api_client.post('/api/v1/help-requests/requests/', data)
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data['title'] == 'Need help with groceries'
-        assert response.data['request_number'].startswith('HR-')
+        # HelpRequestCreateSerializer doesn't include request_number in response
+        # Verify it was generated in the database
+        created = HelpRequest.objects.filter(member=member).first()
+        assert created.request_number.startswith('HR-')
 
     def test_list_own_requests(self, api_client, member_user):
         """Test listing user's own requests."""
@@ -90,7 +93,7 @@ class TestHelpRequestAPI:
 
         response = api_client.get('/api/v1/help-requests/requests/')
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) >= 5
+        assert response.data['count'] >= 5
 
     def test_assign_request(self, api_client, pastor_user):
         """Test assigning a request."""
@@ -168,5 +171,5 @@ class TestHelpRequestAPI:
 
         response = api_client.get('/api/v1/help-requests/requests/')
         assert response.status_code == status.HTTP_200_OK
-        # Should only see own request
-        assert len(response.data) == 1
+        # Should only see own request (paginated response)
+        assert response.data['count'] == 1
