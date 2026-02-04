@@ -64,7 +64,10 @@ def event_rsvp(request, pk):
 
     if request.method == 'POST':
         rsvp_status = request.POST.get('status', RSVPStatus.CONFIRMED)
-        guests = int(request.POST.get('guests', 0))
+        try:
+            guests = int(request.POST.get('guests', 0))
+        except (ValueError, TypeError):
+            guests = 0
 
         rsvp, created = EventRSVP.objects.update_or_create(
             event=event,

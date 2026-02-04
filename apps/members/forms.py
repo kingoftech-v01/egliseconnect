@@ -84,7 +84,7 @@ class MemberRegistrationForm(forms.ModelForm):
         return email
 
     def clean(self):
-        """Validate password fields."""
+        """Validate password fields using Django's password validators."""
         cleaned_data = super().clean()
         create_account = cleaned_data.get('create_account')
         password = cleaned_data.get('password')
@@ -93,10 +93,16 @@ class MemberRegistrationForm(forms.ModelForm):
         if create_account:
             if not password:
                 self.add_error('password', _('Le mot de passe est requis.'))
-            elif len(password) < 8:
-                self.add_error('password', _('Le mot de passe doit contenir au moins 8 caractères.'))
             elif password != password_confirm:
                 self.add_error('password_confirm', _('Les mots de passe ne correspondent pas.'))
+            else:
+                # Use Django's built-in password validators
+                from django.contrib.auth.password_validation import validate_password
+                from django.core.exceptions import ValidationError
+                try:
+                    validate_password(password)
+                except ValidationError as e:
+                    self.add_error('password', e.messages)
 
         return cleaned_data
 

@@ -11,7 +11,7 @@ class HelpRequestCategory(BaseModel):
     name_fr = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=50, blank=True, help_text="Icon name for UI")
-    is_active = models.BooleanField(default=True)
+    # Note: is_active is inherited from BaseModel, no need to redeclare it
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

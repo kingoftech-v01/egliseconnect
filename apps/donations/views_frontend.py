@@ -134,7 +134,10 @@ def donation_history(request):
     donations = Donation.objects.filter(member=member)
 
     if year:
-        donations = donations.filter(date__year=int(year))
+        try:
+            donations = donations.filter(date__year=int(year))
+        except (ValueError, TypeError):
+            pass
 
     donations = donations.order_by('-date')
 
@@ -405,8 +408,14 @@ def donation_monthly_report(request):
         return redirect('/')
 
     # Get year and month from request
-    year = int(request.GET.get('year', timezone.now().year))
-    month = int(request.GET.get('month', timezone.now().month))
+    try:
+        year = int(request.GET.get('year', timezone.now().year))
+    except (ValueError, TypeError):
+        year = timezone.now().year
+    try:
+        month = int(request.GET.get('month', timezone.now().month))
+    except (ValueError, TypeError):
+        month = timezone.now().month
 
     # Get donations for the period
     donations = Donation.objects.filter(

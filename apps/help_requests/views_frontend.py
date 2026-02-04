@@ -82,10 +82,18 @@ def request_detail(request, pk):
     help_request = get_object_or_404(HelpRequest, pk=pk)
 
     # Check access permissions
+    is_group_member = False
+    if member.role == 'group_leader':
+        from apps.members.models import GroupMembership
+        group_member_ids = GroupMembership.objects.filter(
+            group__leader=member
+        ).values_list('member_id', flat=True)
+        is_group_member = help_request.member_id in set(group_member_ids)
+
     can_view = (
         help_request.member == member or
         member.role in ['pastor', 'admin'] or
-        (member.role == 'group_leader' and not help_request.is_confidential)
+        (member.role == 'group_leader' and is_group_member and not help_request.is_confidential)
     )
 
     if not can_view:

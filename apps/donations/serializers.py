@@ -135,6 +135,12 @@ class PhysicalDonationCreateSerializer(serializers.ModelSerializer):
             'notes',
         ]
 
+    def validate_amount(self, value):
+        """Validate amount is positive."""
+        if value <= 0:
+            raise serializers.ValidationError("Le montant doit être positif.")
+        return value
+
     def validate(self, data):
         """Validate check number for check payments."""
         if data.get('payment_method') == 'check' and not data.get('check_number'):

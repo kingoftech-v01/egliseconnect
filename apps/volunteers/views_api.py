@@ -1,4 +1,5 @@
 """Volunteers API Views."""
+from django.db import models as db_models
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -67,6 +68,19 @@ class VolunteerAvailabilityViewSet(viewsets.ModelViewSet):
 
 
 class SwapRequestViewSet(viewsets.ModelViewSet):
-    queryset = SwapRequest.objects.all()
     serializer_class = SwapRequestSerializer
     permission_classes = [IsMember]
+
+    def get_queryset(self):
+        """Filter swap requests to only show relevant ones to the user."""
+        user = self.request.user
+        if user.is_staff:
+            return SwapRequest.objects.all().select_related(
+                'original_schedule', 'requested_by', 'swap_with'
+            )
+        if hasattr(user, 'member_profile'):
+            member = user.member_profile
+            return SwapRequest.objects.filter(
+                db_models.Q(requested_by=member) | db_models.Q(swap_with=member)
+            ).select_related('original_schedule', 'requested_by', 'swap_with')
+        return SwapRequest.objects.none()

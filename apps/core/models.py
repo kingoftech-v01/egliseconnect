@@ -132,6 +132,9 @@ class SoftDeleteModel(BaseModel):
 
         Args:
             hard_delete: If True, permanently delete the object from the database.
+
+        Returns:
+            tuple: (count, {model_label: count}) matching Django's delete() signature
         """
         if hard_delete:
             return super().delete(using=using, keep_parents=keep_parents)
@@ -139,6 +142,7 @@ class SoftDeleteModel(BaseModel):
         self.deleted_at = timezone.now()
         self.is_active = False
         self.save(update_fields=['deleted_at', 'is_active', 'updated_at'])
+        return (1, {self._meta.label: 1})
 
     def restore(self):
         """Restore a soft deleted object."""

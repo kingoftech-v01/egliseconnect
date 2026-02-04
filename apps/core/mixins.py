@@ -115,7 +115,7 @@ class TreasurerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
     def test_func(self):
         user = self.request.user
-        if user.is_superuser:
+        if user.is_superuser or user.is_staff:
             return True
 
         if hasattr(user, 'member_profile'):

@@ -120,6 +120,9 @@ class DonationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set member and payment method for online donations."""
+        if not hasattr(self.request.user, 'member_profile'):
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'error': 'Aucun profil membre trouvé'})
         member = self.request.user.member_profile
         serializer.save(
             member=member,
@@ -146,7 +149,10 @@ class DonationViewSet(viewsets.ModelViewSet):
         # Filter by year if provided
         year = request.query_params.get('year')
         if year:
-            queryset = queryset.filter(date__year=int(year))
+            try:
+                queryset = queryset.filter(date__year=int(year))
+            except (ValueError, TypeError):
+                pass
 
         queryset = queryset.order_by('-date')
 
@@ -185,8 +191,16 @@ class DonationViewSet(viewsets.ModelViewSet):
         GET /api/v1/donations/donations/summary/?period=year&year=2026
         """
         period = request.query_params.get('period', 'month')
-        year = request.query_params.get('year', timezone.now().year)
+        try:
+            year = int(request.query_params.get('year', timezone.now().year))
+        except (ValueError, TypeError):
+            year = timezone.now().year
         month = request.query_params.get('month')
+        if month:
+            try:
+                month = int(month)
+            except (ValueError, TypeError):
+                month = None
 
         queryset = Donation.objects.filter(is_active=True)
 

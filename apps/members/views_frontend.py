@@ -72,7 +72,12 @@ def member_list(request):
     role_filter = request.GET.get('role')
     family_status_filter = request.GET.get('family_status')
     group_filter = request.GET.get('group')
+    ALLOWED_SORT_FIELDS = {'last_name', '-last_name', 'first_name', '-first_name',
+                           'created_at', '-created_at', 'birth_date', '-birth_date',
+                           'role', '-role'}
     sort_by = request.GET.get('sort', 'last_name')
+    if sort_by not in ALLOWED_SORT_FIELDS:
+        sort_by = 'last_name'
     page = request.GET.get('page', 1)
 
     # Base queryset
@@ -301,13 +306,22 @@ def birthday_list(request):
         members = get_today_birthdays()
         title = _("Anniversaires aujourd'hui")
     elif period == 'month':
+        month_names = [
+            'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+            'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+        ]
         if month:
-            members = get_month_birthdays(int(month))
-            months = [
-                'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-            ]
-            title = _("Anniversaires en %(month)s") % {'month': months[int(month) - 1]}
+            try:
+                month_int = int(month)
+                if 1 <= month_int <= 12:
+                    members = get_month_birthdays(month_int)
+                    title = _("Anniversaires en %(month)s") % {'month': month_names[month_int - 1]}
+                else:
+                    members = get_month_birthdays()
+                    title = _("Anniversaires ce mois")
+            except (ValueError, TypeError):
+                members = get_month_birthdays()
+                title = _("Anniversaires ce mois")
         else:
             members = get_month_birthdays()
             title = _("Anniversaires ce mois")
@@ -372,6 +386,9 @@ def directory(request):
                 ) |
                 Q(id=current_member.id)
             ).distinct()
+    elif not user.is_staff:
+        # Users without member_profile and not staff see only public profiles
+        members = members.filter(privacy_settings__visibility='public')
 
     members = members.order_by('last_name', 'first_name')
 

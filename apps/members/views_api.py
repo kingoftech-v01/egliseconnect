@@ -214,7 +214,10 @@ class MemberViewSet(viewsets.ModelViewSet):
             members = get_today_birthdays()
         elif period == 'month':
             if month:
-                members = get_month_birthdays(int(month))
+                try:
+                    members = get_month_birthdays(int(month))
+                except (ValueError, TypeError):
+                    members = get_month_birthdays()
             else:
                 members = get_month_birthdays()
         else:  # week
@@ -266,6 +269,11 @@ class MemberViewSet(viewsets.ModelViewSet):
                     ) |
                     Q(id=member.id)  # Always include self
                 ).distinct()
+        elif not user.is_staff:
+            # Users without member_profile and not staff see only public profiles
+            queryset = queryset.filter(
+                privacy_settings__visibility='public'
+            )
 
         queryset = queryset.select_related('privacy_settings').order_by('last_name', 'first_name')
 

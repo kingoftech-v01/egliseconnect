@@ -75,13 +75,16 @@ class NotificationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='mark-read')
     def mark_read(self, request):
         """Mark notifications as read."""
+        if not hasattr(request.user, 'member_profile'):
+            return Response({'error': 'Profil membre requis'}, status=status.HTTP_404_NOT_FOUND)
+        member = request.user.member_profile
         ids = request.data.get('ids', [])
         if ids:
-            Notification.objects.filter(id__in=ids, member=request.user.member_profile).update(
+            Notification.objects.filter(id__in=ids, member=member).update(
                 is_read=True, read_at=timezone.now()
             )
         else:
-            Notification.objects.filter(member=request.user.member_profile, is_read=False).update(
+            Notification.objects.filter(member=member, is_read=False).update(
                 is_read=True, read_at=timezone.now()
             )
         return Response({'message': 'Marquées comme lues'})

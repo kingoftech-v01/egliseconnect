@@ -19,28 +19,37 @@ def generate_member_number():
 
     Format: MBR-YYYY-XXXX (e.g., MBR-2026-0001)
 
+    Uses select_for_update to prevent race conditions when multiple
+    concurrent requests generate numbers simultaneously.
+
     Returns:
         str: Unique member number
     """
+    from django.db import transaction
     from apps.members.models import Member
 
     prefix = getattr(settings, 'MEMBER_NUMBER_PREFIX', 'MBR')
     year = timezone.now().year
     base = f'{prefix}-{year}'
 
-    # Get the last member number for this year
-    last_member = Member.all_objects.filter(
-        member_number__startswith=base
-    ).order_by('-member_number').first()
+    with transaction.atomic():
+        # Lock rows to prevent race conditions
+        last_member = (
+            Member.all_objects
+            .select_for_update()
+            .filter(member_number__startswith=base)
+            .order_by('-member_number')
+            .first()
+        )
 
-    if last_member:
-        try:
-            last_seq = int(last_member.member_number.split('-')[-1])
-            next_seq = last_seq + 1
-        except (ValueError, IndexError):
+        if last_member:
+            try:
+                last_seq = int(last_member.member_number.split('-')[-1])
+                next_seq = last_seq + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        else:
             next_seq = 1
-    else:
-        next_seq = 1
 
     return f'{base}-{next_seq:04d}'
 
@@ -51,28 +60,35 @@ def generate_donation_number():
 
     Format: DON-YYYYMM-XXXX (e.g., DON-202601-0001)
 
+    Uses select_for_update to prevent race conditions.
+
     Returns:
         str: Unique donation number
     """
+    from django.db import transaction
     from apps.donations.models import Donation
 
     prefix = getattr(settings, 'DONATION_NUMBER_PREFIX', 'DON')
     now = timezone.now()
     base = f'{prefix}-{now.strftime("%Y%m")}'
 
-    # Get the last donation number for this month
-    last_donation = Donation.all_objects.filter(
-        donation_number__startswith=base
-    ).order_by('-donation_number').first()
+    with transaction.atomic():
+        last_donation = (
+            Donation.all_objects
+            .select_for_update()
+            .filter(donation_number__startswith=base)
+            .order_by('-donation_number')
+            .first()
+        )
 
-    if last_donation:
-        try:
-            last_seq = int(last_donation.donation_number.split('-')[-1])
-            next_seq = last_seq + 1
-        except (ValueError, IndexError):
+        if last_donation:
+            try:
+                last_seq = int(last_donation.donation_number.split('-')[-1])
+                next_seq = last_seq + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        else:
             next_seq = 1
-    else:
-        next_seq = 1
 
     return f'{base}-{next_seq:04d}'
 
@@ -83,28 +99,35 @@ def generate_request_number():
 
     Format: HR-YYYYMM-XXXX (e.g., HR-202601-0001)
 
+    Uses select_for_update to prevent race conditions.
+
     Returns:
         str: Unique request number
     """
+    from django.db import transaction
     from apps.help_requests.models import HelpRequest
 
     prefix = getattr(settings, 'HELP_REQUEST_NUMBER_PREFIX', 'HR')
     now = timezone.now()
     base = f'{prefix}-{now.strftime("%Y%m")}'
 
-    # Get the last request number for this month
-    last_request = HelpRequest.all_objects.filter(
-        request_number__startswith=base
-    ).order_by('-request_number').first()
+    with transaction.atomic():
+        last_request = (
+            HelpRequest.all_objects
+            .select_for_update()
+            .filter(request_number__startswith=base)
+            .order_by('-request_number')
+            .first()
+        )
 
-    if last_request:
-        try:
-            last_seq = int(last_request.request_number.split('-')[-1])
-            next_seq = last_seq + 1
-        except (ValueError, IndexError):
+        if last_request:
+            try:
+                last_seq = int(last_request.request_number.split('-')[-1])
+                next_seq = last_seq + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        else:
             next_seq = 1
-    else:
-        next_seq = 1
 
     return f'{base}-{next_seq:04d}'
 
@@ -115,31 +138,38 @@ def generate_receipt_number(year=None):
 
     Format: REC-YYYY-XXXX (e.g., REC-2026-0001)
 
+    Uses select_for_update to prevent race conditions.
+
     Args:
         year: Year for the receipt (defaults to current year)
 
     Returns:
         str: Unique receipt number
     """
+    from django.db import transaction
     from apps.donations.models import TaxReceipt
 
     prefix = getattr(settings, 'TAX_RECEIPT_NUMBER_PREFIX', 'REC')
     year = year or timezone.now().year
     base = f'{prefix}-{year}'
 
-    # Get the last receipt number for this year
-    last_receipt = TaxReceipt.all_objects.filter(
-        receipt_number__startswith=base
-    ).order_by('-receipt_number').first()
+    with transaction.atomic():
+        last_receipt = (
+            TaxReceipt.all_objects
+            .select_for_update()
+            .filter(receipt_number__startswith=base)
+            .order_by('-receipt_number')
+            .first()
+        )
 
-    if last_receipt:
-        try:
-            last_seq = int(last_receipt.receipt_number.split('-')[-1])
-            next_seq = last_seq + 1
-        except (ValueError, IndexError):
+        if last_receipt:
+            try:
+                last_seq = int(last_receipt.receipt_number.split('-')[-1])
+                next_seq = last_seq + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        else:
             next_seq = 1
-    else:
-        next_seq = 1
 
     return f'{base}-{next_seq:04d}'
 
