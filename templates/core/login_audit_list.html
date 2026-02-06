@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row page-titles">
+        <div class="col-md-5 align-self-center">
+            <h4 class="text-themecolor">{{ page_title }}</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Email" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Méthode" %}</th>
+                                    <th>{% trans "Adresse IP" %}</th>
+                                    <th>{% trans "Raison" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in audits %}
+                                <tr class="{% if not audit.success %}table-danger{% endif %}">
+                                    <td>{{ audit.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ audit.email_attempted }}</td>
+                                    <td>
+                                        {% if audit.success %}
+                                            <span class="badge bg-success">Réussi</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Échoué</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ audit.get_method_display }}</td>
+                                    <td>{{ audit.ip_address }}</td>
+                                    <td>{{ audit.failure_reason }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">{% trans "Aucun audit de connexion." %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

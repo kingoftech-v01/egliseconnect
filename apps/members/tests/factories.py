@@ -3,7 +3,7 @@ import factory
 from django.contrib.auth import get_user_model
 from factory.django import DjangoModelFactory
 
-from apps.core.constants import Roles, FamilyStatus, GroupType, Province
+from apps.core.constants import Roles, FamilyStatus, GroupType, Province, MembershipStatus
 from apps.members.models import Member, Family, Group, GroupMembership, DirectoryPrivacy
 
 User = get_user_model()
@@ -54,6 +54,8 @@ class MemberFactory(DjangoModelFactory):
     postal_code = factory.Faker('postcode')
     role = Roles.MEMBER
     family_status = FamilyStatus.SINGLE
+    membership_status = MembershipStatus.ACTIVE
+    registration_date = factory.LazyFunction(lambda: __import__('django.utils.timezone', fromlist=['now']).now())
 
     @factory.post_generation
     def create_privacy(self, create, extracted, **kwargs):

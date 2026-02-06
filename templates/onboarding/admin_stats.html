@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row page-titles">
+        <div class="col-md-5 align-self-center">
+            <h4 class="text-themecolor">{{ page_title }}</h4>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "En processus" %}</h5>
+                    <h2 class="text-primary">{{ pipeline.total_in_process }}</h2>
+                    <p class="text-muted mb-0">{% trans "Candidats actifs" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Membres actifs" %}</h5>
+                    <h2 class="text-success">{{ pipeline.active }}</h2>
+                    <p class="text-muted mb-0">{% trans "Membres officiels" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Taux de réussite" %}</h5>
+                    <h2 class="text-info">{{ success_rate }}%</h2>
+                    <p class="text-muted mb-0">{% trans "Inscription &rarr; Membre" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Durée moyenne" %}</h5>
+                    <h2 class="text-warning">{{ avg_days }} {% trans "jours" %}</h2>
+                    <p class="text-muted mb-0">{% trans "Pour devenir membre" %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Breakdown -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Pipeline d'adhésion" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Étape" %}</th>
+                                    <th class="text-center">{% trans "Nombre" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-secondary">{% trans "Inscrits" %}</span></td>
+                                    <td class="text-center">{{ pipeline.registered }}</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-info">{% trans "Formulaire soumis" %}</span></td>
+                                    <td class="text-center">{{ pipeline.form_submitted }}</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning">{% trans "En révision" %}</span></td>
+                                    <td class="text-center">{{ pipeline.in_review }}</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-primary">{% trans "En formation" %}</span></td>
+                                    <td class="text-center">{{ pipeline.in_training }}</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-purple">{% trans "Interview planifiée" %}</span></td>
+                                    <td class="text-center">{{ pipeline.interview_scheduled }}</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><span class="badge bg-success">{% trans "Membres actifs" %}</span></td>
+                                    <td class="text-center"><strong>{{ pipeline.active }}</strong></td>
+                                </tr>
+                                <tr class="table-danger">
+                                    <td><span class="badge bg-danger">{% trans "Refusés" %}</span></td>
+                                    <td class="text-center">{{ pipeline.rejected }}</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-dark">{% trans "Expirés" %}</span></td>
+                                    <td class="text-center">{{ pipeline.expired }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Training Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Formations" %}</h5>
+                </div>
+                <div class="card-body">
+                    <p>{% trans "Total" %}: <strong>{{ training.total }}</strong></p>
+                    <p>{% trans "Complétées" %}: <strong class="text-success">{{ training.completed }}</strong></p>
+                    <p>{% trans "En cours" %}: <strong class="text-primary">{{ training.in_progress }}</strong></p>
+                    <p>{% trans "Taux" %}: <strong>{{ training.completion_rate }}%</strong></p>
+                </div>
+            </div>
+
+            <!-- Interview Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Interviews" %}</h5>
+                </div>
+                <div class="card-body">
+                    <p>{% trans "Total" %}: <strong>{{ interviews.total }}</strong></p>
+                    <p>{% trans "Réussies" %}: <strong class="text-success">{{ interviews.passed }}</strong></p>
+                    <p>{% trans "Échouées" %}: <strong class="text-danger">{{ interviews.failed }}</strong></p>
+                    <p>{% trans "Absents" %}: <strong class="text-warning">{{ interviews.no_show }}</strong></p>
+                    <p>{% trans "En attente" %}: <strong class="text-info">{{ interviews.pending }}</strong></p>
+                    <p>{% trans "Taux de réussite" %}: <strong>{{ interviews.pass_rate }}%</strong></p>
+                </div>
+            </div>
+
+            <!-- Attendance Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Présences (30 jours)" %}</h5>
+                </div>
+                <div class="card-body">
+                    <p>{% trans "Sessions" %}: <strong>{{ attendance.total_sessions }}</strong></p>
+                    <p>{% trans "Check-ins" %}: <strong>{{ attendance.total_checkins }}</strong></p>
+                    <p>{% trans "Moy./session" %}: <strong>{{ attendance.avg_attendance }}</strong></p>
+                    <p>{% trans "Alertes actives" %}: <strong class="text-danger">{{ attendance.active_alerts }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Inscriptions récentes" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Membre" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in activity.recent_registrations %}
+                                <tr>
+                                    <td>{{ member.full_name }}</td>
+                                    <td>{{ member.registration_date|date:"d/m/Y" }}</td>
+                                    <td>{{ member.get_membership_status_display }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">{% trans "Aucune inscription récente." %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Nouveaux membres récents" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Membre" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in activity.recent_completions %}
+                                <tr>
+                                    <td>{{ member.full_name }}</td>
+                                    <td>{{ member.became_active_at|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">{% trans "Aucun nouveau membre récent." %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Registrations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Inscriptions mensuelles" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    {% for item in monthly %}
+                                    <th class="text-center">{{ item.month }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    {% for item in monthly %}
+                                    <td class="text-center"><strong>{{ item.count }}</strong></td>
+                                    {% endfor %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

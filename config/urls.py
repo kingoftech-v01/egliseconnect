@@ -9,6 +9,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from rest_framework.routers import DefaultRouter
 
 from apps.members.urls import api_urlpatterns as members_api
 from apps.donations.urls import api_urlpatterns as donations_api
@@ -19,6 +20,7 @@ from apps.help_requests.urls import api_urlpatterns as help_requests_api
 from apps.reports.urls import api_urlpatterns as reports_api
 from apps.onboarding.urls import api_urlpatterns as onboarding_api
 from apps.attendance.urls import api_urlpatterns as attendance_api
+from apps.payments.urls import api_urlpatterns as payments_api
 
 from apps.members.urls import frontend_urlpatterns as members_frontend
 from apps.donations.urls import frontend_urlpatterns as donations_frontend
@@ -29,6 +31,15 @@ from apps.help_requests.urls import frontend_urlpatterns as help_requests_fronte
 from apps.reports.urls import frontend_urlpatterns as reports_frontend
 from apps.onboarding.urls import frontend_urlpatterns as onboarding_frontend
 from apps.attendance.urls import frontend_urlpatterns as attendance_frontend
+from apps.payments.urls import frontend_urlpatterns as payments_frontend
+
+from apps.core.views_audit import LoginAuditViewSet
+from apps.core import views_frontend_audit as core_frontend_audit
+from apps.core.views_pwa import service_worker, offline, manifest
+
+# Audit API router
+audit_router = DefaultRouter()
+audit_router.register(r'login-audits', LoginAuditViewSet, basename='login-audit')
 
 
 api_v1_patterns = [
@@ -41,6 +52,8 @@ api_v1_patterns = [
     path('reports/', include((reports_api, 'reports'))),
     path('onboarding/', include((onboarding_api, 'onboarding'))),
     path('attendance/', include((attendance_api, 'attendance'))),
+    path('payments/', include((payments_api, 'payments'))),
+    path('audit/', include((audit_router.urls, 'audit'))),
 ]
 
 
@@ -54,10 +67,19 @@ frontend_patterns = [
     path('reports/', include((reports_frontend, 'reports'))),
     path('onboarding/', include((onboarding_frontend, 'onboarding'))),
     path('attendance/', include((attendance_frontend, 'attendance'))),
+    path('payments/', include((payments_frontend, 'payments'))),
+    path('audit/logins/', include(([
+        path('', core_frontend_audit.login_audit_list, name='login_audit_list'),
+        path('2fa-status/', core_frontend_audit.two_factor_status, name='two_factor_status'),
+    ], 'audit'))),
 ]
 
 
 urlpatterns = [
+    # PWA routes (must be at root scope for service worker)
+    path('sw.js', service_worker, name='service_worker'),
+    path('manifest.json', manifest, name='manifest'),
+    path('offline/', offline, name='offline'),
     path('admin/', admin.site.urls),
     path('api/v1/', include((api_v1_patterns, 'api'), namespace='v1')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

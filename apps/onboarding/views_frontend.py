@@ -459,3 +459,30 @@ def admin_course_detail(request, pk):
         'page_title': course.name,
     }
     return render(request, 'onboarding/admin_course_detail.html', context)
+
+
+# --- Enhanced Admin Dashboard ---
+
+@login_required
+def admin_stats(request):
+    """Enhanced statistics dashboard for the onboarding pipeline."""
+    if not hasattr(request.user, 'member_profile'):
+        return redirect('/')
+    if request.user.member_profile.role not in [Roles.ADMIN, Roles.PASTOR]:
+        messages.error(request, _('Accès refusé.'))
+        return redirect('/')
+
+    from .stats import OnboardingStats
+
+    context = {
+        'pipeline': OnboardingStats.pipeline_counts(),
+        'success_rate': OnboardingStats.success_rate(),
+        'avg_days': OnboardingStats.avg_completion_days(),
+        'training': OnboardingStats.training_stats(),
+        'interviews': OnboardingStats.interview_stats(),
+        'attendance': OnboardingStats.attendance_stats(),
+        'activity': OnboardingStats.recent_activity(),
+        'monthly': OnboardingStats.monthly_registrations(),
+        'page_title': _("Statistiques d'adhésion"),
+    }
+    return render(request, 'onboarding/admin_stats.html', context)

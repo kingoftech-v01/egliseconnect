@@ -55,6 +55,7 @@ LOCAL_APPS = [
     'apps.reports',
     'apps.onboarding',
     'apps.attendance',
+    'apps.payments',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -71,6 +72,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'apps.core.middleware.TwoFactorEnforcementMiddleware',
+    'apps.core.middleware.MembershipAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -247,6 +250,11 @@ CHURCH_ADDRESS = env('CHURCH_ADDRESS', default='')
 CHURCH_PHONE = env('CHURCH_PHONE', default='')
 CHURCH_EMAIL = env('CHURCH_EMAIL', default='')
 CHURCH_REGISTRATION_NUMBER = env('CHURCH_REGISTRATION_NUMBER', default='')  # CRA registration
+
+# Stripe
+STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY', default='')
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
 
 MEMBER_ROLES = [
     ('member', 'Membre'),

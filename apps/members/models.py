@@ -254,6 +254,18 @@ class Member(SoftDeleteModel):
         verbose_name=_('Raison du refus')
     )
 
+    # --- 2FA fields ---
+    two_factor_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_('2FA activé')
+    )
+
+    two_factor_deadline = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date limite activation 2FA')
+    )
+
     class Meta:
         verbose_name = _('Membre')
         verbose_name_plural = _('Membres')
@@ -334,6 +346,14 @@ class Member(SoftDeleteModel):
     def is_in_onboarding(self):
         """Is this member currently in the onboarding process?"""
         return self.membership_status in MembershipStatus.IN_PROCESS
+
+    @property
+    def is_2fa_overdue(self):
+        """Has the 2FA setup deadline passed?"""
+        if not self.two_factor_deadline:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.two_factor_deadline and not self.two_factor_enabled
 
     @property
     def is_staff_member(self):

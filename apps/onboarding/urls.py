@@ -9,6 +9,7 @@ api_router.register(r'lessons', views_api.LessonViewSet, basename='lesson')
 api_router.register(r'trainings', views_api.MemberTrainingViewSet, basename='training')
 api_router.register(r'interviews', views_api.InterviewViewSet, basename='interview')
 api_router.register(r'status', views_api.OnboardingStatusView, basename='status')
+api_router.register(r'stats', views_api.OnboardingStatsView, basename='onboarding-stats')
 
 api_urlpatterns = [path('', include(api_router.urls))]
 
@@ -26,6 +27,7 @@ frontend_urlpatterns = [
     path('admin/courses/', views_frontend.admin_courses, name='admin_courses'),
     path('admin/courses/create/', views_frontend.admin_course_create, name='admin_course_create'),
     path('admin/courses/<uuid:pk>/', views_frontend.admin_course_detail, name='admin_course_detail'),
+    path('admin/stats/', views_frontend.admin_stats, name='admin_stats'),
 ]
 
 app_name = 'onboarding'

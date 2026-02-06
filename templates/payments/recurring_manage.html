@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">{% trans "Dons récurrents actifs" %}</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Montant" %}</th>
+                                <th>{% trans "Fréquence" %}</th>
+                                <th>{% trans "Type" %}</th>
+                                <th>{% trans "Prochain paiement" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in recurring %}
+                            <tr>
+                                <td>{{ item.amount_display }}</td>
+                                <td>{{ item.get_frequency_display }}</td>
+                                <td>{{ item.get_donation_type_display }}</td>
+                                <td>{{ item.next_payment_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>
+                                    <button class="btn btn-outline-danger btn-xs cancel-btn"
+                                            data-id="{{ item.pk }}"
+                                            data-amount="{{ item.amount_display }}">
+                                        <i class="fa fa-times me-1"></i>{% trans "Annuler" %}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">{% trans "Aucun don récurrent actif." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if cancelled %}
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">{% trans "Dons annulés" %}</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Montant" %}</th>
+                                <th>{% trans "Fréquence" %}</th>
+                                <th>{% trans "Type" %}</th>
+                                <th>{% trans "Annulé le" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cancelled %}
+                            <tr>
+                                <td>{{ item.amount_display }}</td>
+                                <td>{{ item.get_frequency_display }}</td>
+                                <td>{{ item.get_donation_type_display }}</td>
+                                <td>{{ item.cancelled_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+document.querySelectorAll('.cancel-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        const amount = this.dataset.amount;
+        if (!confirm('Voulez-vous vraiment annuler le don récurrent de ' + amount + '?')) return;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                          document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+        try {
+            const response = await fetch('/api/v1/payments/recurring/' + id + '/cancel/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+            });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Erreur lors de l\'annulation.');
+            }
+        } catch (err) {
+            alert('Erreur réseau.');
+        }
+    });
+});
+</script>
+{% endblock %}

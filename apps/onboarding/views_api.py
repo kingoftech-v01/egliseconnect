@@ -116,3 +116,21 @@ class OnboardingStatusView(viewsets.ViewSet):
                 }
 
         return Response(data)
+
+
+class OnboardingStatsView(viewsets.ViewSet):
+    """API endpoint for onboarding statistics (admin only)."""
+    permission_classes = [IsAuthenticated, IsPastorOrAdmin]
+
+    def list(self, request):
+        from .stats import OnboardingStats
+
+        return Response({
+            'pipeline': OnboardingStats.pipeline_counts(),
+            'success_rate': OnboardingStats.success_rate(),
+            'avg_completion_days': OnboardingStats.avg_completion_days(),
+            'training': OnboardingStats.training_stats(),
+            'interviews': OnboardingStats.interview_stats(),
+            'attendance': OnboardingStats.attendance_stats(),
+            'monthly_registrations': OnboardingStats.monthly_registrations(),
+        })

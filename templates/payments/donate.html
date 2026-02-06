@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">{{ page_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="donation-form">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">{% trans "Montant" %} (CAD)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="amount" name="amount"
+                                           min="1" step="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="10">$10</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="25">$25</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="50">$50</button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="donation_type" class="form-label">{% trans "Type de don" %}</label>
+                                <select class="form-select" id="donation_type" name="donation_type">
+                                    {% for value, label in donation_types %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="campaign" class="form-label">{% trans "Campagne" %} ({% trans "optionnel" %})</label>
+                                <select class="form-select" id="campaign" name="campaign_id">
+                                    <option value="">-- {% trans "Aucune campagne" %} --</option>
+                                    {% for campaign in campaigns %}
+                                    <option value="{{ campaign.pk }}">{{ campaign.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3" id="card-element-container" style="display: none;">
+                                <label for="card-element" class="form-label">{% trans "Carte de paiement" %}</label>
+                                <div id="card-element" class="form-control" style="padding-top: 10px;"></div>
+                                <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                            </div>
+
+                            <div id="payment-message" class="alert alert-info" style="display: none;"></div>
+
+                            <button type="submit" class="btn btn-primary w-100" id="submit-btn">
+                                <i class="fa fa-credit-card me-2"></i>{% trans "Faire un don" %}
+                            </button>
+                        </form>
+
+                        {% if not stripe_public_key %}
+                        <div class="alert alert-warning mt-3">
+                            <i class="fa fa-exclamation-triangle me-2"></i>
+                            {% trans "Le paiement en ligne n'est pas encore configuré. Veuillez contacter l'administrateur." %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+{% if stripe_public_key %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    const stripe = Stripe('{{ stripe_public_key }}');
+    const elements = stripe.elements();
+    const cardElement = elements.create('card');
+
+    document.getElementById('card-element-container').style.display = 'block';
+    cardElement.mount('#card-element');
+
+    cardElement.on('change', function(event) {
+        const displayError = document.getElementById('card-errors');
+        displayError.textContent = event.error ? event.error.message : '';
+    });
+
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('amount').value = this.dataset.amount;
+        });
+    });
+
+    document.getElementById('donation-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Traitement...';
+
+        const amount = document.getElementById('amount').value;
+        const donationType = document.getElementById('donation_type').value;
+        const campaignId = document.getElementById('campaign').value || null;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const response = await fetch('/api/v1/payments/payments/create_intent/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ amount, donation_type: donationType, campaign_id: campaignId }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de la création du paiement');
+            }
+
+            const { error } = await stripe.confirmCardPayment(data.client_secret, {
+                payment_method: { card: cardElement },
+            });
+
+            if (error) {
+                document.getElementById('card-errors').textContent = error.message;
+            } else {
+                window.location.href = '/payments/success/';
+            }
+        } catch (err) {
+            document.getElementById('payment-message').style.display = 'block';
+            document.getElementById('payment-message').className = 'alert alert-danger mt-3';
+            document.getElementById('payment-message').textContent = err.message;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-credit-card me-2"></i>Faire un don';
+        }
+    });
+</script>
+{% else %}
+<script>
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('amount').value = this.dataset.amount;
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

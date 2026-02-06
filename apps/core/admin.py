@@ -42,3 +42,25 @@ class SoftDeleteModelAdmin(BaseModelAdmin):
         self.message_user(request, f'{count} objet(s) supprimé(s) définitivement.')
 
     hard_delete_selected.short_description = "Supprimer définitivement les objets sélectionnés"
+
+
+from apps.core.audit import LoginAudit
+
+
+@admin.register(LoginAudit)
+class LoginAuditAdmin(admin.ModelAdmin):
+    list_display = ['email_attempted', 'success', 'ip_address', 'method', 'created_at']
+    list_filter = ['success', 'method', 'created_at']
+    search_fields = ['email_attempted', 'ip_address']
+    readonly_fields = ['user', 'email_attempted', 'ip_address', 'user_agent', 'success', 'failure_reason', 'method', 'created_at']
+    date_hierarchy = 'created_at'
+    ordering = ['-created_at']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser

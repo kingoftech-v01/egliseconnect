@@ -1,0 +1,20 @@
+{
+    "name": "EgliseConnect",
+    "short_name": "EgliseConnect",
+    "description": "Systeme de gestion d'eglise",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1a73e8",
+    "orientation": "any",
+    "lang": "fr-CA",
+    "dir": "ltr",
+    "icons": [
+        {
+            "src": "/static/w3crm/images/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

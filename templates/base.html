@@ -8,6 +8,12 @@
         <meta name="description" content="{{ dz_array.public.description }}">
         <title>{% block title %}{{ dz_array.public.title }}{% endblock %}</title>
         <link rel="shortcut icon" type="image/png" href="{% static dz_array.public.favicon %}">
+        <!-- PWA -->
+        <meta name="theme-color" content="#1a73e8">
+        <link rel="manifest" href="/manifest.json">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="ÉgliseConnect">
         {% for cssurl in dz_array.pagelevel.w3crm.w3crm_views.css|getdata:request.path %}
         <link rel="stylesheet" href="{% static cssurl %}">
         {% endfor %}
@@ -58,6 +64,12 @@
     <script src="{% static jsurl %}"></script>
     {% endfor %}
     {% block additional_js %}{% endblock %}
+    <!-- PWA Service Worker -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    </script>
 
 </body>
 </html>
