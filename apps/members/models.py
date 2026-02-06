@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel, SoftDeleteModel
-from apps.core.constants import Roles, FamilyStatus, GroupType, PrivacyLevel, Province
+from apps.core.constants import Roles, FamilyStatus, GroupType, PrivacyLevel, Province, MembershipStatus
 from apps.core.validators import validate_image_file
 
 User = get_user_model()
@@ -201,6 +201,59 @@ class Member(SoftDeleteModel):
         help_text=_('Visible uniquement par l\'équipe pastorale')
     )
 
+    # --- Onboarding fields ---
+    membership_status = models.CharField(
+        max_length=30,
+        choices=MembershipStatus.CHOICES,
+        default=MembershipStatus.REGISTERED,
+        db_index=True,
+        verbose_name=_('Statut d\'adhésion')
+    )
+
+    registration_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date d\'inscription')
+    )
+
+    form_deadline = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date limite formulaire')
+    )
+
+    form_submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Formulaire soumis le')
+    )
+
+    admin_reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Révisé par admin le')
+    )
+
+    admin_reviewed_by = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reviewed_members',
+        verbose_name=_('Révisé par')
+    )
+
+    became_active_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Devenu membre actif le')
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        verbose_name=_('Raison du refus')
+    )
+
     class Meta:
         verbose_name = _('Membre')
         verbose_name_plural = _('Membres')
@@ -249,6 +302,38 @@ class Member(SoftDeleteModel):
         return today.year - self.birth_date.year - (
             (today.month, today.day) < (self.birth_date.month, self.birth_date.day)
         )
+
+    @property
+    def days_remaining_for_form(self):
+        """Days remaining to submit the onboarding form."""
+        if not self.form_deadline:
+            return None
+        from django.utils import timezone
+        delta = self.form_deadline - timezone.now()
+        return max(0, delta.days)
+
+    @property
+    def is_form_expired(self):
+        """Has the 30-day form deadline passed?"""
+        if not self.form_deadline:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.form_deadline
+
+    @property
+    def has_full_access(self):
+        """Does this member have full dashboard access?"""
+        return self.membership_status in MembershipStatus.FULL_ACCESS
+
+    @property
+    def can_use_qr(self):
+        """Can this member use QR code for attendance?"""
+        return self.membership_status in MembershipStatus.QR_ALLOWED
+
+    @property
+    def is_in_onboarding(self):
+        """Is this member currently in the onboarding process?"""
+        return self.membership_status in MembershipStatus.IN_PROCESS
 
     @property
     def is_staff_member(self):

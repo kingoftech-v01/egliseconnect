@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Formulaire d'integration - Onboarding{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Formulaire d'integration</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Onboarding</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Countdown -->
+        {% if days_remaining is not None %}
+        <div class="row mb-3">
+            <div class="col-12">
+                {% if days_remaining < 7 %}
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+                    <div>
+                        <strong>Attention !</strong> Il ne vous reste que <strong>{{ days_remaining }} jour{{ days_remaining|pluralize }}</strong> pour soumettre ce formulaire.
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fas fa-clock me-3 fs-4"></i>
+                    <div>
+                        <strong>{{ days_remaining }} jour{{ days_remaining|pluralize }}</strong> restant{{ days_remaining|pluralize }} pour soumettre ce formulaire.
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Remplissez vos informations</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-4">
+                            Veuillez remplir tous les champs obligatoires marques d'un asterisque (*).
+                            Les informations fournies seront examinees par notre equipe.
+                        </p>
+
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <h6 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Veuillez corriger les erreurs suivantes :</h6>
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {% if field.field.widget.input_type == 'select' or field.field.widget.attrs.class and 'select' in field.field.widget.attrs.class %}
+                                    {{ field }}
+                                {% elif field.field.widget.input_type == 'checkbox' %}
+                                    <div class="form-check">
+                                        {{ field }}
+                                        <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    </div>
+                                {% elif field.field.widget.input_type == 'textarea' %}
+                                    {{ field }}
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                                {% if field.help_text %}
+                                <div class="form-text text-muted">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in field.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="/onboarding/status/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                    <i class="fas fa-paper-plane me-2"></i>Soumettre le formulaire
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

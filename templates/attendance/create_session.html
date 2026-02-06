@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Creer une session{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Creer une session</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/sessions/">Sessions</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Creer une session</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Nouvelle session de presence</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/attendance/sessions/create/">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label" for="session-name">Nom de la session</label>
+                                <input type="text" name="name" id="session-name" class="form-control" placeholder="Ex: Culte du dimanche, Reunion de priere..." required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="session-type">Type de session</label>
+                                <select name="session_type" id="session-type" class="form-select" required>
+                                    <option value="">-- Choisir un type --</option>
+                                    {% for value, label in session_types %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle me-2"></i>Creer la session
+                                </button>
+                                <a href="/attendance/sessions/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

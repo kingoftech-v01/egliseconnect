@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}{% if course %}Modifier le cours{% else %}Nouveau cours{% endif %} - Administration{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{% if course %}Modifier le cours{% else %}Nouveau cours{% endif %}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/courses/">Cours</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{% if course %}Modifier{% else %}Creer{% endif %}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">
+                            {% if course %}
+                            Modifier le cours : {{ course.name }}
+                            {% else %}
+                            Creer un nouveau cours de formation
+                            {% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <h6 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Veuillez corriger les erreurs suivantes :</h6>
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label" for="name">Nom du cours <span class="text-danger">*</span></label>
+                                <input type="text" name="name" id="name" class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+                                       value="{{ form.name.value|default:'' }}" placeholder="Ex: Formation des nouveaux membres" required>
+                                {% if form.name.errors %}
+                                <div class="invalid-feedback">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Choisissez un nom clair et descriptif pour ce cours.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="description">Description</label>
+                                <textarea name="description" id="description" class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+                                          rows="4" placeholder="Decrivez les objectifs et le contenu general de ce cours...">{{ form.description.value|default:'' }}</textarea>
+                                {% if form.description.errors %}
+                                <div class="invalid-feedback">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="instructor">Formateur principal</label>
+                                    {% if instructors %}
+                                    <select name="instructor" id="instructor" class="form-select">
+                                        <option value="">-- Choisir un formateur --</option>
+                                        {% for inst in instructors %}
+                                        <option value="{{ inst.pk }}" {% if form.instructor.value == inst.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ inst.first_name }} {{ inst.last_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% else %}
+                                    <input type="text" name="instructor_name" id="instructor" class="form-control"
+                                           value="{{ form.instructor_name.value|default:'' }}" placeholder="Nom du formateur">
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="is_active">Statut</label>
+                                    <select name="is_active" id="is_active" class="form-select">
+                                        <option value="true" {% if form.is_active.value == True or form.is_active.value == 'true' or not course %}selected{% endif %}>Actif</option>
+                                        <option value="false" {% if form.is_active.value == False or form.is_active.value == 'false' %}selected{% endif %}>Inactif</option>
+                                    </select>
+                                    <div class="form-text">Un cours inactif ne sera pas propose aux nouveaux membres.</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="notes">Notes internes (facultatif)</label>
+                                <textarea name="notes" id="notes" class="form-control" rows="3"
+                                          placeholder="Notes visibles uniquement par les administrateurs...">{{ form.notes.value|default:'' }}</textarea>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/courses/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    {% if course %}
+                                    <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                                    {% else %}
+                                    <i class="fas fa-plus me-2"></i>Creer le cours
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

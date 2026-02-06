@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}{{ course.name }} - Detail du cours{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ course.name }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/courses/">Cours</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ course.name }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Course Info -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Informations du cours</h4>
+                        <a href="/onboarding/admin/courses/{{ course.pk }}/edit/" class="btn btn-outline-warning btn-xs">
+                            <i class="fas fa-edit me-1"></i>Modifier
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Nom</span>
+                                <strong>{{ course.name }}</strong>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Statut</span>
+                                {% if course.is_active %}
+                                    <span class="badge bg-success">Actif</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactif</span>
+                                {% endif %}
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Nombre de lecons</span>
+                                <span>{{ lessons|length }}</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Participants actifs</span>
+                                <span>{{ course.participants_count|default:"0" }}</span>
+                            </li>
+                            {% if course.created_at %}
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Date de creation</span>
+                                <span>{{ course.created_at|date:"d/m/Y" }}</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                        {% if course.description %}
+                        <hr>
+                        <p class="text-muted mb-0">{{ course.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lessons List -->
+            <div class="col-xl-8 col-lg-7">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Lecons du cours</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Ordre</th>
+                                        <th>Titre</th>
+                                        <th>Description</th>
+                                        <th>Documents</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lesson in lessons %}
+                                    <tr>
+                                        <td><strong>{{ lesson.order }}</strong></td>
+                                        <td>{{ lesson.title }}</td>
+                                        <td>{{ lesson.description|truncatewords:8|default:"-" }}</td>
+                                        <td>
+                                            {% if lesson.material_pdf %}
+                                                <span class="badge bg-light text-dark"><i class="fas fa-file-pdf text-danger me-1"></i>PDF</span>
+                                            {% endif %}
+                                            {% if lesson.notes_file %}
+                                                <span class="badge bg-light text-dark"><i class="fas fa-file-alt text-info me-1"></i>Notes</span>
+                                            {% endif %}
+                                            {% if not lesson.material_pdf and not lesson.notes_file %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/onboarding/admin/courses/{{ course.pk }}/lessons/{{ lesson.pk }}/edit/" class="btn btn-outline-warning btn-xs" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="/onboarding/admin/courses/{{ course.pk }}/lessons/{{ lesson.pk }}/delete/" class="btn btn-outline-danger btn-xs" title="Supprimer" onclick="return confirm('Etes-vous sur de vouloir supprimer cette lecon ?');">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Aucune lecon pour ce cours.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Lesson Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Ajouter une lecon</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data" action="/onboarding/admin/courses/{{ course.pk }}/lessons/add/">
+                            {% csrf_token %}
+
+                            {% if lesson_form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in lesson_form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in lesson_form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label" for="order">Ordre <span class="text-danger">*</span></label>
+                                    <input type="number" name="order" id="order" class="form-control" min="1"
+                                           value="{{ lesson_form.order.value|default:next_order }}" required>
+                                </div>
+                                <div class="col-md-10">
+                                    <label class="form-label" for="title">Titre de la lecon <span class="text-danger">*</span></label>
+                                    <input type="text" name="title" id="title" class="form-control" required
+                                           value="{{ lesson_form.title.value|default:'' }}" placeholder="Ex: Introduction a la foi chretienne">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="description">Description</label>
+                                    <textarea name="description" id="description" class="form-control" rows="3"
+                                              placeholder="Description du contenu de la lecon...">{{ lesson_form.description.value|default:'' }}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="material_pdf">Support de cours (PDF)</label>
+                                    <input type="file" name="material_pdf" id="material_pdf" class="form-control" accept=".pdf">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="notes_file">Notes de cours</label>
+                                    <input type="file" name="notes_file" id="notes_file" class="form-control" accept=".pdf,.doc,.docx,.txt">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Ajouter la lecon
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

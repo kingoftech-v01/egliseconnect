@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Examen du dossier - {{ member.first_name }} {{ member.last_name }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Examen du dossier</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/pipeline/">Pipeline</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ member.first_name }} {{ member.last_name }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Member Info -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Informations du membre</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            {% if member.photo %}
+                            <img src="{{ member.photo.url }}" alt="{{ member.first_name }}" class="rounded-circle mb-2" width="100" height="100">
+                            {% else %}
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:100px;height:100px;">
+                                <span class="text-primary fs-1">{{ member.first_name|first }}{{ member.last_name|first }}</span>
+                            </div>
+                            {% endif %}
+                            <h5 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+                            <span class="badge bg-{{ status_badge|default:'secondary' }}">{{ status_display|default:member.get_onboarding_status_display }}</span>
+                        </div>
+                        <ul class="list-unstyled">
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Courriel</span>
+                                <span>{{ member.email|default:"-" }}</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Telephone</span>
+                                <span>{{ member.phone|default:"-" }}</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Date d'inscription</span>
+                                <span>{{ member.registered_date|date:"d/m/Y"|default:"-" }}</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Date de naissance</span>
+                                <span>{{ member.birth_date|date:"d/m/Y"|default:"-" }}</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Adresse</span>
+                                <span>{{ member.address|default:"-" }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Actions rapides</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/members/{{ member.pk }}/" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-user me-2"></i>Voir le profil complet
+                            </a>
+                            {% if onboarding.status == 'submitted' or onboarding.status == 'form_submitted' %}
+                            <a href="/onboarding/admin/schedule-lessons/{{ member.pk }}/" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-calendar me-2"></i>Planifier les lecons
+                            </a>
+                            {% endif %}
+                            {% if onboarding.status == 'in_training' or onboarding.status == 'training_complete' %}
+                            <a href="/onboarding/admin/schedule-interview/{{ member.pk }}/" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-comments me-2"></i>Planifier un entretien
+                            </a>
+                            {% endif %}
+                            {% if onboarding.status == 'interview' %}
+                            <a href="/onboarding/admin/interview-result/{{ member.pk }}/" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-clipboard-check me-2"></i>Enregistrer le resultat
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-xl-8 col-lg-7">
+                <!-- Form Submission Details -->
+                {% if submission %}
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Formulaire soumis</h4>
+                        <small class="text-muted">Soumis le {{ submission.submitted_date|date:"d/m/Y a H:i" }}</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <tbody>
+                                    {% for field_name, field_value in submission_fields.items %}
+                                    <tr>
+                                        <td class="text-muted" style="width:40%;">{{ field_name }}</td>
+                                        <td><strong>{{ field_value|default:"-" }}</strong></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Training Progress -->
+                {% if training_progress %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Progression de la formation</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{{ training_progress.completed }} / {{ training_progress.total }} lecons completees</span>
+                            <strong>{{ training_progress.percent }}%</strong>
+                        </div>
+                        <div class="progress mb-3" style="height: 12px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ training_progress.percent }}%;" aria-valuenow="{{ training_progress.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Lecon</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lesson in training_progress.lessons %}
+                                    <tr>
+                                        <td>{{ lesson.order }}</td>
+                                        <td>{{ lesson.title }}</td>
+                                        <td>{{ lesson.scheduled_date|date:"d/m/Y"|default:"-" }}</td>
+                                        <td>
+                                            {% if lesson.status == 'completed' %}
+                                                <span class="badge bg-success">Completee</span>
+                                            {% elif lesson.status == 'absent' %}
+                                                <span class="badge bg-danger">Absent</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">A venir</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Review Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Decision</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if review_form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in review_form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in review_form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label" for="decision">Decision <span class="text-danger">*</span></label>
+                                <select name="decision" id="decision" class="form-select" required>
+                                    <option value="">-- Choisir une decision --</option>
+                                    <option value="approve">Approuver - Passer a l'etape suivante</option>
+                                    <option value="reject">Rejeter la candidature</option>
+                                    <option value="request_changes">Demander des modifications</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="comments">Commentaires / Motif</label>
+                                <textarea name="comments" id="comments" class="form-control" rows="4" placeholder="Ajoutez des commentaires ou un motif pour votre decision..."></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/pipeline/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour au pipeline
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-check me-2"></i>Valider la decision
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

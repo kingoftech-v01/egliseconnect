@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Mon historique de presence{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Mon historique de presence</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mon historique</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Historique de presence ({{ total_count }})</h4>
+                            </div>
+                            <table id="history-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Session</th>
+                                        <th>Date</th>
+                                        <th>Methode</th>
+                                        <th>Heure</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in attendance_records %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ record.session.name }}</td>
+                                        <td>{{ record.session.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if record.method == 'qr' %}
+                                            <span class="badge bg-success">QR</span>
+                                            {% else %}
+                                            <span class="badge bg-info">Manuel</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ record.checked_in_at|date:"H:i" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Aucun historique de presence.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                {% if attendance_records.has_other_pages %}
+                <nav aria-label="Pagination de l'historique">
+                    <ul class="pagination justify-content-center">
+                        {% if attendance_records.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ attendance_records.previous_page_number }}">Precedent</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Precedent</span>
+                        </li>
+                        {% endif %}
+
+                        {% for num in attendance_records.paginator.page_range %}
+                        {% if attendance_records.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > attendance_records.number|add:'-3' and num < attendance_records.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if attendance_records.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ attendance_records.next_page_number }}">Suivant</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Suivant</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                <!-- Total Summary -->
+                <div class="row">
+                    <div class="col-12">
+                        <p class="text-muted text-end">Total des presences : <strong>{{ total_count }}</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

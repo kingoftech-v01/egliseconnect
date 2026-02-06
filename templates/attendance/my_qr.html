@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Mon Code QR{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Mon Code QR</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mon Code QR</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8 col-md-10">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4 class="heading mb-0">Mon Code QR de Presence</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if qr and qr.qr_image %}
+                        <!-- QR Code Image -->
+                        <div class="mb-4">
+                            <img src="{{ qr.qr_image.url }}" alt="Code QR de {{ member.first_name }} {{ member.last_name }}" class="img-fluid" style="max-width: 300px; width: 100%;">
+                        </div>
+
+                        <!-- Member Info -->
+                        <h5 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+                        {% if member.member_number %}
+                        <p class="text-muted mb-3">Numero de membre : {{ member.member_number }}</p>
+                        {% endif %}
+
+                        <!-- Expiry Info -->
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-clock me-2"></i>
+                            Valide jusqu'au {{ qr.expires_at }}
+                        </div>
+
+                        <!-- Instructions -->
+                        <div class="alert alert-primary mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Presentez ce code a l'entree
+                        </div>
+
+                        <!-- Auto-renewal Note -->
+                        <p class="text-muted small">
+                            <i class="bi bi-arrow-repeat me-1"></i>
+                            Ce code se renouvelle automatiquement chaque semaine
+                        </p>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Aucun code QR disponible. Veuillez contacter l'administration.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

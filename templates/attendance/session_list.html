@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Sessions de presence{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Sessions de presence</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Sessions</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Liste des sessions</h4>
+                                <a href="/attendance/sessions/create/" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-circle me-1"></i>Nouvelle session
+                                </a>
+                            </div>
+                            <table id="sessions-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                        <th>Nombre de presences</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for session in sessions %}
+                                    <tr>
+                                        <td>
+                                            <a href="/attendance/sessions/{{ session.pk }}/">{{ session.name }}</a>
+                                        </td>
+                                        <td>{{ session.get_session_type_display }}</td>
+                                        <td>{{ session.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if session.is_open %}
+                                            <span class="badge bg-success">Ouverte</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Fermee</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ session.attendance_count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Aucune session trouvee.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                {% if sessions.has_other_pages %}
+                <nav aria-label="Pagination des sessions">
+                    <ul class="pagination justify-content-center">
+                        {% if sessions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ sessions.previous_page_number }}">Precedent</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Precedent</span>
+                        </li>
+                        {% endif %}
+
+                        {% for num in sessions.paginator.page_range %}
+                        {% if sessions.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > sessions.number|add:'-3' and num < sessions.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if sessions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ sessions.next_page_number }}">Suivant</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Suivant</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

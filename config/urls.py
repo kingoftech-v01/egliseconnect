@@ -17,6 +17,8 @@ from apps.volunteers.urls import api_urlpatterns as volunteers_api
 from apps.communication.urls import api_urlpatterns as communication_api
 from apps.help_requests.urls import api_urlpatterns as help_requests_api
 from apps.reports.urls import api_urlpatterns as reports_api
+from apps.onboarding.urls import api_urlpatterns as onboarding_api
+from apps.attendance.urls import api_urlpatterns as attendance_api
 
 from apps.members.urls import frontend_urlpatterns as members_frontend
 from apps.donations.urls import frontend_urlpatterns as donations_frontend
@@ -25,6 +27,8 @@ from apps.volunteers.urls import frontend_urlpatterns as volunteers_frontend
 from apps.communication.urls import frontend_urlpatterns as communication_frontend
 from apps.help_requests.urls import frontend_urlpatterns as help_requests_frontend
 from apps.reports.urls import frontend_urlpatterns as reports_frontend
+from apps.onboarding.urls import frontend_urlpatterns as onboarding_frontend
+from apps.attendance.urls import frontend_urlpatterns as attendance_frontend
 
 
 api_v1_patterns = [
@@ -35,6 +39,8 @@ api_v1_patterns = [
     path('communication/', include((communication_api, 'communication'))),
     path('help-requests/', include((help_requests_api, 'help_requests'))),
     path('reports/', include((reports_api, 'reports'))),
+    path('onboarding/', include((onboarding_api, 'onboarding'))),
+    path('attendance/', include((attendance_api, 'attendance'))),
 ]
 
 
@@ -46,6 +52,8 @@ frontend_patterns = [
     path('communication/', include((communication_frontend, 'communication'))),
     path('help-requests/', include((help_requests_frontend, 'help_requests'))),
     path('reports/', include((reports_frontend, 'reports'))),
+    path('onboarding/', include((onboarding_frontend, 'onboarding'))),
+    path('attendance/', include((attendance_frontend, 'attendance'))),
 ]
 
 
@@ -55,9 +63,9 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    path('', RedirectView.as_view(url='/reports/', permanent=False), name='home'),
+    path('', RedirectView.as_view(url='/onboarding/dashboard/', permanent=False), name='home'),
     path('', include((frontend_patterns, 'frontend'))),
-    path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/', include('allauth.urls')),
 ]
 
 if settings.DEBUG:

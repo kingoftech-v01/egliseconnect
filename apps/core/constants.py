@@ -286,6 +286,112 @@ class NotificationType:
     ]
 
 
+class MembershipStatus:
+    """Membership lifecycle stages from registration to active member."""
+    REGISTERED = 'registered'
+    FORM_PENDING = 'form_pending'
+    FORM_SUBMITTED = 'form_submitted'
+    IN_REVIEW = 'in_review'
+    APPROVED = 'approved'
+    IN_TRAINING = 'in_training'
+    INTERVIEW_SCHEDULED = 'interview_scheduled'
+    ACTIVE = 'active'
+    SUSPENDED = 'suspended'
+    REJECTED = 'rejected'
+    EXPIRED = 'expired'
+
+    CHOICES = [
+        (REGISTERED, _('Inscrit')),
+        (FORM_PENDING, _('Formulaire en attente')),
+        (FORM_SUBMITTED, _('Formulaire soumis')),
+        (IN_REVIEW, _('En cours de révision')),
+        (APPROVED, _('Approuvé')),
+        (IN_TRAINING, _('En formation')),
+        (INTERVIEW_SCHEDULED, _('Interview planifiée')),
+        (ACTIVE, _('Membre actif')),
+        (SUSPENDED, _('Suspendu')),
+        (REJECTED, _('Refusé')),
+        (EXPIRED, _('Expiré')),
+    ]
+
+    QR_ALLOWED = [
+        REGISTERED, FORM_PENDING, FORM_SUBMITTED,
+        IN_REVIEW, APPROVED, IN_TRAINING,
+        INTERVIEW_SCHEDULED, ACTIVE,
+    ]
+
+    FULL_ACCESS = [ACTIVE]
+
+    IN_PROCESS = [
+        REGISTERED, FORM_PENDING, FORM_SUBMITTED,
+        IN_REVIEW, APPROVED, IN_TRAINING, INTERVIEW_SCHEDULED,
+    ]
+
+
+class InterviewStatus:
+    """Interview scheduling and result states."""
+    PROPOSED = 'proposed'
+    ACCEPTED = 'accepted'
+    COUNTER = 'counter'
+    CONFIRMED = 'confirmed'
+    COMPLETED_PASS = 'passed'
+    COMPLETED_FAIL = 'failed'
+    NO_SHOW = 'no_show'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (PROPOSED, _('Date proposée')),
+        (ACCEPTED, _('Acceptée')),
+        (COUNTER, _('Contre-proposition')),
+        (CONFIRMED, _('Confirmée')),
+        (COMPLETED_PASS, _('Réussie')),
+        (COMPLETED_FAIL, _('Échouée')),
+        (NO_SHOW, _('Absent')),
+        (CANCELLED, _('Annulée')),
+    ]
+
+
+class LessonStatus:
+    """Training lesson attendance states."""
+    UPCOMING = 'upcoming'
+    COMPLETED = 'completed'
+    ABSENT = 'absent'
+    MAKEUP = 'makeup'
+
+    CHOICES = [
+        (UPCOMING, _('À venir')),
+        (COMPLETED, _('Complétée')),
+        (ABSENT, _('Absent')),
+        (MAKEUP, _('Rattrapage')),
+    ]
+
+
+class AttendanceSessionType:
+    """Types of attendance check-in sessions."""
+    WORSHIP = 'worship'
+    EVENT = 'event'
+    LESSON = 'lesson'
+    OTHER = 'other'
+
+    CHOICES = [
+        (WORSHIP, _('Culte')),
+        (EVENT, _('Événement')),
+        (LESSON, _('Leçon de formation')),
+        (OTHER, _('Autre')),
+    ]
+
+
+class CheckInMethod:
+    """How a member was checked in."""
+    QR_SCAN = 'qr_scan'
+    MANUAL = 'manual'
+
+    CHOICES = [
+        (QR_SCAN, _('Scan QR')),
+        (MANUAL, _('Manuel')),
+    ]
+
+
 class Province:
     """Canadian provinces and territories."""
     AB = 'AB'

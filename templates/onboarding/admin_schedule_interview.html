@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Planifier un entretien - {{ member.first_name }} {{ member.last_name }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Planifier un entretien</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/pipeline/">Pipeline</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Entretien</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <!-- Member Summary -->
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        {% if member.photo %}
+                        <img src="{{ member.photo.url }}" alt="{{ member.first_name }}" class="rounded-circle me-3" width="60" height="60">
+                        {% else %}
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width:60px;height:60px;">
+                            <span class="text-primary fs-5">{{ member.first_name|first }}{{ member.last_name|first }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+                            <span class="text-muted">{{ member.email|default:"" }} {{ member.phone|default:"" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Planifier l'entretien</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="scheduled_date">Date et heure <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="scheduled_date" id="scheduled_date" class="form-control" required
+                                           value="{{ form.scheduled_date.value|default:'' }}">
+                                    {% if form.scheduled_date.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.scheduled_date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="location">Lieu <span class="text-danger">*</span></label>
+                                    <input type="text" name="location" id="location" class="form-control" required
+                                           value="{{ form.location.value|default:'' }}" placeholder="Ex: Bureau pastoral, Salle 3...">
+                                    {% if form.location.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.location.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="interviewer">Intervieweur <span class="text-danger">*</span></label>
+                                    {% if interviewers %}
+                                    <select name="interviewer" id="interviewer" class="form-select" required>
+                                        <option value="">-- Choisir un intervieweur --</option>
+                                        {% for interviewer in interviewers %}
+                                        <option value="{{ interviewer.pk }}" {% if form.interviewer.value == interviewer.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ interviewer.first_name }} {{ interviewer.last_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% else %}
+                                    <input type="text" name="interviewer_name" id="interviewer" class="form-control" required
+                                           value="{{ form.interviewer_name.value|default:'' }}" placeholder="Nom de l'intervieweur">
+                                    {% endif %}
+                                    {% if form.interviewer.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.interviewer.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="duration">Duree estimee</label>
+                                    <select name="duration" id="duration" class="form-select">
+                                        <option value="15">15 minutes</option>
+                                        <option value="30" selected>30 minutes</option>
+                                        <option value="45">45 minutes</option>
+                                        <option value="60">1 heure</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="notes">Notes (facultatif)</label>
+                                    <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Notes ou instructions supplementaires pour l'entretien...">{{ form.notes.value|default:'' }}</textarea>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Le membre recevra une notification avec les details de l'entretien
+                                et pourra accepter ou proposer une autre date.
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-calendar-check me-2"></i>Planifier l'entretien
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

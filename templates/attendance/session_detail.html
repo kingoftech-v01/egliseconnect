@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Session : {{ session.name }}{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ session.name }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/sessions/">Sessions</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ session.name }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Session Info Card -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Informations de la session</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Nom</span>
+                                <strong>{{ session.name }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Type</span>
+                                <strong>{{ session.get_session_type_display }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Date</span>
+                                <strong>{{ session.date|date:"d/m/Y" }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Heure</span>
+                                <strong>{{ session.start_time|date:"H:i" }}{% if session.end_time %} - {{ session.end_time|date:"H:i" }}{% endif %}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Statut</span>
+                                {% if session.is_open %}
+                                <span class="badge bg-success">Ouverte</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Fermee</span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Total des presences</span>
+                                <strong>{{ attendance_records.count }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Records Table -->
+            <div class="col-xl-8 col-lg-7">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Registre de presences ({{ attendance_records.count }})</h4>
+                            </div>
+                            <table id="attendance-records-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Membre</th>
+                                        <th>Methode</th>
+                                        <th>Heure</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in attendance_records %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ record.member.first_name }} {{ record.member.last_name }}</td>
+                                        <td>
+                                            {% if record.method == 'qr' %}
+                                            <span class="badge bg-success">QR</span>
+                                            {% else %}
+                                            <span class="badge bg-info">Manuel</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ record.checked_in_at|date:"H:i" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucune presence enregistree pour cette session.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

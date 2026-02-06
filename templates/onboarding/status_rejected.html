@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Candidature refusee - Onboarding{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Candidature refusee</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Onboarding</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-10">
+                <!-- Rejection Message -->
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>
+                        </div>
+                        <h3 class="mb-3">Nous sommes desoles</h3>
+                        <p class="fs-5 text-muted mb-4">
+                            Malheureusement, votre candidature n'a pas ete retenue pour le moment.
+                            Nous vous remercions pour votre interet et votre engagement.
+                        </p>
+
+                        {% if rejection_reason %}
+                        <div class="alert alert-light border text-start mx-auto" style="max-width:600px;" role="alert">
+                            <h6 class="alert-heading"><i class="fas fa-comment-alt me-2"></i>Motif communique :</h6>
+                            <p class="mb-0">{{ rejection_reason }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Contact Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Nous contacter</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">
+                            Si vous avez des questions ou souhaitez obtenir plus d'informations
+                            sur cette decision, n'hesitez pas a nous contacter.
+                        </p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded mb-3">
+                                    <i class="fas fa-envelope text-primary me-2"></i>
+                                    <strong>Courriel</strong>
+                                    <p class="mb-0 mt-1">{{ contact_email|default:"secretariat@eglise.org" }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded mb-3">
+                                    <i class="fas fa-phone text-primary me-2"></i>
+                                    <strong>Telephone</strong>
+                                    <p class="mb-0 mt-1">{{ contact_phone|default:"Contactez le secretariat" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3 mb-0" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Vous etes toujours le bienvenu dans notre communaute et pouvez continuer
+                            a participer aux cultes et evenements.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

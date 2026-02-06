@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Formation en cours - Onboarding{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Formation en cours</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Onboarding</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <!-- Progress Card -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Progression de la formation</h4>
+                        <span class="badge bg-primary fs-6">{{ completed_lessons }} sur {{ total_lessons }} completee{{ completed_lessons|pluralize }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">{{ completed_lessons }} lecon{{ completed_lessons|pluralize }} sur {{ total_lessons }} completee{{ completed_lessons|pluralize }}</span>
+                                <strong>{{ progress_percent }}%</strong>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                                     role="progressbar"
+                                     style="width: {{ progress_percent }}%;"
+                                     aria-valuenow="{{ progress_percent }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                    {{ progress_percent }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lessons Table -->
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Programme des lecons</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Lecon</th>
+                                        <th>Date</th>
+                                        <th>Lieu</th>
+                                        <th>Statut</th>
+                                        <th>Documents</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lesson in lessons %}
+                                    <tr>
+                                        <td><strong>{{ lesson.order }}</strong></td>
+                                        <td>
+                                            <a href="/onboarding/training/{{ lesson.pk }}/">{{ lesson.title }}</a>
+                                        </td>
+                                        <td>
+                                            {% if lesson.scheduled_date %}
+                                                {{ lesson.scheduled_date|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                                <span class="text-muted">Non planifiee</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ lesson.location|default:"-" }}</td>
+                                        <td>
+                                            {% if lesson.status == 'completed' %}
+                                                <span class="badge bg-success">Completee</span>
+                                            {% elif lesson.status == 'absent' %}
+                                                <span class="badge bg-danger">Absent</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">A venir</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if lesson.material_pdf %}
+                                                <a href="{{ lesson.material_pdf.url }}" class="btn btn-outline-primary btn-xs" target="_blank" title="Telecharger le PDF">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </a>
+                                            {% endif %}
+                                            {% if lesson.notes_file %}
+                                                <a href="{{ lesson.notes_file.url }}" class="btn btn-outline-info btn-xs" target="_blank" title="Telecharger les notes">
+                                                    <i class="fas fa-file-alt"></i>
+                                                </a>
+                                            {% endif %}
+                                            {% if not lesson.material_pdf and not lesson.notes_file %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Aucune lecon programmee pour le moment.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-xl-4 col-lg-4">
+                <!-- QR Code Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Votre code QR</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="text-muted mb-3">
+                            Presentez votre code QR a chaque lecon pour confirmer votre presence.
+                        </p>
+                        <a href="/attendance/my-qr/" class="btn btn-outline-primary">
+                            <i class="fas fa-qrcode me-2"></i>Voir mon code QR
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-0" role="alert">
+                            <p class="mb-2"><strong>Cours :</strong> {{ course.name|default:"Formation" }}</p>
+                            <p class="mb-2"><strong>Duree :</strong> {{ total_lessons }} lecon{{ total_lessons|pluralize }}</p>
+                            <p class="mb-0"><strong>Formateur :</strong> {{ course.instructor|default:"A confirmer" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Steps Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Votre parcours</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-3"></i>
+                                <span>Formulaire valide</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-spinner fa-spin text-primary me-3"></i>
+                                <strong>Formation en cours</strong>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center text-muted">
+                                <i class="fas fa-circle me-3" style="font-size:0.5rem;"></i>
+                                <span>Entretien final</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

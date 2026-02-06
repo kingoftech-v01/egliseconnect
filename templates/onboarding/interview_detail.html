@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Entretien - Details{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Entretien</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/status/">Onboarding</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Entretien</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <!-- Interview Details Card -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Details de l'entretien</h4>
+                        {% if interview.status == 'proposed' %}
+                            <span class="badge bg-warning text-dark fs-6">Propose</span>
+                        {% elif interview.status == 'confirmed' %}
+                            <span class="badge bg-success fs-6">Confirme</span>
+                        {% elif interview.status == 'counter_proposed' %}
+                            <span class="badge bg-info fs-6">Contre-proposition envoyee</span>
+                        {% elif interview.status == 'completed' %}
+                            <span class="badge bg-primary fs-6">Termine</span>
+                        {% elif interview.status == 'cancelled' %}
+                            <span class="badge bg-danger fs-6">Annule</span>
+                        {% else %}
+                            <span class="badge bg-secondary fs-6">{{ interview.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <!-- Interview Info Grid -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                    <strong>Date et heure</strong>
+                                    <p class="mb-0 mt-2 fs-5">
+                                        {% if interview.scheduled_date %}
+                                            {{ interview.scheduled_date|date:"l d F Y" }}
+                                            <br>
+                                            <span class="text-primary">{{ interview.scheduled_date|date:"H:i" }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Non definie</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                    <strong>Lieu</strong>
+                                    <p class="mb-0 mt-2 fs-5">{{ interview.location|default:"A confirmer" }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <i class="fas fa-user-tie text-primary me-2"></i>
+                                    <strong>Intervieweur</strong>
+                                    <p class="mb-0 mt-2 fs-5">{{ interview.interviewer|default:"A confirmer" }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <strong>Duree estimee</strong>
+                                    <p class="mb-0 mt-2 fs-5">{{ interview.duration|default:"30 minutes" }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if interview.notes %}
+                        <div class="mb-4">
+                            <h5>Notes supplementaires</h5>
+                            <div class="border rounded p-3 bg-light">
+                                {{ interview.notes|linebreaks }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action Cards based on Status -->
+                {% if interview.status == 'proposed' %}
+                <!-- Accept Form -->
+                <div class="card border-success">
+                    <div class="card-header bg-success bg-opacity-10">
+                        <h4 class="heading mb-0 text-success"><i class="fas fa-check-circle me-2"></i>Accepter la date proposee</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Si cette date et ce creneau vous conviennent, confirmez votre presence en cliquant ci-dessous.
+                        </p>
+                        <form method="post" action="/onboarding/interview/accept/">
+                            {% csrf_token %}
+                            <input type="hidden" name="interview_id" value="{{ interview.pk }}">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check me-2"></i>Je confirme ma presence
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Counter-propose Form -->
+                <div class="card border-info">
+                    <div class="card-header bg-info bg-opacity-10">
+                        <h4 class="heading mb-0 text-info"><i class="fas fa-exchange-alt me-2"></i>Proposer une autre date</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Si la date proposee ne vous convient pas, vous pouvez suggerer une alternative.
+                            Attention : cette possibilite n'est offerte qu'une seule fois.
+                        </p>
+                        <form method="post" action="/onboarding/interview/counter-propose/">
+                            {% csrf_token %}
+                            <input type="hidden" name="interview_id" value="{{ interview.pk }}">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="proposed_date">Date et heure souhaitees <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="proposed_date" id="proposed_date" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="proposed_location">Lieu souhaite (facultatif)</label>
+                                    <input type="text" name="proposed_location" id="proposed_location" class="form-control" placeholder="Laisser vide pour garder le meme lieu">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="reason">Motif de la contre-proposition <span class="text-danger">*</span></label>
+                                    <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Expliquez pourquoi la date proposee ne vous convient pas..." required></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-info">
+                                        <i class="fas fa-paper-plane me-2"></i>Envoyer la contre-proposition
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if interview.status == 'confirmed' %}
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <div class="alert alert-warning mb-0" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Date DEFINITIVE</h5>
+                            <p class="mb-2">
+                                Cette date est <strong>definitive</strong> et ne peut plus etre modifiee.
+                                Veuillez vous presenter a l'heure et au lieu indiques ci-dessus.
+                            </p>
+                            <hr>
+                            <p class="mb-0">
+                                <strong>Rappel important :</strong> Il n'y a <strong>pas de deuxieme chance</strong>.
+                                En cas d'absence non justifiee, votre processus d'integration pourrait etre definitivement annule.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if interview.status == 'counter_proposed' %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="alert alert-info mb-0" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Contre-proposition envoyee</h5>
+                            <p class="mb-0">
+                                Votre contre-proposition a bien ete transmise. Vous serez notifie
+                                de la decision de l'administration prochainement.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-xl-4 col-lg-4">
+                <!-- Reminder -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Rappel important</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-danger mb-3" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Pas de deuxieme chance.</strong>
+                        </div>
+                        <p class="text-muted mb-0">
+                            L'entretien est la derniere etape de votre parcours d'integration.
+                            Preparez-vous soigneusement et soyez ponctuel.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Preparation Tips -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Conseils de preparation</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Relisez vos notes de formation
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Preparez vos questions
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Arrivez 10 minutes en avance
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Apportez une piece d'identite
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="card">
+                    <div class="card-body text-center">
+                        <a href="/onboarding/status/" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

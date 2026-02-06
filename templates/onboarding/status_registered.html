@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Bienvenue - Onboarding{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Bienvenue</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Onboarding</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Welcome Message -->
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <h2 class="text-primary mb-3">Bienvenue {{ member.first_name }} !</h2>
+                            <p class="fs-5 text-muted">
+                                Nous sommes heureux de vous accueillir dans notre communaute.
+                                Pour finaliser votre inscription, veuillez remplir le formulaire ci-dessous.
+                            </p>
+                        </div>
+
+                        <!-- Countdown -->
+                        <div class="text-center mb-4">
+                            {% if days_remaining is not None %}
+                                {% if days_remaining < 7 %}
+                                <div class="alert alert-danger d-flex align-items-center justify-content-center" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2 fs-4"></i>
+                                    <div>
+                                        <strong>Attention !</strong> Il ne vous reste que <strong>{{ days_remaining }} jour{{ days_remaining|pluralize }}</strong> pour remplir votre formulaire.
+                                        Ne tardez pas !
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-info d-flex align-items-center justify-content-center" role="alert">
+                                    <i class="fas fa-clock me-2 fs-4"></i>
+                                    <div>
+                                        <strong>{{ days_remaining }} jour{{ days_remaining|pluralize }}</strong> restant{{ days_remaining|pluralize }} pour remplir votre formulaire.
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                        <!-- CTA Button -->
+                        <div class="text-center">
+                            <a href="/onboarding/form/" class="btn btn-primary btn-lg px-5 py-3">
+                                <i class="fas fa-file-alt me-2"></i>Remplir le formulaire
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code Card -->
+            <div class="col-xl-4 col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Votre code QR</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="text-muted mb-3">
+                            Utilisez votre code QR pour marquer votre presence lors des cultes et evenements.
+                        </p>
+                        <a href="/attendance/my-qr/" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-qrcode me-2"></i>Voir mon code QR
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Steps Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Etapes a suivre</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex align-items-center">
+                                <span class="badge bg-primary rounded-circle me-3" style="width:28px;height:28px;line-height:28px;padding:0;">1</span>
+                                <strong>Remplir le formulaire</strong>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center text-muted">
+                                <span class="badge bg-secondary rounded-circle me-3" style="width:28px;height:28px;line-height:28px;padding:0;">2</span>
+                                Validation par l'administration
+                            </li>
+                            <li class="list-group-item d-flex align-items-center text-muted">
+                                <span class="badge bg-secondary rounded-circle me-3" style="width:28px;height:28px;line-height:28px;padding:0;">3</span>
+                                Formation
+                            </li>
+                            <li class="list-group-item d-flex align-items-center text-muted">
+                                <span class="badge bg-secondary rounded-circle me-3" style="width:28px;height:28px;line-height:28px;padding:0;">4</span>
+                                Entretien
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

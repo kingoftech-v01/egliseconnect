@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Pipeline d'integration - Administration{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Pipeline d'integration</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Pipeline</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-primary">{{ total_in_process|default:"0" }}</h2>
+                            <span class="text-muted">En cours d'integration</span>
+                        </div>
+                        <div class="icon-box bg-primary-light rounded-circle">
+                            <i class="fas fa-users text-primary" style="font-size:1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-success">{{ total_active|default:"0" }}</h2>
+                            <span class="text-muted">Membres actifs</span>
+                        </div>
+                        <div class="icon-box bg-success-light rounded-circle">
+                            <i class="fas fa-user-check text-success" style="font-size:1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-warning">{{ total_pending|default:"0" }}</h2>
+                            <span class="text-muted">En attente de validation</span>
+                        </div>
+                        <div class="icon-box bg-warning-light rounded-circle">
+                            <i class="fas fa-hourglass-half text-warning" style="font-size:1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-info">{{ total_interviews|default:"0" }}</h2>
+                            <span class="text-muted">Entretiens a venir</span>
+                        </div>
+                        <div class="icon-box bg-info-light rounded-circle">
+                            <i class="fas fa-calendar-check text-info" style="font-size:1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kanban Columns -->
+        <div class="row">
+            <!-- Column 1: Inscrits -->
+            <div class="col-xl-3 col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-secondary bg-opacity-10">
+                        <h4 class="heading mb-0">
+                            <i class="fas fa-user-plus me-2"></i>Inscrits
+                            <span class="badge bg-secondary ms-2">{{ registered_list|length }}</span>
+                        </h4>
+                    </div>
+                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                        {% for member in registered_list %}
+                        <div class="card mb-2 border">
+                            <div class="card-body p-3">
+                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
+                                <small class="text-muted d-block mb-2">Inscrit le {{ member.registered_date|date:"d/m/Y" }}</small>
+                                {% if member.days_remaining is not None and member.days_remaining < 7 %}
+                                <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>{{ member.days_remaining }}j restants</small>
+                                {% endif %}
+                                <div class="mt-2">
+                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-primary btn-xs">Voir</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-3 mb-0">Aucun inscrit</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Formulaires soumis -->
+            <div class="col-xl-3 col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-warning bg-opacity-10">
+                        <h4 class="heading mb-0">
+                            <i class="fas fa-file-alt me-2"></i>Formulaires soumis
+                            <span class="badge bg-warning text-dark ms-2">{{ submitted_list|length }}</span>
+                        </h4>
+                    </div>
+                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                        {% for member in submitted_list %}
+                        <div class="card mb-2 border">
+                            <div class="card-body p-3">
+                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
+                                <small class="text-muted d-block mb-2">Soumis le {{ member.submitted_date|date:"d/m/Y" }}</small>
+                                <div class="mt-2">
+                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-warning btn-xs">Examiner</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-3 mb-0">Aucun formulaire en attente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: En formation -->
+            <div class="col-xl-3 col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-primary bg-opacity-10">
+                        <h4 class="heading mb-0">
+                            <i class="fas fa-graduation-cap me-2"></i>En formation
+                            <span class="badge bg-primary ms-2">{{ training_list|length }}</span>
+                        </h4>
+                    </div>
+                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                        {% for member in training_list %}
+                        <div class="card mb-2 border">
+                            <div class="card-body p-3">
+                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ member.progress_percent }}%;" aria-valuenow="{{ member.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small class="text-muted">{{ member.completed_lessons }}/{{ member.total_lessons }} lecons</small>
+                                <div class="mt-2">
+                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-primary btn-xs">Voir</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-3 mb-0">Personne en formation</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 4: Interview -->
+            <div class="col-xl-3 col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-info bg-opacity-10">
+                        <h4 class="heading mb-0">
+                            <i class="fas fa-comments me-2"></i>Interview
+                            <span class="badge bg-info ms-2">{{ interview_list|length }}</span>
+                        </h4>
+                    </div>
+                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                        {% for member in interview_list %}
+                        <div class="card mb-2 border">
+                            <div class="card-body p-3">
+                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
+                                {% if member.interview_date %}
+                                <small class="text-muted d-block mb-1">{{ member.interview_date|date:"d/m/Y H:i" }}</small>
+                                {% endif %}
+                                <span class="badge bg-{{ member.interview_badge|default:'secondary' }}">{{ member.interview_status_display|default:"En attente" }}</span>
+                                <div class="mt-2">
+                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-info btn-xs">Voir</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-3 mb-0">Aucun entretien prevu</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

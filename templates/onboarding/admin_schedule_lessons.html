@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Planifier les lecons - {{ member.first_name }} {{ member.last_name }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Planifier les lecons</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/pipeline/">Pipeline</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Planification</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <!-- Member Summary -->
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        {% if member.photo %}
+                        <img src="{{ member.photo.url }}" alt="{{ member.first_name }}" class="rounded-circle me-3" width="60" height="60">
+                        {% else %}
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width:60px;height:60px;">
+                            <span class="text-primary fs-5">{{ member.first_name|first }}{{ member.last_name|first }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+                            <span class="text-muted">Planification du programme de formation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Selection -->
+                {% if courses %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Cours selectionne</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">
+                            <strong>{{ course.name|default:"Non selectionne" }}</strong>
+                            {% if course.description %} - {{ course.description }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Lessons Schedule Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Planifier les dates des lecons</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors or formset.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <h6 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Erreurs dans le formulaire</h6>
+                                <ul class="mb-0">
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            {% if not course %}
+                            <div class="mb-4">
+                                <label class="form-label" for="course">Choisir un cours <span class="text-danger">*</span></label>
+                                <select name="course" id="course" class="form-select" required>
+                                    <option value="">-- Selectionner un cours --</option>
+                                    {% for c in courses %}
+                                    <option value="{{ c.pk }}">{{ c.name }} ({{ c.lessons_count }} lecon{{ c.lessons_count|pluralize }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% else %}
+                            <input type="hidden" name="course" value="{{ course.pk }}">
+                            {% endif %}
+
+                            <div class="alert alert-info mb-4" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Definissez la date, l'heure et le lieu pour chaque lecon du programme.
+                            </div>
+
+                            {{ formset.management_form }}
+
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:5%;">#</th>
+                                            <th style="width:25%;">Lecon</th>
+                                            <th style="width:30%;">Date et heure</th>
+                                            <th style="width:30%;">Lieu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lesson_form in formset %}
+                                        {{ lesson_form.id }}
+                                        {{ lesson_form.lesson_id }}
+                                        <tr>
+                                            <td><strong>{{ lesson_form.order.value|default:forloop.counter }}</strong></td>
+                                            <td>
+                                                <strong>{{ lesson_form.title.value|default:"Lecon" }}</strong>
+                                                {% if lesson_form.description.value %}
+                                                <br><small class="text-muted">{{ lesson_form.description.value }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <input type="datetime-local"
+                                                       name="{{ lesson_form.scheduled_date.html_name }}"
+                                                       class="form-control {% if lesson_form.scheduled_date.errors %}is-invalid{% endif %}"
+                                                       value="{{ lesson_form.scheduled_date.value|default:'' }}">
+                                                {% if lesson_form.scheduled_date.errors %}
+                                                <div class="invalid-feedback">{{ lesson_form.scheduled_date.errors.0 }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <input type="text"
+                                                       name="{{ lesson_form.location.html_name }}"
+                                                       class="form-control {% if lesson_form.location.errors %}is-invalid{% endif %}"
+                                                       value="{{ lesson_form.location.value|default:'' }}"
+                                                       placeholder="Lieu de la lecon">
+                                                {% if lesson_form.location.errors %}
+                                                <div class="invalid-feedback">{{ lesson_form.location.errors.0 }}</div>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <!-- Fallback: manual lesson rows from lessons context -->
+                                        {% for lesson in lessons %}
+                                        <tr>
+                                            <td><strong>{{ lesson.order }}</strong></td>
+                                            <td>
+                                                <strong>{{ lesson.title }}</strong>
+                                                <input type="hidden" name="lesson_id_{{ forloop.counter0 }}" value="{{ lesson.pk }}">
+                                            </td>
+                                            <td>
+                                                <input type="datetime-local"
+                                                       name="scheduled_date_{{ forloop.counter0 }}"
+                                                       class="form-control"
+                                                       value="{{ lesson.scheduled_date|date:'Y-m-d\\TH:i'|default:'' }}">
+                                            </td>
+                                            <td>
+                                                <input type="text"
+                                                       name="location_{{ forloop.counter0 }}"
+                                                       class="form-control"
+                                                       value="{{ lesson.location|default:'' }}"
+                                                       placeholder="Lieu de la lecon">
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Enregistrer la planification
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

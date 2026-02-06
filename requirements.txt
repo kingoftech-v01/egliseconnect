@@ -4,6 +4,11 @@ djangorestframework>=3.14,<4.0
 django-filter>=23.5
 django-cors-headers>=4.3
 
+# Authentication (allauth)
+django-allauth>=65.0
+django-allauth[mfa]>=65.0
+django-allauth[socialaccount]>=65.0
+
 # Database
 psycopg2-binary>=2.9
 
@@ -12,6 +17,9 @@ Pillow>=10.0
 
 # HTML Sanitization
 bleach>=6.0
+
+# QR Code Generation
+qrcode[pil]>=7.4
 
 # Date/Time Utilities
 python-dateutil>=2.8
