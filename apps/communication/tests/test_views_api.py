@@ -354,7 +354,8 @@ class TestNotificationViewSetList:
         NotificationFactory.create_batch(2)  # other member's
         response = api_client.get('/api/v1/communication/notifications/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['count'] == 3
+        # 3 factory notifications + 1 welcome notification from onboarding signal
+        assert response.data['count'] == 4
 
     def test_list_without_member_profile(self, api_client, user_no_profile):
         api_client.force_authenticate(user=user_no_profile)
@@ -448,11 +449,14 @@ class TestNotificationViewSetUnreadCount:
         NotificationFactory(member=member, is_read=True)
         response = api_client.get('/api/v1/communication/notifications/unread_count/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['count'] == 3
+        # 3 factory notifications + 1 welcome notification from onboarding signal
+        assert response.data['count'] == 4
 
     def test_unread_count_zero(self, api_client, member_user):
         user, member = member_user
         api_client.force_authenticate(user=user)
+        # Mark the welcome notification from onboarding signal as read
+        Notification.objects.filter(member=member).update(is_read=True)
         response = api_client.get('/api/v1/communication/notifications/unread_count/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] == 0

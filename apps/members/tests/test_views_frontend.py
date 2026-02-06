@@ -426,7 +426,9 @@ class TestMemberCreateView:
             'password': 'S3cur3P@ssW0rd!',
             'password_confirm': 'S3cur3P@ssW0rd!',
         }
-        response = client.post(self.url, data)
+        # Mock login to avoid ValueError with multiple auth backends
+        with patch('django.contrib.auth.login'):
+            response = client.post(self.url, data)
         assert response.status_code == 302
         member = Member.objects.get(first_name='Pierre', last_name='Tremblay')
         assert member.user is not None

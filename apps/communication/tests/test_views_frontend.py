@@ -252,7 +252,8 @@ class TestNotificationListView:
         NotificationFactory.create_batch(2)  # other member's
         response = client.get(reverse('frontend:communication:notification_list'))
         assert response.status_code == 200
-        assert len(response.context['notifications'].object_list) == 3
+        # 3 factory notifications + 1 welcome notification from onboarding signal
+        assert len(response.context['notifications'].object_list) == 4
 
     def test_no_member_profile_redirects(self, client, user_no_profile):
         client.force_login(user_no_profile)
