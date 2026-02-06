@@ -1,1 +1,163 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:events:event_list' %}">Événements</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Event Info -->
+            <div class="col-xl-8 col-lg-8">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ event.title }}</h4>
+                        {% if event.is_cancelled %}
+                        <span class="badge badge-danger light">Annulé</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if event.image %}
+                        <div class="mb-4">
+                            <img src="{{ event.image.url }}" class="img-fluid rounded" alt="{{ event.title }}">
+                        </div>
+                        {% endif %}
+                        {% if event.description %}
+                        <p class="mb-4">{{ event.description|linebreaksbr }}</p>
+                        {% endif %}
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Type</span>
+                                    <p>{{ event.get_event_type_display }}</p>
+                                </li>
+                                <li>
+                                    <span>Début</span>
+                                    <p>
+                                        {{ event.start_datetime|date:"d/m/Y H:i" }}
+                                        {% if event.all_day %}
+                                        <span class="badge badge-info light">Toute la journée</span>
+                                        {% endif %}
+                                    </p>
+                                </li>
+                                <li>
+                                    <span>Fin</span>
+                                    <p>{{ event.end_datetime|date:"d/m/Y H:i" }}</p>
+                                </li>
+                                <li>
+                                    <span>Lieu</span>
+                                    <p>
+                                        {% if event.is_online %}
+                                        <span class="badge badge-primary light">En ligne</span>
+                                        {% if event.online_link %}
+                                        - <a href="{{ event.online_link }}" target="_blank" rel="noopener noreferrer">Rejoindre</a>
+                                        {% endif %}
+                                        {% elif event.location %}
+                                        {{ event.location }}
+                                        {% if event.location_address %}
+                                        <br><small class="text-muted">{{ event.location_address }}</small>
+                                        {% endif %}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </p>
+                                </li>
+                                {% if event.organizer %}
+                                <li>
+                                    <span>Organisateur</span>
+                                    <p>{{ event.organizer.full_name }}</p>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <span>Capacité</span>
+                                    <p>
+                                        {% if event.max_attendees %}
+                                        {{ event.confirmed_count }} / {{ event.max_attendees }}
+                                        {% if event.is_full %}
+                                        <span class="badge badge-danger light">Complet</span>
+                                        {% endif %}
+                                        {% else %}
+                                        Illimitée ({{ event.confirmed_count }} inscrit{{ event.confirmed_count|pluralize:"s" }})
+                                        {% endif %}
+                                    </p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- RSVP + Sidebar -->
+            <div class="col-xl-4 col-lg-4">
+                <!-- RSVP Card -->
+                {% if event.requires_rsvp and not event.is_cancelled %}
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Inscription</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if user_rsvp %}
+                        <p class="mb-2">Votre statut :
+                            <span class="badge badge-{% if user_rsvp.status == 'confirmed' %}success{% elif user_rsvp.status == 'declined' %}danger{% elif user_rsvp.status == 'maybe' %}warning{% else %}secondary{% endif %} light">
+                                {{ user_rsvp.get_status_display }}
+                            </span>
+                        </p>
+                        {% if user_rsvp.guests > 0 %}
+                        <p class="text-muted mb-3">Invités : {{ user_rsvp.guests }}</p>
+                        {% endif %}
+                        {% endif %}
+                        {% if not event.is_full or user_rsvp %}
+                        <form method="post" action="{% url 'frontend:events:event_rsvp' pk=event.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label" for="rsvp-status">Statut</label>
+                                <select name="status" id="rsvp-status" class="form-select">
+                                    <option value="confirmed" {% if user_rsvp and user_rsvp.status == 'confirmed' %}selected{% endif %}>Confirmé</option>
+                                    <option value="maybe" {% if user_rsvp and user_rsvp.status == 'maybe' %}selected{% endif %}>Peut-être</option>
+                                    <option value="declined" {% if user_rsvp and user_rsvp.status == 'declined' %}selected{% endif %}>Refusé</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="rsvp-guests">Nombre d'invités</label>
+                                <input type="number" name="guests" id="rsvp-guests" class="form-control" min="0" max="10" value="{{ user_rsvp.guests|default:0 }}">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                {% if user_rsvp %}Mettre à jour{% else %}S'inscrire{% endif %}
+                            </button>
+                        </form>
+                        {% else %}
+                        <p class="text-danger mb-0">Cet événement est complet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                <!-- Attendees Card -->
+                {% if attendees %}
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Participants confirmés</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% for rsvp in attendees %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                {{ rsvp.member.full_name }}
+                                {% if rsvp.guests > 0 %}
+                                <span class="badge badge-primary light">+{{ rsvp.guests }} invité{{ rsvp.guests|pluralize:"s" }}</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

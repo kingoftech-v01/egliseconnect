@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur serveur - EgliseConnect</title>
+    <style>
+        body {
+            background-color: #f0f1f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .error-container {
+            text-align: center;
+            padding: 40px;
+        }
+        .error-code {
+            font-size: 120px;
+            font-weight: 700;
+            color: #e85353;
+            margin: 0;
+            line-height: 1;
+        }
+        .error-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 20px 0 10px;
+        }
+        .error-message {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .btn-home {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #6853e8;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .btn-home:hover {
+            background: #5640c4;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <p class="error-code">500</p>
+        <h1 class="error-title">Erreur serveur</h1>
+        <p class="error-message">Une erreur interne est survenue. Veuillez réessayer plus tard.</p>
+        <a href="/" class="btn-home">Retour à l'accueil</a>
+    </div>
+</body>
+</html>

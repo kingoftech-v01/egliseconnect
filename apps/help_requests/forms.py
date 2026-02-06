@@ -1,9 +1,10 @@
 """Help Requests forms."""
 from django import forms
+from apps.core.mixins import W3CRMFormMixin
 from .models import HelpRequest, HelpRequestComment
 
 
-class HelpRequestForm(forms.ModelForm):
+class HelpRequestForm(W3CRMFormMixin, forms.ModelForm):
     class Meta:
         model = HelpRequest
         fields = ['category', 'title', 'description', 'urgency', 'is_confidential']
@@ -19,7 +20,7 @@ class HelpRequestForm(forms.ModelForm):
         }
 
 
-class HelpRequestCommentForm(forms.ModelForm):
+class HelpRequestCommentForm(W3CRMFormMixin, forms.ModelForm):
     class Meta:
         model = HelpRequestComment
         fields = ['content', 'is_internal']
@@ -32,7 +33,7 @@ class HelpRequestCommentForm(forms.ModelForm):
         }
 
 
-class HelpRequestAssignForm(forms.Form):
+class HelpRequestAssignForm(W3CRMFormMixin, forms.Form):
     assigned_to = forms.UUIDField(
         label='Assigner à',
         widget=forms.Select()
@@ -50,7 +51,7 @@ class HelpRequestAssignForm(forms.Form):
         ]
 
 
-class HelpRequestResolveForm(forms.Form):
+class HelpRequestResolveForm(W3CRMFormMixin, forms.Form):
     resolution_notes = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'rows': 3}),

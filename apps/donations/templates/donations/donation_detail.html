@@ -1,1 +1,133 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:donations:donation_history' %}">Mes dons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Détails du don</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Numéro de don</span>
+                                    <p>{{ donation.donation_number }}</p>
+                                </li>
+                                <li>
+                                    <span>Membre</span>
+                                    <p>{{ donation.member.full_name }}</p>
+                                </li>
+                                <li>
+                                    <span>Montant</span>
+                                    <p><strong>{{ donation.amount }} $</strong></p>
+                                </li>
+                                <li>
+                                    <span>Date</span>
+                                    <p>{{ donation.date|date:"d/m/Y" }}</p>
+                                </li>
+                                <li>
+                                    <span>Type de don</span>
+                                    <p>{{ donation.get_donation_type_display }}</p>
+                                </li>
+                                <li>
+                                    <span>Mode de paiement</span>
+                                    <p>{{ donation.get_payment_method_display }}</p>
+                                </li>
+                                <li>
+                                    <span>Campagne</span>
+                                    <p>
+                                        {% if donation.campaign %}
+                                        <a href="{% url 'frontend:donations:campaign_detail' pk=donation.campaign.pk %}">
+                                            {{ donation.campaign.name }}
+                                        </a>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </p>
+                                </li>
+                                {% if donation.notes %}
+                                <li>
+                                    <span>Notes</span>
+                                    <p>{{ donation.notes }}</p>
+                                </li>
+                                {% endif %}
+                                {% if donation.check_number %}
+                                <li>
+                                    <span>Numéro de chèque</span>
+                                    <p>{{ donation.check_number }}</p>
+                                </li>
+                                {% endif %}
+                                {% if donation.transaction_id %}
+                                <li>
+                                    <span>ID de transaction</span>
+                                    <p>{{ donation.transaction_id }}</p>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-4">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Reçu</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Reçu envoyé</span>
+                                    <p>
+                                        {% if donation.receipt_sent %}
+                                        <span class="badge badge-success light">Oui</span>
+                                        {% else %}
+                                        <span class="badge badge-warning light">Non</span>
+                                        {% endif %}
+                                    </p>
+                                </li>
+                                {% if donation.receipt_sent_date %}
+                                <li>
+                                    <span>Date d'envoi du reçu</span>
+                                    <p>{{ donation.receipt_sent_date|date:"d/m/Y H:i" }}</p>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% if donation.recorded_by %}
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Enregistré par</span>
+                                    <p>{{ donation.recorded_by.full_name }}</p>
+                                </li>
+                                <li>
+                                    <span>Date d'enregistrement</span>
+                                    <p>{{ donation.created_at|date:"d/m/Y H:i" }}</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

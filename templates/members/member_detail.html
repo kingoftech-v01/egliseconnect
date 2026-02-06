@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Profile Card -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="c-profile text-center">
+                            {% if member.photo %}
+                            <img src="{{ member.photo.url }}" alt="{{ member.full_name }}" class="rounded-circle mb-3" width="120" height="120">
+                            {% endif %}
+                            <h4>{{ member.first_name }} {{ member.last_name }}</h4>
+                            <p class="text-muted">{{ member.get_role_display }}</p>
+                            <p class="text-muted">{{ member.member_number }}</p>
+                            {% if member.is_active %}
+                            <span class="badge bg-success">Actif</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactif</span>
+                            {% endif %}
+                        </div>
+                        {% if can_edit %}
+                        <div class="text-center mt-3">
+                            <a href="/members/{{ member.pk }}/edit/" class="btn btn-primary btn-sm">Modifier le profil</a>
+                        </div>
+                        {% endif %}
+                        <div class="c-details mt-4">
+                            <ul class="list-unstyled">
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Courriel</span>
+                                    <p class="mb-0">{{ member.email|default:"-" }}</p>
+                                </li>
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Telephone</span>
+                                    <p class="mb-0">{{ member.phone|default:"-" }}</p>
+                                </li>
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Date de naissance</span>
+                                    <p class="mb-0">{% if member.birth_date %}{{ member.birth_date }}{% else %}-{% endif %}</p>
+                                </li>
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Adresse</span>
+                                    <p class="mb-0">{{ member.address|default:"-" }}</p>
+                                </li>
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Ville</span>
+                                    <p class="mb-0">{{ member.city|default:"-" }}</p>
+                                </li>
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Etat civil</span>
+                                    <p class="mb-0">{{ member.get_family_status_display }}</p>
+                                </li>
+                                {% if member.joined_date %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Date d'adhesion</span>
+                                    <p class="mb-0">{{ member.joined_date }}</p>
+                                </li>
+                                {% endif %}
+                                {% if member.baptism_date %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Date de bapteme</span>
+                                    <p class="mb-0">{{ member.baptism_date }}</p>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details Panels -->
+            <div class="col-xl-8 col-lg-7">
+                <!-- Groups -->
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Groupes</h4>
+                            </div>
+                            <table id="member-groups-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Groupe</th>
+                                        <th>Role dans le groupe</th>
+                                        <th>Date d'adhesion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for gm in groups %}
+                                    <tr>
+                                        <td><a href="/members/groups/{{ gm.group.pk }}/">{{ gm.group.name }}</a></td>
+                                        <td>{{ gm.get_role_display }}</td>
+                                        <td>{{ gm.joined_date }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun groupe.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Family Members -->
+                {% if member.family %}
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Famille : {{ member.family.name }}</h4>
+                                <a href="/members/families/{{ member.family.pk }}/" class="btn btn-outline-primary btn-sm">Voir la famille</a>
+                            </div>
+                            <table id="family-members-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Role</th>
+                                        <th>Telephone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for fm in family_members %}
+                                    <tr>
+                                        <td><a href="/members/{{ fm.pk }}/">{{ fm.first_name }} {{ fm.last_name }}</a></td>
+                                        <td>{{ fm.get_role_display }}</td>
+                                        <td>{{ fm.phone|default:"-" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun autre membre dans cette famille.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

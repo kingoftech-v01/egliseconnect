@@ -1,1 +1,84 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Campagnes de dons</h4>
+                            </div>
+                            <table id="campaign-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Objectif</th>
+                                        <th>Montant collecté</th>
+                                        <th>Date début</th>
+                                        <th>Date fin</th>
+                                        <th>Statut</th>
+                                        <th>Progression</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for campaign in campaigns %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'frontend:donations:campaign_detail' pk=campaign.pk %}">
+                                                {{ campaign.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ campaign.goal_amount }} $</td>
+                                        <td><strong>{{ campaign.current_amount }} $</strong></td>
+                                        <td>{{ campaign.start_date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if campaign.end_date %}
+                                            {{ campaign.end_date|date:"d/m/Y" }}
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if campaign.is_ongoing %}
+                                            <span class="badge badge-success light">En cours</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary light">Terminée</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 8px; min-width: 100px;">
+                                                <div class="progress-bar bg-primary" role="progressbar"
+                                                     style="width: {{ campaign.progress_percentage }}%;"
+                                                     aria-valuenow="{{ campaign.progress_percentage }}"
+                                                     aria-valuemin="0" aria-valuemax="100"
+                                                     title="{{ campaign.name }} - {{ campaign.progress_percentage }}%"></div>
+                                            </div>
+                                            <small class="text-muted">{{ campaign.progress_percentage }}%</small>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">Aucune campagne trouvée.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

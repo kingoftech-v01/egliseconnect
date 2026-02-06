@@ -1,1 +1,131 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Action Bar -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="?upcoming=1" class="btn btn-outline-primary btn-sm">À venir</a>
+                                <a href="{% url 'frontend:events:event_list' %}" class="btn btn-outline-secondary btn-sm">Tous</a>
+                            </div>
+                            <a href="{% url 'frontend:events:event_calendar' %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-calendar me-1"></i> Voir le calendrier
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Events Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Liste des événements</h4>
+                            </div>
+                            <table id="event-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Date</th>
+                                        <th>Lieu</th>
+                                        <th>Type</th>
+                                        <th>Capacité</th>
+                                        <th>Inscriptions</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event in events %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'frontend:events:event_detail' pk=event.pk %}">
+                                                {{ event.title }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {{ event.start_datetime|date:"d/m/Y H:i" }}
+                                            {% if event.all_day %}
+                                            <span class="badge badge-info light">Toute la journée</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if event.is_online %}
+                                            <span class="badge badge-primary light">En ligne</span>
+                                            {% elif event.location %}
+                                            {{ event.location }}
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ event.get_event_type_display }}</td>
+                                        <td>
+                                            {% if event.max_attendees %}
+                                            {{ event.max_attendees }}
+                                            {% else %}
+                                            Illimitée
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ event.confirmed_count }}{% if event.max_attendees %} / {{ event.max_attendees }}{% endif %}
+                                            {% if event.is_full %}
+                                            <span class="badge badge-danger light">Complet</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'frontend:events:event_detail' pk=event.pk %}" class="btn btn-primary btn-xs" title="Voir les détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">Aucun événement trouvé.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% if events.has_other_pages %}
+                <nav aria-label="Pagination des événements">
+                    <ul class="pagination justify-content-center">
+                        {% if events.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ events.previous_page_number }}">Précédent</a>
+                        </li>
+                        {% endif %}
+                        {% for num in events.paginator.page_range %}
+                        <li class="page-item {% if events.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if events.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ events.next_page_number }}">Suivant</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

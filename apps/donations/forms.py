@@ -3,11 +3,12 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.constants import DonationType, PaymentMethod
+from apps.core.mixins import W3CRMFormMixin
 
 from .models import Donation, DonationCampaign
 
 
-class DonationForm(forms.ModelForm):
+class DonationForm(W3CRMFormMixin, forms.ModelForm):
     """Online donation form for members."""
 
     class Meta:
@@ -41,7 +42,7 @@ class DonationForm(forms.ModelForm):
         return amount
 
 
-class PhysicalDonationForm(forms.ModelForm):
+class PhysicalDonationForm(W3CRMFormMixin, forms.ModelForm):
     """Form for treasurer to record cash, check, and other physical donations."""
 
     class Meta:
@@ -91,7 +92,7 @@ class PhysicalDonationForm(forms.ModelForm):
         return cleaned_data
 
 
-class DonationCampaignForm(forms.ModelForm):
+class DonationCampaignForm(W3CRMFormMixin, forms.ModelForm):
     """Form for creating and editing donation campaigns."""
 
     class Meta:
@@ -127,7 +128,7 @@ class DonationCampaignForm(forms.ModelForm):
         return cleaned_data
 
 
-class DonationFilterForm(forms.Form):
+class DonationFilterForm(W3CRMFormMixin, forms.Form):
     """Filter form for donation list."""
 
     date_from = forms.DateField(
@@ -168,7 +169,7 @@ class DonationFilterForm(forms.Form):
     )
 
 
-class DonationReportForm(forms.Form):
+class DonationReportForm(W3CRMFormMixin, forms.Form):
     """Form for generating donation reports."""
 
     PERIOD_CHOICES = [

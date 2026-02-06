@@ -1,2 +1,62 @@
-<h1>Newsletters</h1>
-{% for n in newsletters %}{{ n.subject }}{% endfor %}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title|default:"Newsletters" }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title|default:"Newsletters" }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title|default:"Newsletters" }}</h4>
+                        <a href="/communication/newsletters/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouvelle newsletter
+                        </a>
+                    </div>
+                    <table id="newsletters-table" class="table">
+                        <thead>
+                            <tr>
+                                <th>Sujet</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for newsletter in newsletters %}
+                            <tr>
+                                <td>
+                                    <a href="/communication/newsletters/{{ newsletter.pk }}/">{{ newsletter.subject }}</a>
+                                </td>
+                                <td>{{ newsletter.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if newsletter.status == 'sent' %}
+                                        <span class="badge badge-success">Envoyée</span>
+                                    {% elif newsletter.status == 'draft' %}
+                                        <span class="badge badge-warning">Brouillon</span>
+                                    {% elif newsletter.status == 'scheduled' %}
+                                        <span class="badge badge-info">Planifiée</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ newsletter.get_status_display|default:newsletter.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">Aucune newsletter enregistrée.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

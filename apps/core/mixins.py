@@ -1,4 +1,5 @@
-"""View mixins for permissions, context, and form handling."""
+"""View and form mixins for permissions, context, and form handling."""
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
@@ -288,3 +289,34 @@ class FilterByMemberMixin:
                 return queryset.filter(member=user.member_profile)
 
         return queryset.none()
+
+
+class W3CRMFormMixin:
+    """Mixin that adds W3CRM/Bootstrap CSS classes to all form field widgets."""
+
+    WIDGET_CSS_MAP = {
+        forms.TextInput: 'form-control',
+        forms.NumberInput: 'form-control',
+        forms.EmailInput: 'form-control',
+        forms.PasswordInput: 'form-control',
+        forms.DateInput: 'form-control',
+        forms.DateTimeInput: 'form-control',
+        forms.TimeInput: 'form-control',
+        forms.Textarea: 'form-control',
+        forms.URLInput: 'form-control',
+        forms.FileInput: 'form-control',
+        forms.ClearableFileInput: 'form-control',
+        forms.Select: 'form-select',
+        forms.SelectMultiple: 'form-select',
+        forms.CheckboxInput: 'form-check-input',
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            widget = field.widget
+            css_class = self.WIDGET_CSS_MAP.get(type(widget))
+            if css_class:
+                existing = widget.attrs.get('class', '')
+                if css_class not in existing.split():
+                    widget.attrs['class'] = f'{existing} {css_class}'.strip()

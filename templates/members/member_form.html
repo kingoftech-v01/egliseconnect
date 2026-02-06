@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ form_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                            <div class="mb-3 form-check">
+                                {{ field }}
+                                <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {% if field.help_text %}
+                                <small class="form-text text-muted d-block">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                            <div class="d-flex gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary">{{ submit_text|default:"Enregistrer" }}</button>
+                                {% if member and cancel_url %}
+                                <a href="/members/{{ member.pk }}/" class="btn btn-outline-secondary">Annuler</a>
+                                {% elif cancel_url %}
+                                <a href="/members/" class="btn btn-outline-secondary">Annuler</a>
+                                {% else %}
+                                <a href="/members/" class="btn btn-outline-secondary">Annuler</a>
+                                {% endif %}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

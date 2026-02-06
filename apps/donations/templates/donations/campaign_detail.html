@@ -1,1 +1,136 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:donations:campaign_list' %}">Campagnes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Campaign Info -->
+            <div class="col-xl-8 col-lg-8">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ campaign.name }}</h4>
+                        {% if campaign.is_ongoing %}
+                        <span class="badge badge-success light">En cours</span>
+                        {% else %}
+                        <span class="badge badge-secondary light">Terminée</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if campaign.description %}
+                        <p class="mb-4">{{ campaign.description }}</p>
+                        {% endif %}
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Date de début</span>
+                                    <p>{{ campaign.start_date|date:"d/m/Y" }}</p>
+                                </li>
+                                <li>
+                                    <span>Date de fin</span>
+                                    <p>
+                                        {% if campaign.end_date %}
+                                        {{ campaign.end_date|date:"d/m/Y" }}
+                                        {% else %}
+                                        Non définie
+                                        {% endif %}
+                                    </p>
+                                </li>
+                                <li>
+                                    <span>Objectif</span>
+                                    <p>{{ campaign.goal_amount }} $</p>
+                                </li>
+                                <li>
+                                    <span>Montant collecté</span>
+                                    <p><strong>{{ campaign.current_amount }} $</strong></p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Progress Sidebar -->
+            <div class="col-xl-4 col-lg-4">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Progression</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="mb-3">{{ campaign.progress_percentage }}%</h2>
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                 style="width: {{ campaign.progress_percentage }}%;"
+                                 aria-valuenow="{{ campaign.progress_percentage }}"
+                                 aria-valuemin="0" aria-valuemax="100"
+                                 title="{{ campaign.name }} - Progression">
+                                {{ campaign.progress_percentage }}%
+                            </div>
+                        </div>
+                        <p class="text-muted mb-3">
+                            {{ campaign.current_amount }} $ collectés sur {{ campaign.goal_amount }} $
+                        </p>
+                        {% if campaign.is_ongoing %}
+                        <a href="{% url 'frontend:donations:donation_create' %}" class="btn btn-primary">
+                            <i class="fas fa-hand-holding-heart me-1"></i> Faire un don
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if campaign.image %}
+                <div class="card h-auto">
+                    <div class="card-body p-0">
+                        <img src="{{ campaign.image.url }}" class="img-fluid rounded" alt="{{ campaign.name }}">
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Recent Donations -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Dons récents</h4>
+                            </div>
+                            <table id="campaign-donations-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Date</th>
+                                        <th>Montant</th>
+                                        <th>Mode de paiement</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for donation in recent_donations %}
+                                    <tr>
+                                        <td>{{ donation.member.full_name }}</td>
+                                        <td>{{ donation.date|date:"d/m/Y" }}</td>
+                                        <td><strong>{{ donation.amount }} $</strong></td>
+                                        <td>{{ donation.get_payment_method_display }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4">Aucun don pour cette campagne.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

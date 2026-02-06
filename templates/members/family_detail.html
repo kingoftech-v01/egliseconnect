@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Family Info Card -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="c-profile text-center">
+                            <h4>{{ family.name }}</h4>
+                        </div>
+                        <div class="c-details mt-4">
+                            <ul class="list-unstyled">
+                                {% if family.address %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Adresse</span>
+                                    <p class="mb-0">{{ family.address }}</p>
+                                </li>
+                                {% endif %}
+                                {% if family.city %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Ville</span>
+                                    <p class="mb-0">{{ family.city }}</p>
+                                </li>
+                                {% endif %}
+                                {% if family.province %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Province</span>
+                                    <p class="mb-0">{{ family.get_province_display }}</p>
+                                </li>
+                                {% endif %}
+                                {% if family.postal_code %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Code postal</span>
+                                    <p class="mb-0">{{ family.postal_code }}</p>
+                                </li>
+                                {% endif %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Nombre de membres</span>
+                                    <p class="mb-0">{{ family.member_count }}</p>
+                                </li>
+                                {% if family.notes %}
+                                <li class="mb-2">
+                                    <span class="text-muted d-block">Notes</span>
+                                    <p>{{ family.notes }}</p>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Family Members List -->
+            <div class="col-xl-8 col-lg-7">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Membres de la famille</h4>
+                            </div>
+                            <table id="family-members-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Role</th>
+                                        <th>Courriel</th>
+                                        <th>Telephone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in members %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/{{ m.pk }}/">{{ m.first_name }} {{ m.last_name }}</a>
+                                        </td>
+                                        <td>{{ m.get_role_display }}</td>
+                                        <td>{{ m.email|default:"-" }}</td>
+                                        <td>{{ m.phone|default:"-" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucun membre actif dans cette famille.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,1 +1,75 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:donations:donation_history' %}">Mes dons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ form_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">{{ submit_text|default:"Enregistrer" }}</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-4">
+                {% if campaigns %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Campagnes actives</h4>
+                    </div>
+                    <div class="card-body">
+                        {% for campaign in campaigns %}
+                        <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                            <h6>
+                                <a href="{% url 'frontend:donations:campaign_detail' pk=campaign.pk %}">
+                                    {{ campaign.name }}
+                                </a>
+                            </h6>
+                            <p class="text-muted mb-2">{{ campaign.description|truncatewords:20 }}</p>
+                            <div class="progress mb-1" style="height: 8px;">
+                                <div class="progress-bar bg-primary" role="progressbar"
+                                     style="width: {{ campaign.progress_percentage }}%;"
+                                     aria-valuenow="{{ campaign.progress_percentage }}"
+                                     aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">
+                                {{ campaign.current_amount }} $ / {{ campaign.goal_amount }} $
+                                ({{ campaign.progress_percentage }}%)
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

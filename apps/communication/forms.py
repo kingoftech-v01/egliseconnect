@@ -1,6 +1,7 @@
 """Communication forms."""
 import bleach
 from django import forms
+from apps.core.mixins import W3CRMFormMixin
 from .models import Newsletter
 
 # Safe HTML subset for newsletter content (used by serializers too)
@@ -24,7 +25,7 @@ ALLOWED_ATTRIBUTES = {
 }
 
 
-class NewsletterForm(forms.ModelForm):
+class NewsletterForm(W3CRMFormMixin, forms.ModelForm):
     class Meta:
         model = Newsletter
         fields = ['subject', 'content', 'content_plain', 'send_to_all', 'target_groups']

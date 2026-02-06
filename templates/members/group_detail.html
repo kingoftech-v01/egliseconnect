@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item"><a href="/members/groups/">Groupes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Group Info Card -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="c-profile text-center">
+                            <h4>{{ group.name }}</h4>
+                            <p class="text-muted">{{ group.get_group_type_display }}</p>
+                        </div>
+                        <div class="c-details mt-4">
+                            <ul class="list-unstyled">
+                                {% if group.description %}
+                                <li class="mb-3">
+                                    <span class="text-muted d-block">Description</span>
+                                    <p>{{ group.description }}</p>
+                                </li>
+                                {% endif %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Leader</span>
+                                    <p class="mb-0">
+                                        {% if group.leader %}
+                                        <a href="/members/{{ group.leader.pk }}/">{{ group.leader.full_name }}</a>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </p>
+                                </li>
+                                {% if group.meeting_day %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Jour de reunion</span>
+                                    <p class="mb-0">{{ group.meeting_day }}</p>
+                                </li>
+                                {% endif %}
+                                {% if group.meeting_time %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Heure de reunion</span>
+                                    <p class="mb-0">{{ group.meeting_time }}</p>
+                                </li>
+                                {% endif %}
+                                {% if group.meeting_location %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Lieu de reunion</span>
+                                    <p class="mb-0">{{ group.meeting_location }}</p>
+                                </li>
+                                {% endif %}
+                                {% if group.email %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Courriel</span>
+                                    <p class="mb-0">{{ group.email }}</p>
+                                </li>
+                                {% endif %}
+                                <li class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Nombre de membres</span>
+                                    <p class="mb-0">{{ group.member_count }}</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members List -->
+            <div class="col-xl-8 col-lg-7">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Membres du groupe</h4>
+                            </div>
+                            <table id="group-members-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Role dans le groupe</th>
+                                        <th>Date d'adhesion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for gm in memberships %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/{{ gm.member.pk }}/">{{ gm.member.first_name }} {{ gm.member.last_name }}</a>
+                                        </td>
+                                        <td>{{ gm.get_role_display }}</td>
+                                        <td>{{ gm.joined_date }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun membre dans ce groupe.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

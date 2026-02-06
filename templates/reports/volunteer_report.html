@@ -1,3 +1,234 @@
-<h1>Volunteer Report</h1>
-<p>{{ report }}</p>
-<p>{{ volunteer_stats }}</p>
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapport des volontaires</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport des volontaires</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Date Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-auto">
+                                <label class="form-label" for="start_date">Date de debut</label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ report.start_date }}">
+                            </div>
+                            <div class="col-auto">
+                                <label class="form-label" for="end_date">Date de fin</label>
+                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ report.end_date }}">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">Filtrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volunteer Stats Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Positions actives</h6>
+                                <h3>{{ volunteer_stats.total_positions }}</h3>
+                            </div>
+                            <div class="icon-box bg-primary-light">
+                                <i class="bi bi-briefcase"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Quarts completes</h6>
+                                <h3>{{ report.completed }}</h3>
+                            </div>
+                            <div class="icon-box bg-success-light">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Absences</h6>
+                                <h3>{{ report.no_shows }}</h3>
+                            </div>
+                            <div class="icon-box bg-danger-light">
+                                <i class="bi bi-x-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Horaires a venir</h6>
+                                <h3>{{ volunteer_stats.upcoming_schedules }}</h3>
+                            </div>
+                            <div class="icon-box bg-info-light">
+                                <i class="bi bi-calendar-week"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly summary -->
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Resume du mois en cours</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Confirmes ce mois</span>
+                                <strong>{{ volunteer_stats.confirmed_this_month }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>En attente ce mois</span>
+                                <strong>{{ volunteer_stats.pending_this_month }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total des quarts (periode)</span>
+                                <strong>{{ report.total_shifts }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volunteers by Position -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Volontaires par position</h4>
+                            </div>
+                            <table id="volunteers-by-position-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Nombre de volontaires</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in volunteer_stats.volunteers_by_position %}
+                                    <tr>
+                                        <td>{{ item.position__name }}</td>
+                                        <td>{{ item.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- By Position Detail -->
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Quarts par position ({{ report.start_date }} au {{ report.end_date }})</h4>
+                            </div>
+                            <table id="shifts-by-position-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Total</th>
+                                        <th>Completes</th>
+                                        <th>Absences</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in report.by_position %}
+                                    <tr>
+                                        <td>{{ item.position__name }}</td>
+                                        <td>{{ item.total }}</td>
+                                        <td>{{ item.completed }}</td>
+                                        <td>{{ item.no_show }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Volunteers -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Meilleurs volontaires</h4>
+                            </div>
+                            <table id="top-volunteers-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Quarts completes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for vol in report.top_volunteers %}
+                                    <tr>
+                                        <td>{{ vol.member__first_name }} {{ vol.member__last_name }}</td>
+                                        <td>{{ vol.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

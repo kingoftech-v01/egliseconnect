@@ -1,1 +1,47 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:donations:donation_admin_list' %}">Gestion des dons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ form_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">{{ submit_text|default:"Enregistrer" }}</button>
+                                <a href="{% url 'frontend:donations:donation_admin_list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

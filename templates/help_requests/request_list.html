@@ -1,2 +1,121 @@
-<h1>Help Requests</h1>
-{% for r in requests %}{{ r.title }}{% endfor %}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title|default:"Demandes d'aide" }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title|default:"Demandes d'aide" }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Barre de filtres -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label" for="filter-category">Catégorie</label>
+                        <select name="category" id="filter-category" class="form-select">
+                            <option value="">Toutes les catégories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.pk }}" {% if current_category|stringformat:"s" == category.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="filter-urgency">Urgence</label>
+                        <select name="urgency" id="filter-urgency" class="form-select">
+                            <option value="">Tous les niveaux</option>
+                            <option value="low" {% if current_urgency == 'low' %}selected{% endif %}>Faible</option>
+                            <option value="medium" {% if current_urgency == 'medium' %}selected{% endif %}>Moyenne</option>
+                            <option value="high" {% if current_urgency == 'high' %}selected{% endif %}>Haute</option>
+                            <option value="critical" {% if current_urgency == 'critical' %}selected{% endif %}>Critique</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="filter-status">Statut</label>
+                        <select name="status" id="filter-status" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            <option value="open" {% if current_status == 'open' %}selected{% endif %}>Ouvert</option>
+                            <option value="in_progress" {% if current_status == 'in_progress' %}selected{% endif %}>En cours</option>
+                            <option value="resolved" {% if current_status == 'resolved' %}selected{% endif %}>Résolu</option>
+                            <option value="closed" {% if current_status == 'closed' %}selected{% endif %}>Fermé</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tableau de données -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title|default:"Demandes d'aide" }}</h4>
+                        <a href="/help-requests/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouvelle demande
+                        </a>
+                    </div>
+                    <table id="requests-table" class="table">
+                        <thead>
+                            <tr>
+                                <th>Titre</th>
+                                <th>Catégorie</th>
+                                <th>Urgence</th>
+                                <th>Statut</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in requests %}
+                            <tr>
+                                <td>
+                                    <a href="/help-requests/{{ request.pk }}/">{{ request.title }}</a>
+                                </td>
+                                <td>{{ request.category.name|default:"-" }}</td>
+                                <td>
+                                    {% if request.urgency == 'critical' %}
+                                        <span class="badge badge-danger">Critique</span>
+                                    {% elif request.urgency == 'high' %}
+                                        <span class="badge badge-warning">Haute</span>
+                                    {% elif request.urgency == 'medium' %}
+                                        <span class="badge badge-info">Moyenne</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Faible</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if request.status == 'open' %}
+                                        <span class="badge badge-primary">Ouvert</span>
+                                    {% elif request.status == 'in_progress' %}
+                                        <span class="badge badge-warning">En cours</span>
+                                    {% elif request.status == 'resolved' %}
+                                        <span class="badge badge-success">Résolu</span>
+                                    {% elif request.status == 'closed' %}
+                                        <span class="badge badge-secondary">Fermé</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ request.get_status_display|default:request.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ request.created_at|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Aucune demande d'aide trouvée.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

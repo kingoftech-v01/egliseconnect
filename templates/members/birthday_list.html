@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Period Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-auto">
+                                <label class="form-label" for="period-select">Periode</label>
+                                <select name="period" id="period-select" class="form-select">
+                                    <option value="today" {% if period == "today" %}selected{% endif %}>Aujourd'hui</option>
+                                    <option value="week" {% if period == "week" %}selected{% endif %}>Cette semaine</option>
+                                    <option value="month" {% if period == "month" %}selected{% endif %}>Ce mois</option>
+                                </select>
+                            </div>
+                            {% if period == "month" %}
+                            <div class="col-auto">
+                                <label class="form-label" for="month-select">Mois</label>
+                                <select name="month" id="month-select" class="form-select">
+                                    <option value="">Mois en cours</option>
+                                    <option value="1" {% if selected_month == "1" %}selected{% endif %}>Janvier</option>
+                                    <option value="2" {% if selected_month == "2" %}selected{% endif %}>Fevrier</option>
+                                    <option value="3" {% if selected_month == "3" %}selected{% endif %}>Mars</option>
+                                    <option value="4" {% if selected_month == "4" %}selected{% endif %}>Avril</option>
+                                    <option value="5" {% if selected_month == "5" %}selected{% endif %}>Mai</option>
+                                    <option value="6" {% if selected_month == "6" %}selected{% endif %}>Juin</option>
+                                    <option value="7" {% if selected_month == "7" %}selected{% endif %}>Juillet</option>
+                                    <option value="8" {% if selected_month == "8" %}selected{% endif %}>Aout</option>
+                                    <option value="9" {% if selected_month == "9" %}selected{% endif %}>Septembre</option>
+                                    <option value="10" {% if selected_month == "10" %}selected{% endif %}>Octobre</option>
+                                    <option value="11" {% if selected_month == "11" %}selected{% endif %}>Novembre</option>
+                                    <option value="12" {% if selected_month == "12" %}selected{% endif %}>Decembre</option>
+                                </select>
+                            </div>
+                            {% endif %}
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">Filtrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Birthday Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">{{ title }}</h4>
+                            </div>
+                            <table id="birthday-list-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Date de naissance</th>
+                                        <th>Mois</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in members %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/{{ m.pk }}/">{{ m.first_name }} {{ m.last_name }}</a>
+                                        </td>
+                                        <td>{% if m.birth_date %}{{ m.birth_date }}{% else %}-{% endif %}</td>
+                                        <td>{% if m.birth_date %}{{ m.birth_date|date:"F" }}{% else %}-{% endif %}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun anniversaire pour cette periode.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

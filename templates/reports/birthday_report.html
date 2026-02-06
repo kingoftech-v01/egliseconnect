@@ -1,3 +1,73 @@
-<h1>Birthday Report</h1>
-<p>{{ birthdays }}</p>
-<p>{{ days }}</p>
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapport des anniversaires</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport des anniversaires</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Days Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-3">
+                            <label class="form-label mb-0" for="days-select">Prochains jours :</label>
+                            <select name="days" id="days-select" class="form-select w-auto" onchange="this.form.submit()">
+                                <option value="7" {% if days == 7 %}selected{% endif %}>7 jours</option>
+                                <option value="14" {% if days == 14 %}selected{% endif %}>14 jours</option>
+                                <option value="30" {% if days == 30 %}selected{% endif %}>30 jours</option>
+                                <option value="60" {% if days == 60 %}selected{% endif %}>60 jours</option>
+                                <option value="90" {% if days == 90 %}selected{% endif %}>90 jours</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Birthday Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Anniversaires dans les {{ days }} prochains jours</h4>
+                            </div>
+                            <table id="birthday-report-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Date de naissance</th>
+                                        <th>Age</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for bd in birthdays %}
+                                    <tr>
+                                        <td>{{ bd.member_name }}</td>
+                                        <td>{{ bd.birthday }}</td>
+                                        <td>{% if bd.age %}{{ bd.age }} ans{% else %}-{% endif %}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun anniversaire dans les {{ days }} prochains jours.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

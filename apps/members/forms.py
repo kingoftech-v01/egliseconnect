@@ -3,12 +3,13 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.mixins import W3CRMFormMixin
 from .models import Member, Family, Group, GroupMembership, DirectoryPrivacy
 
 User = get_user_model()
 
 
-class MemberRegistrationForm(forms.ModelForm):
+class MemberRegistrationForm(W3CRMFormMixin, forms.ModelForm):
     """Public registration form - collects essential info, more can be added via profile."""
 
     create_account = forms.BooleanField(
@@ -108,7 +109,7 @@ class MemberRegistrationForm(forms.ModelForm):
         return member
 
 
-class MemberProfileForm(forms.ModelForm):
+class MemberProfileForm(W3CRMFormMixin, forms.ModelForm):
     """Profile update form - excludes role, notes, and other staff-only fields."""
 
     class Meta:
@@ -133,7 +134,7 @@ class MemberProfileForm(forms.ModelForm):
         }
 
 
-class MemberAdminForm(forms.ModelForm):
+class MemberAdminForm(W3CRMFormMixin, forms.ModelForm):
     """Full admin form with all fields including role and notes."""
 
     class Meta:
@@ -167,7 +168,7 @@ class MemberAdminForm(forms.ModelForm):
         }
 
 
-class FamilyForm(forms.ModelForm):
+class FamilyForm(W3CRMFormMixin, forms.ModelForm):
     """Form for creating and editing families."""
 
     class Meta:
@@ -186,7 +187,7 @@ class FamilyForm(forms.ModelForm):
         }
 
 
-class GroupForm(forms.ModelForm):
+class GroupForm(W3CRMFormMixin, forms.ModelForm):
     """Form for creating and editing groups."""
 
     class Meta:
@@ -215,7 +216,7 @@ class GroupForm(forms.ModelForm):
         )
 
 
-class GroupMembershipForm(forms.ModelForm):
+class GroupMembershipForm(W3CRMFormMixin, forms.ModelForm):
     """Form for adding members to groups."""
 
     class Meta:
@@ -226,7 +227,7 @@ class GroupMembershipForm(forms.ModelForm):
         }
 
 
-class DirectoryPrivacyForm(forms.ModelForm):
+class DirectoryPrivacyForm(W3CRMFormMixin, forms.ModelForm):
     """Form for members to manage their privacy settings."""
 
     class Meta:
@@ -241,7 +242,7 @@ class DirectoryPrivacyForm(forms.ModelForm):
         ]
 
 
-class MemberSearchForm(forms.Form):
+class MemberSearchForm(W3CRMFormMixin, forms.Form):
     """Search and filter form for member list."""
 
     search = forms.CharField(

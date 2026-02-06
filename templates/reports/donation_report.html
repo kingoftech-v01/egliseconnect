@@ -1,4 +1,273 @@
-<h1>Donation Report</h1>
-<p>{{ report }}</p>
-<p>{{ stats }}</p>
-<p>{{ current_year }}</p>
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapport des dons</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport des dons</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Year Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-3">
+                            <label class="form-label mb-0" for="year-select">Annee :</label>
+                            <select name="year" id="year-select" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                                {% for y in available_years %}
+                                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donation Stats Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Total des dons ({{ stats.year }})</h6>
+                                <h3>{{ stats.total_amount|floatformat:2 }} $</h3>
+                            </div>
+                            <div class="icon-box bg-primary-light">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Nombre de dons</h6>
+                                <h3>{{ stats.total_count }}</h3>
+                            </div>
+                            <div class="icon-box bg-success-light">
+                                <i class="bi bi-receipt"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Don moyen</h6>
+                                <h3>{{ stats.average_amount|floatformat:2 }} $</h3>
+                            </div>
+                            <div class="icon-box bg-warning-light">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Donateurs uniques</h6>
+                                <h3>{{ report.unique_donors }}</h3>
+                            </div>
+                            <div class="icon-box bg-info-light">
+                                <i class="bi bi-person-heart"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Breakdown -->
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Dons par mois ({{ current_year }})</h4>
+                            </div>
+                            <table id="monthly-donations-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Mois</th>
+                                        <th>Montant total</th>
+                                        <th>Nombre de dons</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in report.monthly %}
+                                    <tr>
+                                        <td>{{ item.month }}</td>
+                                        <td>{{ item.total|floatformat:2 }} $</td>
+                                        <td>{{ item.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun don enregistre pour cette annee.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Donors (Anonymized) -->
+            <div class="col-xl-4 col-lg-4">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Meilleurs donateurs</h4>
+                            </div>
+                            <table id="top-donors-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Rang</th>
+                                        <th>Montant total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for donor in report.top_donors %}
+                                    <tr>
+                                        <td>#{{ donor.rank }}</td>
+                                        <td>{{ donor.total|floatformat:2 }} $</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- By Type and Payment Method -->
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Par type de don</h4>
+                            </div>
+                            <table id="by-type-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Montant</th>
+                                        <th>Nombre</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in stats.by_type %}
+                                    <tr>
+                                        <td>{{ item.donation_type }}</td>
+                                        <td>{{ item.total|floatformat:2 }} $</td>
+                                        <td>{{ item.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Par methode de paiement</h4>
+                            </div>
+                            <table id="by-method-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Methode</th>
+                                        <th>Montant</th>
+                                        <th>Nombre</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in stats.by_payment_method %}
+                                    <tr>
+                                        <td>{{ item.payment_method }}</td>
+                                        <td>{{ item.total|floatformat:2 }} $</td>
+                                        <td>{{ item.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Campaigns -->
+        {% if report.campaigns %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Par campagne</h4>
+                            </div>
+                            <table id="campaigns-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Campagne</th>
+                                        <th>Montant total</th>
+                                        <th>Nombre de dons</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for campaign in report.campaigns %}
+                                    <tr>
+                                        <td>{{ campaign.campaign__name }}</td>
+                                        <td>{{ campaign.total|floatformat:2 }} $</td>
+                                        <td>{{ campaign.count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

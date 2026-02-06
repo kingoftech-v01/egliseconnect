@@ -1,1 +1,137 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:donations:receipt_list' %}">Reçus fiscaux</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Receipt Info -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Détails du reçu fiscal</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Numéro de reçu</span>
+                                    <p>{{ receipt.receipt_number }}</p>
+                                </li>
+                                <li>
+                                    <span>Année fiscale</span>
+                                    <p>{{ receipt.year }}</p>
+                                </li>
+                                <li>
+                                    <span>Montant total</span>
+                                    <p><strong>{{ receipt.total_amount }} $</strong></p>
+                                </li>
+                                <li>
+                                    <span>Date d'émission</span>
+                                    <p>{{ receipt.generated_at|date:"d/m/Y H:i" }}</p>
+                                </li>
+                                {% if receipt.generated_by %}
+                                <li>
+                                    <span>Généré par</span>
+                                    <p>{{ receipt.generated_by.full_name }}</p>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <span>Envoyé par courriel</span>
+                                    <p>
+                                        {% if receipt.email_sent %}
+                                        <span class="badge badge-success light">Oui</span>
+                                        {% if receipt.email_sent_date %}
+                                        - {{ receipt.email_sent_date|date:"d/m/Y H:i" }}
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge badge-warning light">Non</span>
+                                        {% endif %}
+                                    </p>
+                                </li>
+                            </ul>
+                        </div>
+                        {% if receipt.pdf_file %}
+                        <div class="mt-3">
+                            <a href="{{ receipt.pdf_file.url }}" class="btn btn-primary btn-sm" target="_blank" title="Télécharger le reçu PDF">
+                                <i class="fas fa-download me-1"></i> Télécharger le PDF
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <!-- Member Info -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Informations du membre</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                <li>
+                                    <span>Nom</span>
+                                    <p>{{ receipt.member_name }}</p>
+                                </li>
+                                {% if receipt.member_address %}
+                                <li>
+                                    <span>Adresse</span>
+                                    <p>{{ receipt.member_address|linebreaksbr }}</p>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Donations covered by this receipt -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Dons couverts par ce reçu</h4>
+                            </div>
+                            <table id="receipt-donations-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Numéro</th>
+                                        <th>Type</th>
+                                        <th>Mode de paiement</th>
+                                        <th>Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for donation in receipt.member.donations.all %}
+                                    {% if donation.date.year == receipt.year and donation.is_active %}
+                                    <tr>
+                                        <td>{{ donation.date|date:"d/m/Y" }}</td>
+                                        <td>{{ donation.donation_number }}</td>
+                                        <td>{{ donation.get_donation_type_display }}</td>
+                                        <td>{{ donation.get_payment_method_display }}</td>
+                                        <td><strong>{{ donation.amount }} $</strong></td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

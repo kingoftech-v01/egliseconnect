@@ -1,3 +1,205 @@
-<h1>Attendance Report</h1>
-<p>{{ report }}</p>
-<p>{{ event_stats }}</p>
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapport de presence</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport de presence</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Date Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-auto">
+                                <label class="form-label" for="start_date">Date de debut</label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ report.start_date }}">
+                            </div>
+                            <div class="col-auto">
+                                <label class="form-label" for="end_date">Date de fin</label>
+                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ report.end_date }}">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">Filtrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Stats Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Total des evenements ({{ event_stats.year }})</h6>
+                                <h3>{{ event_stats.total_events }}</h3>
+                            </div>
+                            <div class="icon-box bg-primary-light">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Evenements a venir</h6>
+                                <h3>{{ event_stats.upcoming }}</h3>
+                            </div>
+                            <div class="icon-box bg-success-light">
+                                <i class="bi bi-calendar-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>RSVP confirmes</h6>
+                                <h3>{{ event_stats.confirmed_rsvps }}</h3>
+                            </div>
+                            <div class="icon-box bg-info-light">
+                                <i class="bi bi-person-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Evenements annules</h6>
+                                <h3>{{ event_stats.cancelled }}</h3>
+                            </div>
+                            <div class="icon-box bg-danger-light">
+                                <i class="bi bi-calendar-x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events by Type -->
+        {% if event_stats.by_type %}
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Evenements par type</h4>
+                            </div>
+                            <table id="events-by-type-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Nombre</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in event_stats.by_type %}
+                                    <tr>
+                                        <td>{{ item.event_type }}</td>
+                                        <td>{{ item.count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Resume des RSVP</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total des RSVP</span>
+                                <strong>{{ event_stats.total_rsvps }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>RSVP confirmes</span>
+                                <strong>{{ event_stats.confirmed_rsvps }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Attendance Detail Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Detail de presence par evenement ({{ report.start_date }} au {{ report.end_date }})</h4>
+                            </div>
+                            <table id="attendance-detail-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Evenement</th>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>RSVP total</th>
+                                        <th>Confirmes</th>
+                                        <th>Refuses</th>
+                                        <th>Invites</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event in report.events %}
+                                    <tr>
+                                        <td>{{ event.title }}</td>
+                                        <td>{{ event.date }}</td>
+                                        <td>{{ event.event_type }}</td>
+                                        <td>{{ event.total_rsvps }}</td>
+                                        <td>{{ event.confirmed }}</td>
+                                        <td>{{ event.declined }}</td>
+                                        <td>{{ event.total_guests }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">Aucun evenement trouve pour cette periode.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted text-end">Total des evenements dans la periode : {{ report.total_events }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

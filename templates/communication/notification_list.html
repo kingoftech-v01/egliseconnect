@@ -1,2 +1,60 @@
-<h1>Notifications</h1>
-{% for n in notifications %}{{ n.title }}{% endfor %}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title|default:"Notifications" }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title|default:"Notifications" }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title|default:"Notifications" }}</h4>
+                        <a href="/communication/notifications/mark-all-read/" class="btn btn-outline-primary btn-sm">
+                            <i class="fa fa-check-double me-1"></i> Tout marquer comme lu
+                        </a>
+                    </div>
+                    <table id="notifications-table" class="table">
+                        <thead>
+                            <tr>
+                                <th>Titre</th>
+                                <th>Message</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notification in notifications %}
+                            <tr class="{% if not notification.is_read %}table-active{% endif %}">
+                                <td>
+                                    <strong>{{ notification.title }}</strong>
+                                </td>
+                                <td>{{ notification.message|truncatewords:15 }}</td>
+                                <td>{{ notification.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if notification.is_read %}
+                                        <span class="badge badge-secondary">Lu</span>
+                                    {% else %}
+                                        <span class="badge badge-primary">Non lu</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Aucune notification.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

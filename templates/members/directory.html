@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Search Bar -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="d-flex gap-3 align-items-end">
+                            <div class="flex-grow-1">
+                                <label class="form-label" for="search-input">Rechercher dans l'annuaire</label>
+                                <input type="text" name="search" id="search-input" class="form-control" placeholder="Nom, prenom, numero de membre..." value="{{ search }}">
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-primary">Rechercher</button>
+                            </div>
+                            {% if search %}
+                            <div>
+                                <a href="/members/directory/" class="btn btn-outline-secondary">Reinitialiser</a>
+                            </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Directory Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">{{ page_title }} ({{ total_count }} membres)</h4>
+                            </div>
+                            <table id="directory-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Courriel</th>
+                                        <th>Telephone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in members %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/{{ m.pk }}/">{{ m.last_name }}, {{ m.first_name }}</a>
+                                        </td>
+                                        <td>{{ m.email|default:"-" }}</td>
+                                        <td>{{ m.phone|default:"-" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun membre trouve.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                {% if members.has_other_pages %}
+                <nav aria-label="Pagination de l'annuaire">
+                    <ul class="pagination justify-content-center">
+                        {% if members.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ members.previous_page_number }}&search={{ search }}">Precedent</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Precedent</span>
+                        </li>
+                        {% endif %}
+
+                        {% for num in members.paginator.page_range %}
+                        {% if members.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > members.number|add:'-3' and num < members.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&search={{ search }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if members.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ members.next_page_number }}&search={{ search }}">Suivant</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Suivant</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -18,6 +18,7 @@ from apps.core.mixins import (
     FormMessageMixin,
     SetOwnerMixin,
     FilterByMemberMixin,
+    W3CRMFormMixin,
 )
 
 
@@ -1060,3 +1061,128 @@ class TestLoginUrlConfiguration:
 
     def test_owner_or_staff_required_login_url(self):
         assert OwnerOrStaffRequiredMixin.login_url == '/accounts/login/'
+
+
+class TestW3CRMFormMixin:
+    """Tests for W3CRMFormMixin."""
+
+    def test_text_input_gets_form_control(self):
+        """TextInput widget gets form-control class."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            name = forms.CharField()
+
+        form = TestForm()
+        assert 'form-control' in form.fields['name'].widget.attrs.get('class', '')
+
+    def test_select_gets_form_select(self):
+        """Select widget gets form-select class."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            choice = forms.ChoiceField(choices=[('a', 'A'), ('b', 'B')])
+
+        form = TestForm()
+        assert 'form-select' in form.fields['choice'].widget.attrs.get('class', '')
+
+    def test_checkbox_gets_form_check_input(self):
+        """CheckboxInput widget gets form-check-input class."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            active = forms.BooleanField(required=False)
+
+        form = TestForm()
+        assert 'form-check-input' in form.fields['active'].widget.attrs.get('class', '')
+
+    def test_textarea_gets_form_control(self):
+        """Textarea widget gets form-control class."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            notes = forms.CharField(widget=forms.Textarea)
+
+        form = TestForm()
+        assert 'form-control' in form.fields['notes'].widget.attrs.get('class', '')
+
+    def test_email_input_gets_form_control(self):
+        """EmailInput widget gets form-control class."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            email = forms.EmailField()
+
+        form = TestForm()
+        assert 'form-control' in form.fields['email'].widget.attrs.get('class', '')
+
+    def test_date_input_gets_form_control(self):
+        """DateInput widget gets form-control class."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            date = forms.DateField(widget=forms.DateInput)
+
+        form = TestForm()
+        attrs = form.fields['date'].widget.attrs
+        assert 'form-control' in attrs.get('class', '')
+
+    def test_preserves_existing_attrs(self):
+        """Mixin preserves existing widget attributes like placeholder, rows, etc."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            notes = forms.CharField(widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Enter notes'}))
+
+        form = TestForm()
+        attrs = form.fields['notes'].widget.attrs
+        assert 'form-control' in attrs.get('class', '')
+        assert attrs.get('rows') == 3
+        assert attrs.get('placeholder') == 'Enter notes'
+
+    def test_preserves_existing_css_classes(self):
+        """Mixin preserves existing CSS classes and adds new ones."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            name = forms.CharField(widget=forms.TextInput(attrs={'class': 'my-custom'}))
+
+        form = TestForm()
+        css = form.fields['name'].widget.attrs.get('class', '')
+        assert 'my-custom' in css
+        assert 'form-control' in css
+
+    def test_no_duplicate_classes(self):
+        """Mixin does not add duplicate CSS classes."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+
+        form = TestForm()
+        css = form.fields['name'].widget.attrs.get('class', '')
+        assert css.count('form-control') == 1
+
+    def test_works_with_model_form(self):
+        """Mixin works correctly with ModelForm subclasses."""
+        from django import forms
+        from apps.help_requests.forms import HelpRequestResolveForm
+
+        form = HelpRequestResolveForm()
+        assert 'form-control' in form.fields['resolution_notes'].widget.attrs.get('class', '')
+
+    def test_works_with_form_that_has_custom_init(self):
+        """Mixin cooperates with forms that have custom __init__."""
+        from django import forms
+
+        class TestForm(W3CRMFormMixin, forms.Form):
+            name = forms.CharField()
+            role = forms.ChoiceField(choices=[('a', 'A')])
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.fields['role'].choices = [('b', 'B'), ('c', 'C')]
+
+        form = TestForm()
+        assert 'form-control' in form.fields['name'].widget.attrs.get('class', '')
+        assert 'form-select' in form.fields['role'].widget.attrs.get('class', '')

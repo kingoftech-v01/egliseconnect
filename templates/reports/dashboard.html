@@ -1,2 +1,222 @@
-<h1>Dashboard</h1>
-<p>{{ summary }}</p>
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Tableau de bord</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Tableau de bord</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Stat Cards Row 1 -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Membres total</h6>
+                                <h3>{{ summary.members.total }}</h3>
+                            </div>
+                            <div class="icon-box bg-primary-light">
+                                <i class="bi bi-people"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Membres actifs</h6>
+                                <h3>{{ summary.members.active }}</h3>
+                            </div>
+                            <div class="icon-box bg-success-light">
+                                <i class="bi bi-person-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Dons total $</h6>
+                                <h3>{{ summary.donations.total_amount|floatformat:2 }} $</h3>
+                            </div>
+                            <div class="icon-box bg-warning-light">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Events a venir</h6>
+                                <h3>{{ summary.events.upcoming }}</h3>
+                            </div>
+                            <div class="icon-box bg-info-light">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Stat Cards Row 2 -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Volontaires positions</h6>
+                                <h3>{{ summary.volunteers.total_positions }}</h3>
+                            </div>
+                            <div class="icon-box bg-secondary-light">
+                                <i class="bi bi-hand-thumbs-up"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Demandes ouvertes</h6>
+                                <h3>{{ summary.help_requests.open }}</h3>
+                            </div>
+                            <div class="icon-box bg-danger-light">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Statistiques rapides</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nouveaux membres ce mois</span>
+                                <strong>{{ summary.members.new_this_month }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nouveaux membres cette annee</span>
+                                <strong>{{ summary.members.new_this_year }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Membres inactifs</span>
+                                <strong>{{ summary.members.inactive }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nombre total de dons ({{ summary.donations.year }})</span>
+                                <strong>{{ summary.donations.total_count }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Don moyen</span>
+                                <strong>{{ summary.donations.average_amount|floatformat:2 }} $</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Events annules ({{ summary.events.year }})</span>
+                                <strong>{{ summary.events.cancelled }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Horaires volontaires a venir</span>
+                                <strong>{{ summary.volunteers.upcoming_schedules }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Demandes d'aide total</span>
+                                <strong>{{ summary.help_requests.total }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Breakdown -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Repartition par role</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if summary.members.role_breakdown %}
+                        <ul class="list-group list-group-flush">
+                            {% for item in summary.members.role_breakdown %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>{{ item.role }}</span>
+                                <strong>{{ item.count }}</strong>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">Aucune donnee disponible.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Birthdays -->
+        {% if summary.upcoming_birthdays %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Anniversaires a venir</h4>
+                            </div>
+                            <table id="birthday-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Date d'anniversaire</th>
+                                        <th>Age</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for bd in summary.upcoming_birthdays %}
+                                    <tr>
+                                        <td>{{ bd.member_name }}</td>
+                                        <td>{{ bd.birthday }}</td>
+                                        <td>{% if bd.age %}{{ bd.age }} ans{% else %}-{% endif %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted text-end">Genere le : {{ summary.generated_at }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

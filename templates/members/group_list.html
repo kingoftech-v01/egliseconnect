@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Type Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-3">
+                            <label class="form-label mb-0" for="type-filter">Type de groupe :</label>
+                            <select name="type" id="type-filter" class="form-select w-auto" onchange="this.form.submit()">
+                                <option value="">Tous les types</option>
+                                {% for group in groups %}
+                                {% if forloop.first %}
+                                {% for value, label in group.GROUP_TYPE_CHOICES %}
+                                <option value="{{ value }}" {% if group_type_filter == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                            {% if group_type_filter %}
+                            <a href="/members/groups/" class="btn btn-outline-secondary btn-sm">Reinitialiser</a>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">{{ page_title }}</h4>
+                            </div>
+                            <table id="groups-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom du groupe</th>
+                                        <th>Type</th>
+                                        <th>Leader</th>
+                                        <th>Nombre de membres</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for group in groups %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/groups/{{ group.pk }}/">{{ group.name }}</a>
+                                        </td>
+                                        <td>{{ group.get_group_type_display }}</td>
+                                        <td>{% if group.leader %}{{ group.leader.full_name }}{% else %}-{% endif %}</td>
+                                        <td>{{ group.member_count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucun groupe trouve.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

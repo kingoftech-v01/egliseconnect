@@ -1,1 +1,123 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap">
+                            <div>
+                                <h4 class="mb-0">Total : <strong>{{ total }} $</strong></h4>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <form method="get" class="d-flex align-items-center">
+                                    <label class="form-label me-2 mb-0" for="year-select">Année :</label>
+                                    <select name="year" id="year-select" class="form-select form-select-sm" onchange="this.form.submit();" style="width: auto;">
+                                        <option value="">Toutes</option>
+                                        {% for y in years %}
+                                        <option value="{{ y.year }}" {% if selected_year == y.year|stringformat:"d" %}selected{% endif %}>
+                                            {{ y.year }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                                <a href="{% url 'frontend:donations:donation_create' %}" class="btn btn-primary btn-sm ms-3">
+                                    <i class="fas fa-plus me-1"></i> Faire un don
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Historique des dons</h4>
+                            </div>
+                            <table id="donation-history-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Montant</th>
+                                        <th>Type</th>
+                                        <th>Méthode</th>
+                                        <th>Campagne</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for donation in donations %}
+                                    <tr>
+                                        <td>{{ donation.date|date:"d/m/Y" }}</td>
+                                        <td><strong>{{ donation.amount }} $</strong></td>
+                                        <td>{{ donation.get_donation_type_display }}</td>
+                                        <td>{{ donation.get_payment_method_display }}</td>
+                                        <td>
+                                            {% if donation.campaign %}
+                                            <a href="{% url 'frontend:donations:campaign_detail' pk=donation.campaign.pk %}">
+                                                {{ donation.campaign.name }}
+                                            </a>
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'frontend:donations:donation_detail' pk=donation.pk %}" class="btn btn-primary btn-xs">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">Aucun don trouvé.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% if donations.has_other_pages %}
+                <nav aria-label="Pagination des dons">
+                    <ul class="pagination justify-content-center">
+                        {% if donations.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ donations.previous_page_number }}{% if selected_year %}&year={{ selected_year }}{% endif %}">
+                                Précédent
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% for num in donations.paginator.page_range %}
+                        <li class="page-item {% if donations.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if selected_year %}&year={{ selected_year }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if donations.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ donations.next_page_number }}{% if selected_year %}&year={{ selected_year }}{% endif %}">
+                                Suivant
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

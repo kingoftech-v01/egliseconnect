@@ -1,1 +1,32 @@
-{{ page_title }}
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'frontend:events:event_list' %}">Événements</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Calendrier des événements</h4>
+                        <a href="{% url 'frontend:events:event_list' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-list me-1"></i> Vue liste
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div id="calendar" class="app-fullcalendar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

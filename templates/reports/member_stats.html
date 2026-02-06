@@ -1,2 +1,147 @@
-<h1>Member Stats</h1>
-<p>{{ stats }}</p>
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Statistiques des membres</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Statistiques des membres</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Stat Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Total des membres</h6>
+                                <h3>{{ stats.total }}</h3>
+                            </div>
+                            <div class="icon-box bg-primary-light">
+                                <i class="bi bi-people"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Actifs</h6>
+                                <h3>{{ stats.active }}</h3>
+                            </div>
+                            <div class="icon-box bg-success-light">
+                                <i class="bi bi-person-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Inactifs</h6>
+                                <h3>{{ stats.inactive }}</h3>
+                            </div>
+                            <div class="icon-box bg-danger-light">
+                                <i class="bi bi-person-x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card chart-grd same-card">
+                    <div class="card-body depostit-card p-0">
+                        <div class="depostit-card-media d-flex justify-content-between pb-0">
+                            <div>
+                                <h6>Nouveaux ce mois</h6>
+                                <h3>{{ stats.new_this_month }}</h3>
+                            </div>
+                            <div class="icon-box bg-info-light">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Details Card -->
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Apercu general</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total des membres</span>
+                                <strong>{{ stats.total }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Membres actifs</span>
+                                <strong>{{ stats.active }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Membres inactifs</span>
+                                <strong>{{ stats.inactive }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nouveaux ce mois</span>
+                                <strong>{{ stats.new_this_month }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nouveaux cette annee</span>
+                                <strong>{{ stats.new_this_year }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Breakdown -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Repartition par role</h4>
+                            </div>
+                            <table id="role-breakdown-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Nombre</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in stats.role_breakdown %}
+                                    <tr>
+                                        <td>{{ item.role }}</td>
+                                        <td>{{ item.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted">Aucune donnee disponible.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -77,6 +77,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'custom_context_processor.dz_static',
             ],
         },
     },
@@ -138,7 +139,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/reports/'
 LOGOUT_REDIRECT_URL = '/'
 
 
