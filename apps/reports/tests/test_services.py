@@ -1,4 +1,4 @@
-"""Reports services tests."""
+"""Tests for reports services."""
 import pytest
 from datetime import date
 from decimal import Decimal
@@ -16,67 +16,49 @@ from apps.help_requests.tests.factories import HelpRequestFactory
 
 @pytest.mark.django_db
 class TestDashboardService:
-    """Tests for DashboardService."""
+    """Tests for DashboardService statistics methods."""
 
     def test_get_member_stats(self):
-        """Test member statistics."""
         MemberFactory.create_batch(5, is_active=True)
         MemberFactory.create_batch(2, is_active=False)
-
         stats = DashboardService.get_member_stats()
-
         assert stats['total'] == 7
         assert stats['active'] == 5
         assert stats['inactive'] == 2
 
     def test_get_donation_stats(self):
-        """Test donation statistics."""
         DonationFactory(amount=Decimal('100.00'))
         DonationFactory(amount=Decimal('200.00'))
         DonationFactory(amount=Decimal('150.00'))
-
         stats = DashboardService.get_donation_stats()
-
         assert stats['total_count'] == 3
         assert stats['total_amount'] == Decimal('450.00')
 
     def test_get_event_stats(self):
-        """Test event statistics."""
         EventFactory.create_batch(3, is_cancelled=False)
         EventFactory(is_cancelled=True)
-
         stats = DashboardService.get_event_stats()
-
         assert stats['total_events'] == 4
         assert stats['cancelled'] == 1
 
     def test_get_volunteer_stats(self):
-        """Test volunteer statistics."""
         VolunteerPositionFactory.create_batch(3, is_active=True)
-
         stats = DashboardService.get_volunteer_stats()
-
         assert stats['total_positions'] == 3
 
     def test_get_help_request_stats(self):
-        """Test help request statistics."""
         HelpRequestFactory.create_batch(2, status='new')
         HelpRequestFactory(status='in_progress')
         HelpRequestFactory(status='resolved')
-
         stats = DashboardService.get_help_request_stats()
-
         assert stats['total'] == 4
         assert stats['open'] == 3  # new + in_progress
 
     def test_get_dashboard_summary(self):
-        """Test complete dashboard summary."""
         MemberFactory()
         DonationFactory()
         EventFactory()
-
         summary = DashboardService.get_dashboard_summary()
-
         assert 'members' in summary
         assert 'donations' in summary
         assert 'events' in summary
@@ -88,11 +70,9 @@ class TestDashboardService:
 
 @pytest.mark.django_db
 class TestReportService:
-    """Tests for ReportService."""
+    """Tests for ReportService report generation methods."""
 
     def test_get_attendance_report(self):
-        """Test attendance report."""
-        # Create event in the past (within the default 90-day range)
         past_dt = timezone.now() - timezone.timedelta(days=7)
         event = EventFactory(
             is_cancelled=False,
@@ -101,34 +81,26 @@ class TestReportService:
         )
         EventRSVPFactory(event=event, status='confirmed')
         EventRSVPFactory(event=event, status='declined')
-
         report = ReportService.get_attendance_report()
-
         assert 'events' in report
         assert report['total_events'] >= 1
 
     def test_get_donation_report(self):
-        """Test donation report."""
         year = date.today().year
         DonationFactory(amount=Decimal('100.00'))
         DonationFactory(amount=Decimal('200.00'))
-
         report = ReportService.get_donation_report(year)
-
         assert report['year'] == year
         assert report['total'] == Decimal('300.00')
         assert report['total_count'] == 2
         assert len(report['monthly']) == 12
 
     def test_get_volunteer_report(self):
-        """Test volunteer report."""
         past_date = date.today() - timezone.timedelta(days=7)
         position = VolunteerPositionFactory()
         VolunteerScheduleFactory(position=position, status='completed', date=past_date)
         VolunteerScheduleFactory(position=position, status='no_show', date=past_date)
-
         report = ReportService.get_volunteer_report()
-
         assert report['total_shifts'] >= 2
         assert report['completed'] >= 1
         assert report['no_shows'] >= 1

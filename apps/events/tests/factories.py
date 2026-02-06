@@ -1,6 +1,4 @@
-"""
-Test factories for events app.
-"""
+"""Test factories for events app."""
 import factory
 from django.utils import timezone
 from factory.django import DjangoModelFactory
@@ -12,7 +10,7 @@ from apps.events.models import Event, EventRSVP
 
 
 class EventFactory(DjangoModelFactory):
-    """Factory for Event model."""
+    """Creates test events with sensible defaults."""
 
     class Meta:
         model = Event
@@ -28,7 +26,7 @@ class EventFactory(DjangoModelFactory):
 
 
 class EventRSVPFactory(DjangoModelFactory):
-    """Factory for EventRSVP model."""
+    """Creates test RSVPs linked to events and members."""
 
     class Meta:
         model = EventRSVP

@@ -1,6 +1,4 @@
-"""
-Test factories for donations app.
-"""
+"""Test factories for donations app."""
 from decimal import Decimal
 
 import factory
@@ -14,7 +12,7 @@ from apps.donations.models import Donation, DonationCampaign, TaxReceipt
 
 
 class DonationCampaignFactory(DjangoModelFactory):
-    """Factory for DonationCampaign model."""
+    """Creates DonationCampaign instances for testing."""
 
     class Meta:
         model = DonationCampaign
@@ -27,7 +25,7 @@ class DonationCampaignFactory(DjangoModelFactory):
 
 
 class DonationFactory(DjangoModelFactory):
-    """Factory for Donation model."""
+    """Creates Donation instances with default online payment."""
 
     class Meta:
         model = Donation
@@ -40,26 +38,26 @@ class DonationFactory(DjangoModelFactory):
 
 
 class CashDonationFactory(DonationFactory):
-    """Factory for cash donations."""
+    """Creates cash donations."""
 
     payment_method = PaymentMethod.CASH
 
 
 class CheckDonationFactory(DonationFactory):
-    """Factory for check donations."""
+    """Creates check donations with check number."""
 
     payment_method = PaymentMethod.CHECK
     check_number = factory.Sequence(lambda n: f'{n:06d}')
 
 
 class TitheDonationFactory(DonationFactory):
-    """Factory for tithe donations."""
+    """Creates tithe donations."""
 
     donation_type = DonationType.TITHE
 
 
 class TaxReceiptFactory(DjangoModelFactory):
-    """Factory for TaxReceipt model."""
+    """Creates TaxReceipt instances for testing."""
 
     class Meta:
         model = TaxReceipt

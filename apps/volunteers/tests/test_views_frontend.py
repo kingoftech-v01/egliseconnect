@@ -15,10 +15,6 @@ from apps.volunteers.models import VolunteerAvailability
 pytestmark = pytest.mark.django_db
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def client():
     return Client()
@@ -34,10 +30,6 @@ def member_user():
 def user_no_profile():
     return UserFactory()
 
-
-# ===================================================================
-# position_list view
-# ===================================================================
 
 class TestPositionList:
 
@@ -74,10 +66,6 @@ class TestPositionList:
         assert '/accounts/login/' in response.url
 
 
-# ===================================================================
-# schedule_list view
-# ===================================================================
-
 class TestScheduleList:
 
     def test_authenticated_access(self, client, member_user):
@@ -112,10 +100,6 @@ class TestScheduleList:
         assert '/accounts/login/' in response.url
 
 
-# ===================================================================
-# my_schedule view
-# ===================================================================
-
 class TestMySchedule:
 
     def test_with_member_profile(self, client, member_user):
@@ -144,10 +128,6 @@ class TestMySchedule:
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
 
-
-# ===================================================================
-# availability_update view
-# ===================================================================
 
 class TestAvailabilityUpdate:
 
@@ -219,7 +199,7 @@ class TestAvailabilityUpdate:
         assert 'my-schedule' in response.url
 
     def test_post_default_frequency(self, client, member_user):
-        """If frequency not provided, defaults to 'monthly'."""
+        """Missing frequency defaults to 'monthly'."""
         client.force_login(member_user)
         position = VolunteerPositionFactory()
         response = client.post('/volunteers/availability/', {})

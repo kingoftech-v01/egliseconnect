@@ -1,14 +1,13 @@
-"""Communication form tests."""
+"""Tests for communication forms."""
 import pytest
 from apps.communication.forms import NewsletterForm, ALLOWED_TAGS, ALLOWED_ATTRIBUTES
 
 
 @pytest.mark.django_db
 class TestNewsletterForm:
-    """Tests for NewsletterForm."""
+    """Tests for NewsletterForm validation and HTML sanitization."""
 
     def test_valid_form(self):
-        """Form with valid data is valid."""
         data = {
             'subject': 'Weekly Newsletter',
             'content': '<p>Hello everyone!</p>',
@@ -19,7 +18,6 @@ class TestNewsletterForm:
         assert form.is_valid(), form.errors
 
     def test_subject_required(self):
-        """Subject is required."""
         data = {
             'subject': '',
             'content': '<p>Content</p>',
@@ -30,7 +28,6 @@ class TestNewsletterForm:
         assert 'subject' in form.errors
 
     def test_content_required(self):
-        """Content is required."""
         data = {
             'subject': 'A Subject',
             'content': '',
@@ -41,7 +38,6 @@ class TestNewsletterForm:
         assert 'content' in form.errors
 
     def test_content_plain_optional(self):
-        """Content plain is optional."""
         data = {
             'subject': 'Newsletter',
             'content': '<p>Content</p>',
@@ -52,7 +48,7 @@ class TestNewsletterForm:
         assert form.is_valid()
 
     def test_sanitizes_script_tags(self):
-        """Script tags are stripped from content."""
+        """Script tags are stripped to prevent XSS."""
         data = {
             'subject': 'XSS Test',
             'content': '<p>Safe</p><script>alert("xss")</script>',
@@ -61,7 +57,6 @@ class TestNewsletterForm:
         form = NewsletterForm(data=data)
         assert form.is_valid()
         cleaned = form.cleaned_data['content']
-        # bleach strips the <script> tag (text content may remain but is harmless without the tag)
         assert '<script>' not in cleaned
         assert '</script>' not in cleaned
         assert '<p>Safe</p>' in cleaned
@@ -80,7 +75,6 @@ class TestNewsletterForm:
         assert '<p>' in cleaned
 
     def test_sanitizes_iframe(self):
-        """Iframe tags are stripped."""
         data = {
             'subject': 'Iframe Test',
             'content': '<p>Text</p><iframe src="evil.com"></iframe>',
@@ -92,7 +86,7 @@ class TestNewsletterForm:
         assert '<iframe' not in cleaned
 
     def test_sanitizes_javascript_in_href(self):
-        """JavaScript in href is sanitized."""
+        """javascript: protocol in links is sanitized."""
         data = {
             'subject': 'JS href Test',
             'content': '<a href="javascript:alert(1)">Click</a>',
@@ -101,11 +95,9 @@ class TestNewsletterForm:
         form = NewsletterForm(data=data)
         assert form.is_valid()
         cleaned = form.cleaned_data['content']
-        # bleach should sanitize the javascript: protocol
         assert 'javascript:' not in cleaned
 
     def test_preserves_allowed_tags(self):
-        """Allowed HTML tags are preserved."""
         data = {
             'subject': 'Allowed Tags',
             'content': (
@@ -135,7 +127,6 @@ class TestNewsletterForm:
         assert '<table>' in cleaned
 
     def test_preserves_allowed_attributes(self):
-        """Allowed attributes are preserved."""
         data = {
             'subject': 'Attributes Test',
             'content': (
@@ -157,7 +148,6 @@ class TestNewsletterForm:
         assert 'class=' in cleaned
 
     def test_strips_disallowed_attributes(self):
-        """Disallowed attributes are stripped."""
         data = {
             'subject': 'Bad Attributes',
             'content': '<p id="hack" data-custom="val">Text</p>',
@@ -171,7 +161,6 @@ class TestNewsletterForm:
         assert '<p>' in cleaned
 
     def test_strips_style_tag(self):
-        """Style tags are stripped."""
         data = {
             'subject': 'Style Tag',
             'content': '<style>body{display:none}</style><p>Text</p>',
@@ -184,7 +173,6 @@ class TestNewsletterForm:
         assert '<p>Text</p>' in cleaned
 
     def test_send_to_all_default_true(self):
-        """send_to_all defaults to True in the model."""
         data = {
             'subject': 'Newsletter',
             'content': '<p>Content</p>',
@@ -196,7 +184,6 @@ class TestNewsletterForm:
         assert instance.send_to_all is True
 
     def test_subject_max_length(self):
-        """Subject has max length of 200 characters."""
         data = {
             'subject': 'A' * 201,
             'content': '<p>Content</p>',
@@ -207,13 +194,11 @@ class TestNewsletterForm:
         assert 'subject' in form.errors
 
     def test_form_widgets(self):
-        """Form has correct widgets configured."""
         form = NewsletterForm()
         assert form.fields['content'].widget.attrs.get('rows') == 10
         assert form.fields['content_plain'].widget.attrs.get('rows') == 5
 
     def test_form_fields(self):
-        """Form includes correct fields."""
         form = NewsletterForm()
         expected_fields = {'subject', 'content', 'content_plain', 'send_to_all', 'target_groups'}
         assert set(form.fields.keys()) == expected_fields

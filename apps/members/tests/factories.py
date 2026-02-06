@@ -1,6 +1,4 @@
-"""
-Test factories for members app.
-"""
+"""Test factories for members app."""
 import factory
 from django.contrib.auth import get_user_model
 from factory.django import DjangoModelFactory
@@ -12,7 +10,7 @@ User = get_user_model()
 
 
 class UserFactory(DjangoModelFactory):
-    """Factory for Django User model."""
+    """Creates Django User instances for testing."""
 
     class Meta:
         model = User
@@ -25,7 +23,7 @@ class UserFactory(DjangoModelFactory):
 
 
 class FamilyFactory(DjangoModelFactory):
-    """Factory for Family model."""
+    """Creates Family instances for testing."""
 
     class Meta:
         model = Family
@@ -38,7 +36,7 @@ class FamilyFactory(DjangoModelFactory):
 
 
 class MemberFactory(DjangoModelFactory):
-    """Factory for Member model."""
+    """Creates Member instances with default privacy settings."""
 
     class Meta:
         model = Member
@@ -59,49 +57,49 @@ class MemberFactory(DjangoModelFactory):
 
     @factory.post_generation
     def create_privacy(self, create, extracted, **kwargs):
-        """Create default privacy settings."""
+        """Auto-create DirectoryPrivacy to mirror production behavior."""
         if create:
             DirectoryPrivacy.objects.get_or_create(member=self)
 
 
 class MemberWithUserFactory(MemberFactory):
-    """Factory for Member with linked User account."""
+    """Creates Member with a linked User account for authentication tests."""
 
     user = factory.SubFactory(UserFactory)
 
 
 class PastorFactory(MemberFactory):
-    """Factory for pastor members."""
+    """Creates Member with pastor role."""
 
     role = Roles.PASTOR
 
 
 class AdminMemberFactory(MemberFactory):
-    """Factory for admin members."""
+    """Creates Member with admin role."""
 
     role = Roles.ADMIN
 
 
 class TreasurerFactory(MemberFactory):
-    """Factory for treasurer members."""
+    """Creates Member with treasurer role."""
 
     role = Roles.TREASURER
 
 
 class GroupLeaderFactory(MemberFactory):
-    """Factory for group leader members."""
+    """Creates Member with group leader role."""
 
     role = Roles.GROUP_LEADER
 
 
 class VolunteerFactory(MemberFactory):
-    """Factory for volunteer members."""
+    """Creates Member with volunteer role."""
 
     role = Roles.VOLUNTEER
 
 
 class GroupFactory(DjangoModelFactory):
-    """Factory for Group model."""
+    """Creates Group instances with a leader."""
 
     class Meta:
         model = Group
@@ -115,7 +113,7 @@ class GroupFactory(DjangoModelFactory):
 
 
 class GroupMembershipFactory(DjangoModelFactory):
-    """Factory for GroupMembership model."""
+    """Creates GroupMembership linking a member to a group."""
 
     class Meta:
         model = GroupMembership
@@ -126,7 +124,7 @@ class GroupMembershipFactory(DjangoModelFactory):
 
 
 class DirectoryPrivacyFactory(DjangoModelFactory):
-    """Factory for DirectoryPrivacy model."""
+    """Creates DirectoryPrivacy settings for a member."""
 
     class Meta:
         model = DirectoryPrivacy

@@ -1,6 +1,4 @@
-"""
-Tests for donations frontend views.
-"""
+"""Tests for donations frontend views."""
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -26,13 +24,8 @@ from .factories import (
 User = get_user_model()
 
 
-# =============================================================================
-# HELPERS
-# =============================================================================
-
-
 def make_member_with_user(role=Roles.MEMBER):
-    """Create a member with a linked user account and return (user, member)."""
+    """Create a member with a linked user account."""
     user = UserFactory()
     member = MemberFactory(user=user, role=role)
     return user, member
@@ -43,11 +36,6 @@ def make_logged_in_client(user):
     client = Client()
     client.force_login(user)
     return client
-
-
-# =============================================================================
-# DONATION CREATE VIEW TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -141,11 +129,6 @@ class TestDonationCreateView:
         assert inactive not in campaigns
 
 
-# =============================================================================
-# DONATION DETAIL VIEW TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestDonationDetailView:
     """Tests for donation_detail view."""
@@ -225,11 +208,6 @@ class TestDonationDetailView:
         assert response.status_code == 404
 
 
-# =============================================================================
-# DONATION HISTORY VIEW TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestDonationHistoryView:
     """Tests for donation_history view."""
@@ -284,7 +262,6 @@ class TestDonationHistoryView:
     def test_history_pagination(self):
         """History view paginates results."""
         user, member = make_member_with_user()
-        # Create 25 donations (page size is 20)
         for i in range(25):
             DonationFactory(member=member)
         client = make_logged_in_client(user)
@@ -314,11 +291,6 @@ class TestDonationHistoryView:
         response = client.get('/donations/history/')
         assert response.status_code == 200
         assert 'years' in response.context
-
-
-# =============================================================================
-# DONATION ADMIN LIST VIEW TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -445,11 +417,6 @@ class TestDonationAdminListView:
         assert donations_page.paginator.num_pages == 2
 
 
-# =============================================================================
-# DONATION RECORD VIEW TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestDonationRecordView:
     """Tests for donation_record view."""
@@ -492,8 +459,6 @@ class TestDonationRecordView:
     def test_staff_user_can_access_form(self):
         """Django staff user can access the record form."""
         user = UserFactory(is_staff=True)
-        # Staff user needs a member_profile to be the recorded_by
-        # But for just GET, the form should render
         client = make_logged_in_client(user)
 
         response = client.get('/donations/record/')
@@ -537,17 +502,11 @@ class TestDonationRecordView:
             'donation_type': DonationType.OFFERING,
             'payment_method': PaymentMethod.CASH,
             'date': date.today().isoformat(),
-            # Missing member
         }
         response = client.post('/donations/record/', data)
         assert response.status_code == 200
         assert 'form' in response.context
         assert response.context['form'].errors
-
-
-# =============================================================================
-# CAMPAIGN LIST VIEW TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -584,11 +543,6 @@ class TestCampaignListView:
         response = client.get('/donations/campaigns/')
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
-
-
-# =============================================================================
-# CAMPAIGN DETAIL VIEW TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -635,11 +589,6 @@ class TestCampaignDetailView:
         response = client.get(f'/donations/campaigns/{campaign.pk}/')
         assert response.status_code == 200
         assert len(response.context['recent_donations']) <= 10
-
-
-# =============================================================================
-# RECEIPT LIST VIEW TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -723,11 +672,6 @@ class TestReceiptListView:
         assert receipts_page.paginator.num_pages == 2
 
 
-# =============================================================================
-# RECEIPT DETAIL VIEW TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestReceiptDetailView:
     """Tests for receipt_detail view."""
@@ -805,11 +749,6 @@ class TestReceiptDetailView:
         response = client.get(f'/donations/receipts/{receipt.pk}/')
         assert response.status_code == 302
         assert response.url == '/'
-
-
-# =============================================================================
-# MONTHLY REPORT VIEW TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db

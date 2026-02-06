@@ -1,16 +1,4 @@
-"""
-Tests for members forms.
-
-Covers:
-- MemberRegistrationForm (validation, save with/without account)
-- MemberProfileForm (field restrictions, update)
-- MemberAdminForm (admin fields, update)
-- MemberSearchForm (filtering)
-- FamilyForm
-- GroupForm (leader queryset restriction)
-- GroupMembershipForm
-- DirectoryPrivacyForm
-"""
+"""Tests for members forms."""
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -39,17 +27,12 @@ from .factories import (
 User = get_user_model()
 
 
-# =============================================================================
-# MEMBER REGISTRATION FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestMemberRegistrationForm:
     """Tests for MemberRegistrationForm."""
 
     def _get_valid_data(self, create_account=False, **overrides):
-        """Return a dict of valid form data."""
+        """Return valid form data with optional overrides."""
         data = {
             'first_name': 'Jean',
             'last_name': 'Dupont',
@@ -70,37 +53,37 @@ class TestMemberRegistrationForm:
         return data
 
     def test_valid_data_without_account(self):
-        """Test form is valid with correct data and no account creation."""
+        """Valid data without account creation."""
         form = MemberRegistrationForm(data=self._get_valid_data())
         assert form.is_valid(), form.errors
 
     def test_valid_data_with_account(self):
-        """Test form is valid with account creation."""
+        """Valid data with account creation."""
         form = MemberRegistrationForm(data=self._get_valid_data(create_account=True))
         assert form.is_valid(), form.errors
 
     def test_first_name_required(self):
-        """Test first name is required."""
+        """First name is a required field."""
         data = self._get_valid_data(first_name='')
         form = MemberRegistrationForm(data=data)
         assert not form.is_valid()
         assert 'first_name' in form.errors
 
     def test_last_name_required(self):
-        """Test last name is required."""
+        """Last name is a required field."""
         data = self._get_valid_data(last_name='')
         form = MemberRegistrationForm(data=data)
         assert not form.is_valid()
         assert 'last_name' in form.errors
 
     def test_email_optional(self):
-        """Test email is not required."""
+        """Email is optional for members without accounts."""
         data = self._get_valid_data(email='')
         form = MemberRegistrationForm(data=data)
         assert form.is_valid(), form.errors
 
     def test_password_required_when_creating_account(self):
-        """Test password is required when create_account is True."""
+        """Password becomes required when create_account is True."""
         data = self._get_valid_data(create_account=True)
         data['password'] = ''
         data['password_confirm'] = ''
@@ -109,7 +92,7 @@ class TestMemberRegistrationForm:
         assert 'password' in form.errors
 
     def test_password_mismatch(self):
-        """Test password confirmation must match."""
+        """Password confirmation must match."""
         data = self._get_valid_data(create_account=True)
         data['password_confirm'] = 'DifferentP@ssW0rd!'
         form = MemberRegistrationForm(data=data)
@@ -117,7 +100,7 @@ class TestMemberRegistrationForm:
         assert 'password_confirm' in form.errors
 
     def test_weak_password_too_short(self):
-        """Test weak password (too short) is rejected."""
+        """Rejects passwords that are too short."""
         data = self._get_valid_data(create_account=True)
         data['password'] = 'Ab1!'
         data['password_confirm'] = 'Ab1!'
@@ -126,7 +109,7 @@ class TestMemberRegistrationForm:
         assert 'password' in form.errors
 
     def test_weak_password_common(self):
-        """Test common password is rejected."""
+        """Rejects commonly used passwords."""
         data = self._get_valid_data(create_account=True)
         data['password'] = 'password123'
         data['password_confirm'] = 'password123'
@@ -135,7 +118,7 @@ class TestMemberRegistrationForm:
         assert 'password' in form.errors
 
     def test_weak_password_all_numeric(self):
-        """Test numeric-only password is rejected."""
+        """Rejects numeric-only passwords."""
         data = self._get_valid_data(create_account=True)
         data['password'] = '98765432'
         data['password_confirm'] = '98765432'
@@ -144,7 +127,7 @@ class TestMemberRegistrationForm:
         assert 'password' in form.errors
 
     def test_password_not_required_without_account(self):
-        """Test password is not required when not creating account."""
+        """Password not required when not creating account."""
         data = self._get_valid_data(create_account=False)
         data['password'] = ''
         data['password_confirm'] = ''
@@ -152,7 +135,7 @@ class TestMemberRegistrationForm:
         assert form.is_valid(), form.errors
 
     def test_save_creates_member_without_account(self):
-        """Test saving creates a member without a user account."""
+        """Save creates member without user account."""
         form = MemberRegistrationForm(data=self._get_valid_data())
         assert form.is_valid()
         member = form.save()
@@ -164,7 +147,7 @@ class TestMemberRegistrationForm:
         assert member.member_number.startswith('MBR-')
 
     def test_save_creates_member_with_account(self):
-        """Test saving creates a member with a linked user account."""
+        """Save creates member with linked user account."""
         form = MemberRegistrationForm(
             data=self._get_valid_data(create_account=True)
         )
@@ -180,7 +163,7 @@ class TestMemberRegistrationForm:
         assert member.user.check_password('S3cur3P@ssW0rd!')
 
     def test_save_creates_privacy_settings(self):
-        """Test saving creates default DirectoryPrivacy for the member."""
+        """Save auto-creates DirectoryPrivacy for new members."""
         form = MemberRegistrationForm(data=self._get_valid_data())
         assert form.is_valid()
         member = form.save()
@@ -190,7 +173,7 @@ class TestMemberRegistrationForm:
         assert privacy.visibility == PrivacyLevel.PUBLIC
 
     def test_email_uniqueness_when_creating_account(self):
-        """Test that duplicate email is caught when creating a user account."""
+        """Duplicate email rejected when creating user account."""
         User.objects.create_user(
             username='jean.dupont@example.com',
             email='jean.dupont@example.com',
@@ -198,8 +181,6 @@ class TestMemberRegistrationForm:
         )
         data = self._get_valid_data(create_account=True)
         form = MemberRegistrationForm(data=data)
-        # Depending on field ordering, clean_email may or may not catch this.
-        # If form is valid, save() will fail due to unique username constraint.
         if form.is_valid():
             with pytest.raises(Exception):
                 form.save()
@@ -207,7 +188,7 @@ class TestMemberRegistrationForm:
             assert 'email' in form.errors
 
     def test_email_not_checked_without_account(self):
-        """Test duplicate email is allowed when not creating account."""
+        """Duplicate email allowed when not creating account."""
         User.objects.create_user(
             username='existing@example.com',
             email='existing@example.com',
@@ -221,20 +202,17 @@ class TestMemberRegistrationForm:
         assert form.is_valid(), form.errors
 
     def test_save_commit_false(self):
-        """Test save with commit=False does not persist to DB."""
+        """commit=False does not persist to database."""
         form = MemberRegistrationForm(data=self._get_valid_data())
         assert form.is_valid()
         member = form.save(commit=False)
 
-        # Member should not be persisted
         assert member.pk is None or not Member.objects.filter(pk=member.pk).exists()
-        # No user created
         assert member.user is None
-        # No privacy settings created
         assert DirectoryPrivacy.objects.count() == 0
 
     def test_valid_with_minimal_data(self):
-        """Test form with only required fields."""
+        """Form valid with only required fields."""
         data = {
             'first_name': 'Test',
             'last_name': 'User',
@@ -245,17 +223,12 @@ class TestMemberRegistrationForm:
         assert form.is_valid(), form.errors
 
 
-# =============================================================================
-# MEMBER PROFILE FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestMemberProfileForm:
     """Tests for MemberProfileForm."""
 
     def test_valid_data(self):
-        """Test form is valid with correct data."""
+        """Valid profile update data."""
         member = MemberFactory()
         data = {
             'first_name': 'Updated',
@@ -274,7 +247,7 @@ class TestMemberProfileForm:
         assert form.is_valid(), form.errors
 
     def test_update_existing_member(self):
-        """Test updating an existing member via the profile form."""
+        """Updates existing member correctly."""
         member = MemberFactory(phone='514-555-1234')
         data = {
             'first_name': 'UpdatedName',
@@ -295,7 +268,7 @@ class TestMemberProfileForm:
         assert saved.first_name == 'UpdatedName'
 
     def test_excludes_admin_fields(self):
-        """Test that admin-only fields are not in the profile form."""
+        """Admin-only fields excluded from profile form."""
         form = MemberProfileForm()
         assert 'role' not in form.fields
         assert 'notes' not in form.fields
@@ -305,7 +278,7 @@ class TestMemberProfileForm:
         assert 'family' not in form.fields
 
     def test_includes_profile_fields(self):
-        """Test that profile fields are present."""
+        """Profile fields are present."""
         form = MemberProfileForm()
         assert 'first_name' in form.fields
         assert 'last_name' in form.fields
@@ -321,17 +294,12 @@ class TestMemberProfileForm:
         assert 'family_status' in form.fields
 
 
-# =============================================================================
-# MEMBER ADMIN FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestMemberAdminForm:
     """Tests for MemberAdminForm."""
 
     def test_valid_data(self):
-        """Test form is valid with correct data."""
+        """Valid admin form data."""
         member = MemberFactory()
         family = FamilyFactory()
         data = {
@@ -357,7 +325,7 @@ class TestMemberAdminForm:
         assert form.is_valid(), form.errors
 
     def test_includes_admin_fields(self):
-        """Test that admin-only fields are present."""
+        """Admin-only fields are present."""
         form = MemberAdminForm()
         assert 'role' in form.fields
         assert 'notes' in form.fields
@@ -367,7 +335,7 @@ class TestMemberAdminForm:
         assert 'family' in form.fields
 
     def test_save_with_admin_fields(self):
-        """Test saving with admin-only fields."""
+        """Saves admin-only fields correctly."""
         member = MemberFactory(phone='514-555-0001')
         data = {
             'first_name': member.first_name,
@@ -395,7 +363,7 @@ class TestMemberAdminForm:
         assert saved.joined_date is not None
 
     def test_deactivate_member(self):
-        """Test deactivating a member via admin form."""
+        """Can deactivate member via admin form."""
         member = MemberFactory(phone='514-555-0002')
         data = {
             'first_name': member.first_name,
@@ -421,7 +389,7 @@ class TestMemberAdminForm:
         assert saved.is_active is False
 
     def test_assign_family(self):
-        """Test assigning a family to a member."""
+        """Can assign family to member."""
         member = MemberFactory(family=None, phone='514-555-0003')
         family = FamilyFactory()
         data = {
@@ -449,53 +417,48 @@ class TestMemberAdminForm:
         assert saved.family == family
 
 
-# =============================================================================
-# MEMBER SEARCH FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestMemberSearchForm:
     """Tests for MemberSearchForm."""
 
     def test_empty_form_is_valid(self):
-        """Test empty search form is valid."""
+        """Empty search form is valid."""
         form = MemberSearchForm(data={})
         assert form.is_valid()
 
     def test_with_search_query(self):
-        """Test form with search query."""
+        """Search query is captured."""
         form = MemberSearchForm(data={'search': 'Dupont'})
         assert form.is_valid()
         assert form.cleaned_data['search'] == 'Dupont'
 
     def test_with_role_filter(self):
-        """Test form with role filter."""
+        """Role filter is captured."""
         form = MemberSearchForm(data={'role': Roles.PASTOR})
         assert form.is_valid()
         assert form.cleaned_data['role'] == Roles.PASTOR
 
     def test_with_family_status_filter(self):
-        """Test form with family status filter."""
+        """Family status filter is captured."""
         form = MemberSearchForm(data={'family_status': FamilyStatus.MARRIED})
         assert form.is_valid()
         assert form.cleaned_data['family_status'] == FamilyStatus.MARRIED
 
     def test_with_group_filter(self):
-        """Test form with group filter."""
+        """Group filter is captured."""
         group = GroupFactory()
         form = MemberSearchForm(data={'group': group.pk})
         assert form.is_valid()
         assert form.cleaned_data['group'] == group
 
     def test_with_birth_month_filter(self):
-        """Test form with birth month filter."""
+        """Birth month filter is captured."""
         form = MemberSearchForm(data={'birth_month': '6'})
         assert form.is_valid()
         assert form.cleaned_data['birth_month'] == '6'
 
     def test_with_all_filters(self):
-        """Test form with all filters set."""
+        """All filters together are valid."""
         group = GroupFactory()
         data = {
             'search': 'test',
@@ -508,22 +471,17 @@ class TestMemberSearchForm:
         assert form.is_valid()
 
     def test_invalid_role(self):
-        """Test form with invalid role value."""
+        """Invalid role value rejected."""
         form = MemberSearchForm(data={'role': 'nonexistent_role'})
         assert not form.is_valid()
         assert 'role' in form.errors
 
     def test_invalid_group(self):
-        """Test form with non-existent group."""
+        """Non-existent group rejected."""
         import uuid
         form = MemberSearchForm(data={'group': uuid.uuid4()})
         assert not form.is_valid()
         assert 'group' in form.errors
-
-
-# =============================================================================
-# FAMILY FORM TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -531,7 +489,7 @@ class TestFamilyForm:
     """Tests for FamilyForm."""
 
     def test_valid_data(self):
-        """Test form with valid data."""
+        """Valid family data."""
         data = {
             'name': 'Famille Dupont',
             'address': '123 Rue Famille',
@@ -544,19 +502,19 @@ class TestFamilyForm:
         assert form.is_valid(), form.errors
 
     def test_minimal_data(self):
-        """Test form with minimal required data."""
+        """Minimal required data."""
         data = {'name': 'Famille Martin', 'province': Province.QC}
         form = FamilyForm(data=data)
         assert form.is_valid(), form.errors
 
     def test_name_required(self):
-        """Test that name is required."""
+        """Name is required."""
         form = FamilyForm(data={'province': Province.QC})
         assert not form.is_valid()
         assert 'name' in form.errors
 
     def test_save(self):
-        """Test saving a new family."""
+        """Saves new family."""
         data = {
             'name': 'Famille Test',
             'address': '456 Rue Test',
@@ -573,7 +531,7 @@ class TestFamilyForm:
         assert family.city == 'Quebec'
 
     def test_update_existing_family(self):
-        """Test updating an existing family."""
+        """Updates existing family."""
         family = FamilyFactory()
         data = {
             'name': 'Updated Family',
@@ -590,17 +548,12 @@ class TestFamilyForm:
         assert saved.notes == 'Updated notes'
 
 
-# =============================================================================
-# GROUP FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestGroupForm:
     """Tests for GroupForm."""
 
     def test_valid_data(self):
-        """Test form with valid data."""
+        """Valid group data."""
         leader = GroupLeaderFactory()
         data = {
             'name': 'Groupe de priere',
@@ -616,7 +569,7 @@ class TestGroupForm:
         assert form.is_valid(), form.errors
 
     def test_minimal_data(self):
-        """Test form with only required fields."""
+        """Minimal required data."""
         data = {
             'name': 'Minimal Group',
             'group_type': GroupType.CELL,
@@ -625,14 +578,14 @@ class TestGroupForm:
         assert form.is_valid(), form.errors
 
     def test_name_required(self):
-        """Test that name is required."""
+        """Name is required."""
         data = {'group_type': GroupType.CELL}
         form = GroupForm(data=data)
         assert not form.is_valid()
         assert 'name' in form.errors
 
     def test_leader_queryset_limited_to_eligible_roles(self):
-        """Test that leader choices are limited to group leaders, pastors, admins."""
+        """Leader choices limited to group leaders, pastors, admins."""
         regular_member = MemberFactory(role=Roles.MEMBER)
         volunteer = MemberFactory(role=Roles.VOLUNTEER)
         group_leader = GroupLeaderFactory()
@@ -649,7 +602,7 @@ class TestGroupForm:
         assert admin_member in leader_qs
 
     def test_save(self):
-        """Test saving a new group."""
+        """Saves new group."""
         leader = GroupLeaderFactory()
         data = {
             'name': 'New Group',
@@ -670,7 +623,7 @@ class TestGroupForm:
         assert group.group_type == GroupType.MINISTRY
 
     def test_all_group_types(self):
-        """Test form accepts all valid group types."""
+        """All valid group types accepted."""
         for group_type, _ in GroupType.CHOICES:
             data = {
                 'name': f'Group {group_type}',
@@ -680,17 +633,12 @@ class TestGroupForm:
             assert form.is_valid(), f"Failed for group_type={group_type}: {form.errors}"
 
 
-# =============================================================================
-# GROUP MEMBERSHIP FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestGroupMembershipForm:
     """Tests for GroupMembershipForm."""
 
     def test_valid_data(self):
-        """Test form with valid data."""
+        """Valid membership data."""
         member = MemberFactory()
         group = GroupFactory()
         data = {
@@ -703,7 +651,7 @@ class TestGroupMembershipForm:
         assert form.is_valid(), form.errors
 
     def test_all_roles(self):
-        """Test form accepts all valid membership roles."""
+        """All valid membership roles accepted."""
         member = MemberFactory()
         group = GroupFactory()
         for role, _ in [('member', 'Membre'), ('leader', 'Leader'), ('assistant', 'Assistant')]:
@@ -717,7 +665,7 @@ class TestGroupMembershipForm:
             assert form.is_valid(), f"Failed for role={role}: {form.errors}"
 
     def test_member_required(self):
-        """Test that member is required."""
+        """Member is required."""
         group = GroupFactory()
         data = {
             'group': group.pk,
@@ -729,7 +677,7 @@ class TestGroupMembershipForm:
         assert 'member' in form.errors
 
     def test_group_required(self):
-        """Test that group is required."""
+        """Group is required."""
         member = MemberFactory()
         data = {
             'member': member.pk,
@@ -741,17 +689,12 @@ class TestGroupMembershipForm:
         assert 'group' in form.errors
 
 
-# =============================================================================
-# DIRECTORY PRIVACY FORM TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestDirectoryPrivacyForm:
     """Tests for DirectoryPrivacyForm."""
 
     def test_valid_data(self):
-        """Test form with valid data."""
+        """Valid privacy settings data."""
         data = {
             'visibility': PrivacyLevel.PUBLIC,
             'show_email': True,
@@ -764,7 +707,7 @@ class TestDirectoryPrivacyForm:
         assert form.is_valid(), form.errors
 
     def test_update_privacy_settings(self):
-        """Test updating existing privacy settings."""
+        """Updates existing privacy settings."""
         member = MemberFactory()
         privacy = member.privacy_settings
         data = {
@@ -784,7 +727,7 @@ class TestDirectoryPrivacyForm:
         assert saved.show_photo is False
 
     def test_all_visibility_levels(self):
-        """Test form accepts all valid visibility levels."""
+        """All valid visibility levels accepted."""
         for visibility, _ in PrivacyLevel.CHOICES:
             data = {
                 'visibility': visibility,
@@ -800,7 +743,7 @@ class TestDirectoryPrivacyForm:
             )
 
     def test_group_visibility(self):
-        """Test setting group-level visibility."""
+        """Group-level visibility setting works."""
         member = MemberFactory()
         privacy = member.privacy_settings
         data = {

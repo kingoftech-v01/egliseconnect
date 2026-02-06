@@ -12,10 +12,6 @@ from apps.events.tests.factories import EventFactory, EventRSVPFactory
 pytestmark = pytest.mark.django_db
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def client():
     return Client()
@@ -31,10 +27,6 @@ def member_user():
 def user_no_profile():
     return UserFactory()
 
-
-# ===================================================================
-# event_list view
-# ===================================================================
 
 class TestEventList:
 
@@ -92,7 +84,6 @@ class TestEventList:
         for i in range(25):
             EventFactory(start_datetime=timezone.now() + timedelta(days=i))
         response = client.get('/events/')
-        # Default page size is 20
         events_page = response.context['events']
         assert len(list(events_page)) == 20
 
@@ -100,10 +91,6 @@ class TestEventList:
         events_p2 = list(response_p2.context['events'])
         assert len(events_p2) == 5
 
-
-# ===================================================================
-# event_detail view
-# ===================================================================
 
 class TestEventDetail:
 
@@ -162,10 +149,6 @@ class TestEventDetail:
         assert response.status_code == 404
 
 
-# ===================================================================
-# event_rsvp view
-# ===================================================================
-
 class TestEventRSVP:
 
     def test_post_creates_rsvp(self, client, member_user):
@@ -198,7 +181,7 @@ class TestEventRSVP:
         assert rsvp.guests == 1
 
     def test_post_default_status_and_guests(self, client, member_user):
-        """No status or guests in POST data -> defaults."""
+        """Empty POST defaults to CONFIRMED status and 0 guests."""
         client.force_login(member_user)
         event = EventFactory()
         response = client.post(f'/events/{event.id}/rsvp/', {})
@@ -221,7 +204,7 @@ class TestEventRSVP:
         assert rsvp.guests == 0
 
     def test_get_redirects_without_creating_rsvp(self, client, member_user):
-        """GET request just redirects, no RSVP created."""
+        """GET request just redirects without creating an RSVP."""
         client.force_login(member_user)
         event = EventFactory()
         response = client.get(f'/events/{event.id}/rsvp/')
@@ -239,7 +222,6 @@ class TestEventRSVP:
             {'status': RSVPStatus.CONFIRMED},
         )
         assert response.status_code == 302
-        # Should redirect to event detail
         assert str(event.id) in response.url
 
     def test_unauthenticated_redirects_to_login(self, client):
@@ -254,10 +236,6 @@ class TestEventRSVP:
         response = client.post(f'/events/{uuid.uuid4()}/rsvp/', {})
         assert response.status_code == 404
 
-
-# ===================================================================
-# event_calendar view
-# ===================================================================
 
 class TestEventCalendar:
 

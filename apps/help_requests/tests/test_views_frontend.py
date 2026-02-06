@@ -1,4 +1,4 @@
-"""Help requests frontend view tests."""
+"""Tests for help_requests frontend views."""
 import uuid
 
 import pytest
@@ -60,7 +60,7 @@ def group_leader_user():
 
 @pytest.fixture
 def user_no_profile():
-    """Authenticated user without member profile."""
+    """User without member profile."""
     return UserFactory()
 
 
@@ -70,30 +70,21 @@ def category():
     return HelpRequestCategoryFactory()
 
 
-# =============================================================================
-# REQUEST CREATE VIEW
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestRequestCreateView:
     """Tests for request_create view."""
 
     def test_get_form(self, client, member_user, category):
-        """Member can access the creation form."""
         user, member = member_user
         client.force_login(user)
-
         response = client.get(reverse('frontend:help_requests:request_create'))
         assert response.status_code == 200
         assert 'form' in response.context
         assert 'categories' in response.context
 
     def test_post_valid_form(self, client, member_user, category):
-        """Valid POST creates a help request."""
         user, member = member_user
         client.force_login(user)
-
         data = {
             'category': str(category.id),
             'title': 'Need help moving',
@@ -101,28 +92,23 @@ class TestRequestCreateView:
             'urgency': HelpRequestUrgency.MEDIUM,
             'is_confidential': False,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_create'), data
         )
         assert response.status_code == 302
-
         hr = HelpRequest.objects.get(title='Need help moving')
         assert hr.member == member
         assert hr.category == category
         assert hr.request_number.startswith('HR-')
 
     def test_post_invalid_form(self, client, member_user):
-        """Invalid POST re-renders form with errors."""
         user, _ = member_user
         client.force_login(user)
-
         data = {
-            'title': '',  # required
+            'title': '',
             'description': 'Missing title',
             'urgency': HelpRequestUrgency.LOW,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_create'), data
         )
@@ -131,22 +117,14 @@ class TestRequestCreateView:
         assert response.context['form'].errors
 
     def test_no_member_profile_redirects(self, client, user_no_profile):
-        """User without member profile is redirected."""
         client.force_login(user_no_profile)
-
         response = client.get(reverse('frontend:help_requests:request_create'))
         assert response.status_code == 302
 
     def test_unauthenticated_redirects(self, client):
-        """Unauthenticated user is redirected to login."""
         response = client.get(reverse('frontend:help_requests:request_create'))
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
-
-
-# =============================================================================
-# REQUEST LIST VIEW
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -154,51 +132,38 @@ class TestRequestListView:
     """Tests for request_list view (staff only)."""
 
     def test_pastor_sees_all(self, client, pastor_user):
-        """Pastor sees all help requests."""
         user, _ = pastor_user
         client.force_login(user)
-
         HelpRequestFactory.create_batch(5)
-
         response = client.get(reverse('frontend:help_requests:request_list'))
         assert response.status_code == 200
         assert len(response.context['requests']) == 5
 
     def test_admin_sees_all(self, client, admin_user):
-        """Admin sees all help requests."""
         user, _ = admin_user
         client.force_login(user)
-
         HelpRequestFactory.create_batch(3)
-
         response = client.get(reverse('frontend:help_requests:request_list'))
         assert response.status_code == 200
         assert len(response.context['requests']) == 3
 
     def test_member_redirected_to_my_requests(self, client, member_user):
-        """Regular member is redirected to my_requests."""
         user, _ = member_user
         client.force_login(user)
-
         response = client.get(reverse('frontend:help_requests:request_list'))
         assert response.status_code == 302
 
     def test_no_profile_redirected(self, client, user_no_profile):
-        """User without profile is redirected."""
         client.force_login(user_no_profile)
-
         response = client.get(reverse('frontend:help_requests:request_list'))
         assert response.status_code == 302
 
     def test_filter_by_status(self, client, pastor_user):
-        """Can filter by status."""
         user, _ = pastor_user
         client.force_login(user)
-
         HelpRequestFactory(status=HelpRequestStatus.NEW)
         HelpRequestFactory(status=HelpRequestStatus.NEW)
         HelpRequestFactory(status=HelpRequestStatus.RESOLVED)
-
         response = client.get(
             reverse('frontend:help_requests:request_list') + '?status=new'
         )
@@ -207,13 +172,10 @@ class TestRequestListView:
         assert response.context['current_status'] == 'new'
 
     def test_filter_by_urgency(self, client, pastor_user):
-        """Can filter by urgency."""
         user, _ = pastor_user
         client.force_login(user)
-
         HelpRequestFactory(urgency=HelpRequestUrgency.HIGH)
         HelpRequestFactory(urgency=HelpRequestUrgency.LOW)
-
         response = client.get(
             reverse('frontend:help_requests:request_list') + '?urgency=high'
         )
@@ -222,15 +184,12 @@ class TestRequestListView:
         assert response.context['current_urgency'] == 'high'
 
     def test_filter_by_category(self, client, pastor_user, category):
-        """Can filter by category."""
         user, _ = pastor_user
         client.force_login(user)
-
         other_category = HelpRequestCategoryFactory()
         HelpRequestFactory(category=category)
         HelpRequestFactory(category=category)
         HelpRequestFactory(category=other_category)
-
         response = client.get(
             reverse('frontend:help_requests:request_list')
             + f'?category={category.id}'
@@ -240,27 +199,18 @@ class TestRequestListView:
         assert response.context['current_category'] == str(category.id)
 
     def test_categories_in_context(self, client, pastor_user):
-        """Active categories are in context."""
         user, _ = pastor_user
         client.force_login(user)
-
         HelpRequestCategoryFactory(is_active=True)
         HelpRequestCategoryFactory(is_active=True)
-
         response = client.get(reverse('frontend:help_requests:request_list'))
         assert response.status_code == 200
         assert len(response.context['categories']) >= 2
 
     def test_unauthenticated_redirects(self, client):
-        """Unauthenticated user is redirected to login."""
         response = client.get(reverse('frontend:help_requests:request_list'))
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
-
-
-# =============================================================================
-# REQUEST DETAIL VIEW
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -268,12 +218,9 @@ class TestRequestDetailView:
     """Tests for request_detail view."""
 
     def test_owner_can_view(self, client, member_user):
-        """Owner can view their own request."""
         user, member = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory(member=member)
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
@@ -282,12 +229,9 @@ class TestRequestDetailView:
         assert response.context['can_manage'] is False
 
     def test_pastor_can_view_any(self, client, pastor_user):
-        """Pastor can view any request."""
         user, _ = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
@@ -295,12 +239,9 @@ class TestRequestDetailView:
         assert response.context['can_manage'] is True
 
     def test_admin_can_view_any(self, client, admin_user):
-        """Admin can view any request."""
         user, _ = admin_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
@@ -313,64 +254,49 @@ class TestRequestDetailView:
         """Group leader can view non-confidential requests of group members."""
         user, leader = group_leader_user
         client.force_login(user)
-
         group = GroupFactory(leader=leader)
         group_member = MemberFactory(role=Roles.MEMBER)
         GroupMembershipFactory(member=group_member, group=group)
-
         hr = HelpRequestFactory(member=group_member, is_confidential=False)
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
         assert response.status_code == 200
 
     def test_group_leader_cannot_view_confidential(self, client, group_leader_user):
-        """Group leader cannot view confidential requests of group members."""
+        """Group leader cannot view confidential requests even from group members."""
         user, leader = group_leader_user
         client.force_login(user)
-
         group = GroupFactory(leader=leader)
         group_member = MemberFactory(role=Roles.MEMBER)
         GroupMembershipFactory(member=group_member, group=group)
-
         hr = HelpRequestFactory(member=group_member, is_confidential=True)
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
-        assert response.status_code == 302  # redirected
+        assert response.status_code == 302
 
     def test_non_owner_member_denied(self, client, member_user):
-        """Regular member cannot view other's request."""
         user, _ = member_user
         client.force_login(user)
-
-        hr = HelpRequestFactory()  # another member's request
-
+        hr = HelpRequestFactory()
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
-        assert response.status_code == 302  # redirected to my_requests
+        assert response.status_code == 302
 
     def test_no_member_profile_redirects(self, client, user_no_profile):
-        """User without member profile is redirected."""
         client.force_login(user_no_profile)
-
         hr = HelpRequestFactory()
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
         assert response.status_code == 302
 
     def test_not_found(self, client, member_user):
-        """Non-existent request returns 404."""
         user, _ = member_user
         client.force_login(user)
-
         fake_pk = uuid.uuid4()
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': fake_pk})
         )
@@ -380,11 +306,9 @@ class TestRequestDetailView:
         """Pastor sees both internal and public comments."""
         user, pastor = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
         HelpRequestCommentFactory(help_request=hr, is_internal=False)
         HelpRequestCommentFactory(help_request=hr, is_internal=True)
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
@@ -392,14 +316,12 @@ class TestRequestDetailView:
         assert len(response.context['comments']) == 2
 
     def test_member_sees_only_public_comments(self, client, member_user):
-        """Regular member sees only public comments on their own request."""
+        """Member sees only public comments on their own request."""
         user, member = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory(member=member)
         HelpRequestCommentFactory(help_request=hr, is_internal=False)
         HelpRequestCommentFactory(help_request=hr, is_internal=True)
-
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
@@ -407,20 +329,16 @@ class TestRequestDetailView:
         assert len(response.context['comments']) == 1
 
     def test_assign_form_for_staff_only(self, client, member_user, pastor_user):
-        """Assign form is provided only for pastor/admin."""
         m_user, member = member_user
         p_user, pastor = pastor_user
-
         hr = HelpRequestFactory(member=member)
 
-        # Member does not get assign form
         client.force_login(m_user)
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
         )
         assert response.context['assign_form'] is None
 
-        # Pastor gets assign form
         client.force_login(p_user)
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
@@ -428,7 +346,6 @@ class TestRequestDetailView:
         assert response.context['assign_form'] is not None
 
     def test_unauthenticated_redirects(self, client):
-        """Unauthenticated user is redirected to login."""
         hr = HelpRequestFactory()
         response = client.get(
             reverse('frontend:help_requests:request_detail', kwargs={'pk': hr.pk})
@@ -437,53 +354,35 @@ class TestRequestDetailView:
         assert '/accounts/login/' in response.url
 
 
-# =============================================================================
-# MY REQUESTS VIEW
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestMyRequestsView:
     """Tests for my_requests view."""
 
     def test_member_sees_own_requests(self, client, member_user):
-        """Member sees only their own requests."""
         user, member = member_user
         client.force_login(user)
-
         HelpRequestFactory.create_batch(3, member=member)
-        HelpRequestFactory.create_batch(2)  # other member's requests
-
+        HelpRequestFactory.create_batch(2)
         response = client.get(reverse('frontend:help_requests:my_requests'))
         assert response.status_code == 200
         assert len(response.context['requests']) == 3
 
     def test_no_member_profile_redirects(self, client, user_no_profile):
-        """User without member profile is redirected."""
         client.force_login(user_no_profile)
-
         response = client.get(reverse('frontend:help_requests:my_requests'))
         assert response.status_code == 302
 
     def test_unauthenticated_redirects(self, client):
-        """Unauthenticated user is redirected to login."""
         response = client.get(reverse('frontend:help_requests:my_requests'))
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
 
     def test_empty_list(self, client, member_user):
-        """Member with no requests sees empty list."""
         user, _ = member_user
         client.force_login(user)
-
         response = client.get(reverse('frontend:help_requests:my_requests'))
         assert response.status_code == 200
         assert len(response.context['requests']) == 0
-
-
-# =============================================================================
-# REQUEST UPDATE VIEW
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -491,88 +390,67 @@ class TestRequestUpdateView:
     """Tests for request_update view."""
 
     def test_assign_action(self, client, pastor_user):
-        """Pastor can assign a request."""
         user, pastor = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory(status=HelpRequestStatus.NEW)
         staff = MemberFactory(role=Roles.PASTOR)
-
         data = {
             'action': 'assign',
             'assigned_to': str(staff.id),
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         hr.refresh_from_db()
         assert hr.assigned_to == staff
         assert hr.status == HelpRequestStatus.IN_PROGRESS
 
     def test_resolve_action(self, client, pastor_user):
-        """Pastor can resolve a request."""
         user, _ = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory(status=HelpRequestStatus.IN_PROGRESS)
-
         data = {
             'action': 'resolve',
             'resolution_notes': 'Problem solved',
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         hr.refresh_from_db()
         assert hr.status == HelpRequestStatus.RESOLVED
         assert hr.resolution_notes == 'Problem solved'
         assert hr.resolved_at is not None
 
     def test_close_action(self, client, pastor_user):
-        """Pastor can close a request."""
         user, _ = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory(status=HelpRequestStatus.RESOLVED)
-
         data = {'action': 'close'}
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         hr.refresh_from_db()
         assert hr.status == 'closed'
 
     def test_member_denied(self, client, member_user):
-        """Regular member cannot update requests."""
         user, _ = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
             {'action': 'close'},
         )
-        assert response.status_code == 302  # redirected to my_requests
+        assert response.status_code == 302
 
     def test_no_profile_denied(self, client, user_no_profile):
-        """User without profile is denied."""
         client.force_login(user_no_profile)
-
         hr = HelpRequestFactory()
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
             {'action': 'close'},
@@ -580,12 +458,9 @@ class TestRequestUpdateView:
         assert response.status_code == 302
 
     def test_not_found(self, client, pastor_user):
-        """Non-existent request returns 404."""
         user, _ = pastor_user
         client.force_login(user)
-
         fake_pk = uuid.uuid4()
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': fake_pk}),
             {'action': 'close'},
@@ -593,39 +468,29 @@ class TestRequestUpdateView:
         assert response.status_code == 404
 
     def test_resolve_without_notes(self, client, pastor_user):
-        """Resolving without notes uses empty string."""
         user, _ = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory(status=HelpRequestStatus.IN_PROGRESS)
-
         data = {'action': 'resolve'}
-
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         hr.refresh_from_db()
         assert hr.status == HelpRequestStatus.RESOLVED
         assert hr.resolution_notes == ''
 
     def test_get_request_redirects(self, client, pastor_user):
-        """GET on update view redirects back to detail (since only POST is handled)."""
         user, _ = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
-
         response = client.get(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk})
         )
-        # The view always redirects at the end, regardless of method
         assert response.status_code == 302
 
     def test_unauthenticated_redirects(self, client):
-        """Unauthenticated user is redirected to login."""
         hr = HelpRequestFactory()
         response = client.post(
             reverse('frontend:help_requests:request_update', kwargs={'pk': hr.pk}),
@@ -635,77 +500,57 @@ class TestRequestUpdateView:
         assert '/accounts/login/' in response.url
 
 
-# =============================================================================
-# REQUEST COMMENT VIEW
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestRequestCommentView:
     """Tests for request_comment view."""
 
     def test_owner_can_comment(self, client, member_user):
-        """Owner can comment on their own request."""
         user, member = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory(member=member)
-
         data = {
             'content': 'Thank you for the help!',
             'is_internal': False,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         assert HelpRequestComment.objects.filter(
             help_request=hr, author=member, content='Thank you for the help!'
         ).exists()
 
     def test_pastor_can_comment(self, client, pastor_user):
-        """Pastor can comment on any request."""
         user, pastor = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
-
         data = {
             'content': 'We will address this.',
             'is_internal': False,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         assert HelpRequestComment.objects.filter(
             help_request=hr, author=pastor
         ).exists()
 
     def test_pastor_can_create_internal_comment(self, client, pastor_user):
-        """Pastor can create internal comments."""
         user, pastor = pastor_user
         client.force_login(user)
-
         hr = HelpRequestFactory()
-
         data = {
             'content': 'Internal note for staff',
             'is_internal': True,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         comment = HelpRequestComment.objects.get(
             help_request=hr, author=pastor
         )
@@ -715,50 +560,39 @@ class TestRequestCommentView:
         """Regular member's internal comment is forced to public."""
         user, member = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory(member=member)
-
         data = {
             'content': 'Trying to make internal',
             'is_internal': True,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             data,
         )
         assert response.status_code == 302
-
         comment = HelpRequestComment.objects.get(
             help_request=hr, author=member
         )
         assert comment.is_internal is False
 
     def test_non_owner_non_staff_denied(self, client, member_user):
-        """Non-owner regular member cannot comment."""
         user, member = member_user
         client.force_login(user)
-
-        hr = HelpRequestFactory()  # another member's request
-
+        hr = HelpRequestFactory()
         data = {
             'content': 'Should not work',
             'is_internal': False,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             data,
         )
-        assert response.status_code == 302  # redirected to my_requests
+        assert response.status_code == 302
         assert not HelpRequestComment.objects.filter(author=member).exists()
 
     def test_no_member_profile_redirects(self, client, user_no_profile):
-        """User without member profile is redirected."""
         client.force_login(user_no_profile)
-
         hr = HelpRequestFactory()
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             {'content': 'Test', 'is_internal': False},
@@ -766,12 +600,9 @@ class TestRequestCommentView:
         assert response.status_code == 302
 
     def test_not_found(self, client, member_user):
-        """Non-existent request returns 404."""
         user, _ = member_user
         client.force_login(user)
-
         fake_pk = uuid.uuid4()
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': fake_pk}),
             {'content': 'Test', 'is_internal': False},
@@ -779,42 +610,30 @@ class TestRequestCommentView:
         assert response.status_code == 404
 
     def test_invalid_form_redirects(self, client, member_user):
-        """Invalid form submission still redirects to detail."""
         user, member = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory(member=member)
-
-        # Empty content is invalid
         data = {
             'content': '',
             'is_internal': False,
         }
-
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),
             data,
         )
-        # View always redirects regardless of form validity
         assert response.status_code == 302
-        # No comment was created
         assert not HelpRequestComment.objects.filter(help_request=hr).exists()
 
     def test_get_redirects(self, client, member_user):
-        """GET on comment view redirects (only POST creates comment)."""
         user, member = member_user
         client.force_login(user)
-
         hr = HelpRequestFactory(member=member)
-
         response = client.get(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk})
         )
-        # View always redirects at the end
         assert response.status_code == 302
 
     def test_unauthenticated_redirects(self, client):
-        """Unauthenticated user is redirected to login."""
         hr = HelpRequestFactory()
         response = client.post(
             reverse('frontend:help_requests:request_comment', kwargs={'pk': hr.pk}),

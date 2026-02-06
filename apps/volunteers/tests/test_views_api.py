@@ -21,10 +21,6 @@ from apps.volunteers.tests.factories import (
 pytestmark = pytest.mark.django_db
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def api_client():
     return APIClient()
@@ -51,10 +47,6 @@ def user_no_profile():
 def staff_user_no_profile():
     return UserFactory(is_staff=True)
 
-
-# ===================================================================
-# VolunteerPositionViewSet
-# ===================================================================
 
 class TestVolunteerPositionList:
 
@@ -177,10 +169,6 @@ class TestVolunteerPositionDelete:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-# ===================================================================
-# VolunteerScheduleViewSet
-# ===================================================================
-
 class TestVolunteerScheduleList:
 
     def test_list_authenticated(self, api_client, member_user):
@@ -268,8 +256,7 @@ class TestVolunteerScheduleMySchedule:
         member = member_user.member_profile
         VolunteerScheduleFactory(member=member)
         VolunteerScheduleFactory(member=member)
-        # Another member's schedule
-        VolunteerScheduleFactory()
+        VolunteerScheduleFactory()  # another member's schedule
 
         response = api_client.get('/api/v1/volunteers/schedules/my-schedule/')
         assert response.status_code == status.HTTP_200_OK
@@ -340,10 +327,6 @@ class TestVolunteerScheduleUpdateDelete:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-# ===================================================================
-# VolunteerAvailabilityViewSet
-# ===================================================================
-
 class TestVolunteerAvailabilityList:
 
     def test_staff_sees_all(self, api_client, staff_user_no_profile):
@@ -357,8 +340,8 @@ class TestVolunteerAvailabilityList:
         api_client.force_authenticate(user=member_user)
         member = member_user.member_profile
         VolunteerAvailabilityFactory(member=member)
-        VolunteerAvailabilityFactory()  # another member
-        VolunteerAvailabilityFactory()  # yet another member
+        VolunteerAvailabilityFactory()
+        VolunteerAvailabilityFactory()
         response = api_client.get('/api/v1/volunteers/availability/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] == 1
@@ -421,10 +404,6 @@ class TestVolunteerAvailabilityCRUD:
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
-# ===================================================================
-# SwapRequestViewSet
-# ===================================================================
-
 class TestSwapRequestList:
 
     def test_staff_sees_all(self, api_client, staff_user_no_profile):
@@ -438,7 +417,7 @@ class TestSwapRequestList:
         api_client.force_authenticate(user=member_user)
         member = member_user.member_profile
         SwapRequestFactory(requested_by=member)
-        SwapRequestFactory()  # unrelated
+        SwapRequestFactory()
         response = api_client.get('/api/v1/volunteers/swap-requests/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] == 1
@@ -447,7 +426,7 @@ class TestSwapRequestList:
         api_client.force_authenticate(user=member_user)
         member = member_user.member_profile
         SwapRequestFactory(swap_with=member)
-        SwapRequestFactory()  # unrelated
+        SwapRequestFactory()
         response = api_client.get('/api/v1/volunteers/swap-requests/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] == 1
@@ -457,7 +436,7 @@ class TestSwapRequestList:
         member = member_user.member_profile
         SwapRequestFactory(requested_by=member)
         SwapRequestFactory(swap_with=member)
-        SwapRequestFactory()  # unrelated
+        SwapRequestFactory()
         response = api_client.get('/api/v1/volunteers/swap-requests/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] == 2

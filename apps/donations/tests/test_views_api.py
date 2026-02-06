@@ -1,6 +1,4 @@
-"""
-Tests for donations API views.
-"""
+"""Tests for donations API views."""
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -30,13 +28,8 @@ from .factories import (
 User = get_user_model()
 
 
-# =============================================================================
-# HELPERS
-# =============================================================================
-
-
 def make_member_with_user(role=Roles.MEMBER):
-    """Create a member with a linked user account and return (user, member)."""
+    """Create a member with a linked user account."""
     user = UserFactory()
     member = MemberFactory(user=user, role=role)
     return user, member
@@ -48,11 +41,6 @@ def make_api_client(user=None):
     if user:
         client.force_authenticate(user=user)
     return client
-
-
-# =============================================================================
-# DONATION VIEWSET TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -186,7 +174,6 @@ class TestDonationViewSetCreate:
         }
         response = client.post('/api/v1/donations/donations/', data)
         assert response.status_code == status.HTTP_201_CREATED
-        # DonationCreateSerializer returns only amount, donation_type, campaign, notes
         donation = Donation.objects.filter(member=member).first()
         assert donation is not None
         assert donation.member == member
@@ -334,7 +321,7 @@ class TestDonationViewSetMyHistory:
         user, member = make_member_with_user(Roles.MEMBER)
         donation1 = DonationFactory(member=member, date=date(2026, 1, 15))
         donation2 = DonationFactory(member=member, date=date(2026, 2, 15))
-        DonationFactory()  # another member's donation
+        DonationFactory()
 
         client = make_api_client(user)
         response = client.get('/api/v1/donations/donations/my-history/')
@@ -581,11 +568,6 @@ class TestDonationViewSetSummary:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-# =============================================================================
-# DONATION CAMPAIGN VIEWSET TESTS
-# =============================================================================
-
-
 @pytest.mark.django_db
 class TestDonationCampaignViewSetList:
     """Tests for DonationCampaignViewSet list action."""
@@ -744,11 +726,7 @@ class TestDonationCampaignViewSetActive:
     """Tests for DonationCampaignViewSet active action."""
 
     def test_active_campaigns(self):
-        """Get active campaigns returns only currently active ones.
-
-        Note: The 'active' action falls through to IsPastorOrAdmin permission,
-        so only pastor/admin can access it.
-        """
+        """Get active campaigns returns only currently active ones."""
         user, member = make_member_with_user(Roles.PASTOR)
         today = timezone.now().date()
 
@@ -778,7 +756,6 @@ class TestDonationCampaignViewSetActive:
         assert str(active_campaign.pk) in campaign_ids
         assert str(future_campaign.pk) not in campaign_ids
         assert str(ended_campaign.pk) not in campaign_ids
-        # inactive_campaign has is_active=False, so won't appear in default queryset
 
     def test_active_campaigns_with_no_end_date(self):
         """Active campaigns with no end date are included if started."""
@@ -804,11 +781,6 @@ class TestDonationCampaignViewSetActive:
         client = make_api_client(user)
         response = client.get('/api/v1/donations/campaigns/active/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-# =============================================================================
-# TAX RECEIPT VIEWSET TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db
@@ -914,7 +886,7 @@ class TestTaxReceiptViewSetMyReceipts:
         """Member can get their own receipts."""
         user, member = make_member_with_user(Roles.MEMBER)
         receipt = TaxReceiptFactory(member=member, year=2025)
-        TaxReceiptFactory(year=2024)  # another member's receipt
+        TaxReceiptFactory(year=2024)
 
         client = make_api_client(user)
         response = client.get('/api/v1/donations/receipts/my-receipts/')
@@ -1053,11 +1025,6 @@ class TestTaxReceiptViewSetGenerate:
         response = client.post('/api/v1/donations/receipts/generate/2024/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['generated_count'] == 1
-
-
-# =============================================================================
-# FILTERING AND SEARCHING TESTS
-# =============================================================================
 
 
 @pytest.mark.django_db

@@ -1,4 +1,4 @@
-"""Help Requests test factories."""
+"""Test factories for help_requests app."""
 import factory
 from factory.django import DjangoModelFactory
 from apps.help_requests.models import HelpRequest, HelpRequestCategory, HelpRequestComment
@@ -6,13 +6,13 @@ from apps.members.tests.factories import MemberFactory
 
 
 class HelpRequestCategoryFactory(DjangoModelFactory):
-    """Factory for HelpRequestCategory."""
+    """Creates test help request categories."""
 
     class Meta:
         model = HelpRequestCategory
 
     name = factory.Sequence(lambda n: f'Category {n}')
-    name_fr = factory.Sequence(lambda n: f'Catégorie {n}')
+    name_fr = factory.Sequence(lambda n: f'Categorie {n}')
     description = factory.Faker('paragraph')
     icon = 'help-circle'
     is_active = True
@@ -20,7 +20,7 @@ class HelpRequestCategoryFactory(DjangoModelFactory):
 
 
 class HelpRequestFactory(DjangoModelFactory):
-    """Factory for HelpRequest."""
+    """Creates test help requests with auto-generated request numbers."""
 
     class Meta:
         model = HelpRequest
@@ -35,7 +35,7 @@ class HelpRequestFactory(DjangoModelFactory):
 
 
 class HelpRequestCommentFactory(DjangoModelFactory):
-    """Factory for HelpRequestComment."""
+    """Creates test comments on help requests."""
 
     class Meta:
         model = HelpRequestComment

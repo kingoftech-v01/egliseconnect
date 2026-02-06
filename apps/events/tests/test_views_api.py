@@ -13,10 +13,6 @@ from apps.events.tests.factories import EventFactory, EventRSVPFactory
 pytestmark = pytest.mark.django_db
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def api_client():
     return APIClient()
@@ -24,34 +20,30 @@ def api_client():
 
 @pytest.fixture
 def member_user():
-    """Authenticated user with a regular-member profile."""
+    """Regular member with authenticated user."""
     member = MemberWithUserFactory(role=Roles.MEMBER)
     return member.user
 
 
 @pytest.fixture
 def pastor_user():
-    """Authenticated user with a pastor profile (staff-level)."""
+    """Pastor with staff-level permissions."""
     member = MemberWithUserFactory(role=Roles.PASTOR)
     return member.user
 
 
 @pytest.fixture
 def user_no_profile():
-    """Authenticated user without any member profile."""
+    """User without any member profile."""
     return UserFactory()
 
 
 @pytest.fixture
 def staff_user_no_profile():
-    """Authenticated staff user without any member profile."""
+    """Staff user without member profile."""
     user = UserFactory(is_staff=True)
     return user
 
-
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
 
 def _event_payload(**overrides):
     """Return a minimal valid event payload dict."""
@@ -69,10 +61,6 @@ def _event_payload(**overrides):
     return data
 
 
-# ===================================================================
-# EventViewSet -- List
-# ===================================================================
-
 class TestEventList:
 
     def test_list_authenticated(self, api_client, member_user):
@@ -88,16 +76,14 @@ class TestEventList:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_list_uses_list_serializer_fields(self, api_client, member_user):
-        """EventListSerializer should be used for list action."""
+        """Verifies list action uses compact serializer without detail-only fields."""
         api_client.force_authenticate(user=member_user)
         EventFactory()
         response = api_client.get('/api/v1/events/events/')
         result = response.data['results'][0]
-        # Fields present in EventListSerializer
         assert 'title' in result
         assert 'event_type_display' in result
         assert 'confirmed_count' in result
-        # Fields NOT in EventListSerializer (they are in EventSerializer)
         assert 'is_full' not in result
         assert 'organizer_name' not in result
 
@@ -155,10 +141,6 @@ class TestEventList:
         assert dates == sorted(dates)
 
 
-# ===================================================================
-# EventViewSet -- Retrieve
-# ===================================================================
-
 class TestEventRetrieve:
 
     def test_retrieve_authenticated(self, api_client, member_user):
@@ -169,7 +151,7 @@ class TestEventRetrieve:
         assert response.data['title'] == event.title
 
     def test_retrieve_uses_detail_serializer(self, api_client, member_user):
-        """EventSerializer (detail) should include extra fields."""
+        """Detail view includes extra fields like is_full and organizer_name."""
         api_client.force_authenticate(user=member_user)
         event = EventFactory()
         response = api_client.get(f'/api/v1/events/events/{event.id}/')
@@ -187,10 +169,6 @@ class TestEventRetrieve:
         response = api_client.get(f'/api/v1/events/events/{uuid.uuid4()}/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-
-# ===================================================================
-# EventViewSet -- Create
-# ===================================================================
 
 class TestEventCreate:
 
@@ -212,10 +190,6 @@ class TestEventCreate:
         response = api_client.post('/api/v1/events/events/', data, format='json')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-# ===================================================================
-# EventViewSet -- Update
-# ===================================================================
 
 class TestEventUpdate:
 
@@ -251,10 +225,6 @@ class TestEventUpdate:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-# ===================================================================
-# EventViewSet -- Delete
-# ===================================================================
-
 class TestEventDelete:
 
     def test_delete_as_pastor(self, api_client, pastor_user):
@@ -269,10 +239,6 @@ class TestEventDelete:
         response = api_client.delete(f'/api/v1/events/events/{event.id}/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-# ===================================================================
-# EventViewSet -- Upcoming
-# ===================================================================
 
 class TestEventUpcoming:
 
@@ -330,10 +296,6 @@ class TestEventUpcoming:
         assert len(response.data) == 10
 
 
-# ===================================================================
-# EventViewSet -- Calendar
-# ===================================================================
-
 class TestEventCalendar:
 
     def test_calendar_returns_published_only(self, api_client, member_user):
@@ -387,14 +349,10 @@ class TestEventCalendar:
         assert len(response.data) == 2
 
 
-# ===================================================================
-# EventViewSet -- RSVP
-# ===================================================================
-
 class TestEventRSVP:
 
     def test_rsvp_create_confirmed(self, api_client, pastor_user):
-        """Pastor can create an RSVP (action requires IsPastorOrAdmin)."""
+        """RSVP action requires IsPastorOrAdmin permission."""
         api_client.force_authenticate(user=pastor_user)
         event = EventFactory()
         response = api_client.post(
@@ -407,7 +365,7 @@ class TestEventRSVP:
         assert response.data['guests'] == 2
 
     def test_rsvp_update_existing(self, api_client, pastor_user):
-        """Submitting RSVP again should update the existing record."""
+        """Submitting RSVP again updates the existing record."""
         api_client.force_authenticate(user=pastor_user)
         member = pastor_user.member_profile
         event = EventFactory()
@@ -423,7 +381,7 @@ class TestEventRSVP:
         assert response.data['guests'] == 3
 
     def test_rsvp_default_status_and_guests(self, api_client, pastor_user):
-        """Defaults: status=CONFIRMED, guests=0."""
+        """Defaults to status=CONFIRMED and guests=0."""
         api_client.force_authenticate(user=pastor_user)
         event = EventFactory()
         response = api_client.post(
@@ -434,7 +392,7 @@ class TestEventRSVP:
         assert response.data['guests'] == 0
 
     def test_rsvp_no_member_profile(self, api_client, staff_user_no_profile):
-        """Staff user without member profile gets a 400."""
+        """Staff without member profile gets 400."""
         api_client.force_authenticate(user=staff_user_no_profile)
         event = EventFactory()
         response = api_client.post(
@@ -444,7 +402,7 @@ class TestEventRSVP:
         assert response.data['error'] == 'Profil membre requis'
 
     def test_rsvp_as_member_forbidden(self, api_client, member_user):
-        """Regular member cannot access rsvp action (IsPastorOrAdmin)."""
+        """Regular member cannot access RSVP action due to IsPastorOrAdmin."""
         api_client.force_authenticate(user=member_user)
         event = EventFactory()
         response = api_client.post(
@@ -453,7 +411,6 @@ class TestEventRSVP:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_rsvp_declined(self, api_client, pastor_user):
-        """Submit a declined RSVP."""
         api_client.force_authenticate(user=pastor_user)
         event = EventFactory()
         response = api_client.post(
@@ -464,10 +421,6 @@ class TestEventRSVP:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['status'] == RSVPStatus.DECLINED
 
-
-# ===================================================================
-# EventViewSet -- Attendees
-# ===================================================================
 
 class TestEventAttendees:
 

@@ -1,6 +1,4 @@
-"""
-Test factories for volunteers app.
-"""
+"""Test factories for volunteers app."""
 import factory
 from django.utils import timezone
 from factory.django import DjangoModelFactory
@@ -14,7 +12,7 @@ from apps.volunteers.models import (
 
 
 class VolunteerPositionFactory(DjangoModelFactory):
-    """Factory for VolunteerPosition model."""
+    """Creates test volunteer positions."""
 
     class Meta:
         model = VolunteerPosition
@@ -26,7 +24,7 @@ class VolunteerPositionFactory(DjangoModelFactory):
 
 
 class VolunteerAvailabilityFactory(DjangoModelFactory):
-    """Factory for VolunteerAvailability model."""
+    """Creates test availability records linking members to positions."""
 
     class Meta:
         model = VolunteerAvailability
@@ -38,7 +36,7 @@ class VolunteerAvailabilityFactory(DjangoModelFactory):
 
 
 class VolunteerScheduleFactory(DjangoModelFactory):
-    """Factory for VolunteerSchedule model."""
+    """Creates test schedule entries for volunteer shifts."""
 
     class Meta:
         model = VolunteerSchedule
@@ -50,7 +48,7 @@ class VolunteerScheduleFactory(DjangoModelFactory):
 
 
 class SwapRequestFactory(DjangoModelFactory):
-    """Factory for SwapRequest model."""
+    """Creates test swap requests between volunteers."""
 
     class Meta:
         model = SwapRequest

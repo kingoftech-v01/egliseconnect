@@ -1,4 +1,4 @@
-"""Reports API view tests."""
+"""Tests for reports API views."""
 import pytest
 from datetime import date
 from django.urls import reverse
@@ -29,96 +29,76 @@ def member_user():
 
 @pytest.mark.django_db
 class TestDashboardAPI:
-    """Tests for Dashboard API."""
+    """Tests for Dashboard API endpoints."""
 
     def test_dashboard_requires_auth(self, api_client):
-        """Test dashboard requires authentication."""
         response = api_client.get('/api/v1/reports/dashboard/')
-        # SessionAuthentication returns 403 for unauthenticated requests
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
     def test_dashboard_requires_pastor_role(self, api_client, member_user):
-        """Test dashboard requires pastor/admin role."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_dashboard_accessible_by_pastor(self, api_client, pastor_user):
-        """Test pastor can access dashboard."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/')
         assert response.status_code == status.HTTP_200_OK
         assert 'members' in response.data
         assert 'donations' in response.data
 
     def test_member_stats_endpoint(self, api_client, pastor_user):
-        """Test member stats endpoint."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/members/')
         assert response.status_code == status.HTTP_200_OK
         assert 'total' in response.data
         assert 'active' in response.data
 
     def test_donation_stats_endpoint(self, api_client, pastor_user):
-        """Test donation stats endpoint."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/donations/')
         assert response.status_code == status.HTTP_200_OK
         assert 'total_amount' in response.data
 
     def test_donation_stats_with_year(self, api_client, pastor_user):
-        """Test donation stats with year parameter."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/donations/?year=2025')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2025
 
     def test_birthdays_endpoint(self, api_client, pastor_user):
-        """Test birthdays endpoint."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/birthdays/')
         assert response.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db
 class TestReportAPI:
-    """Tests for Report API."""
+    """Tests for Report API endpoints."""
 
     def test_attendance_report(self, api_client, pastor_user):
-        """Test attendance report endpoint."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/attendance/')
         assert response.status_code == status.HTTP_200_OK
         assert 'events' in response.data
 
     def test_donation_report(self, api_client, pastor_user):
-        """Test donation report endpoint."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/donations/2026/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2026
 
     def test_volunteer_report(self, api_client, pastor_user):
-        """Test volunteer report endpoint."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/volunteers/')
         assert response.status_code == status.HTTP_200_OK
         assert 'total_shifts' in response.data
@@ -126,39 +106,29 @@ class TestReportAPI:
 
 @pytest.mark.django_db
 class TestTreasurerAccess:
-    """Tests for treasurer-specific access."""
+    """Tests for treasurer-specific API access."""
 
     def test_treasurer_can_access_donation_report(self, api_client):
-        """Test treasurer can access donation reports."""
         user = UserFactory()
         member = MemberFactory(user=user, role='treasurer')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_member_cannot_access_treasurer_reports(self, api_client, member_user):
-        """Test regular member cannot access treasurer reports."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-# =============================================================================
-# ADDITIONAL DASHBOARD ENDPOINT TESTS
-# =============================================================================
 
 @pytest.mark.django_db
 class TestDashboardEventsAPI:
     """Tests for Dashboard events endpoint."""
 
     def test_events_endpoint(self, api_client, pastor_user):
-        """Test events stats endpoint returns data."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/events/')
         assert response.status_code == status.HTTP_200_OK
         assert 'total_events' in response.data
@@ -167,25 +137,21 @@ class TestDashboardEventsAPI:
         assert 'year' in response.data
 
     def test_events_with_year_param(self, api_client, pastor_user):
-        """Test events stats with explicit year parameter."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/events/?year=2025')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2025
 
     def test_events_with_invalid_year_param(self, api_client, pastor_user):
-        """Test events stats with invalid year falls back to None (current year)."""
+        """Invalid year falls back to current year."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/events/?year=notayear')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == date.today().year
 
     def test_events_requires_auth(self, api_client):
-        """Test events endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/dashboard/events/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -193,10 +159,8 @@ class TestDashboardEventsAPI:
         )
 
     def test_events_denied_for_regular_member(self, api_client, member_user):
-        """Test events endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/events/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -206,17 +170,14 @@ class TestDashboardVolunteersAPI:
     """Tests for Dashboard volunteers endpoint."""
 
     def test_volunteers_endpoint(self, api_client, pastor_user):
-        """Test volunteers stats endpoint returns data."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/volunteers/')
         assert response.status_code == status.HTTP_200_OK
         assert 'total_positions' in response.data
         assert 'upcoming_schedules' in response.data
 
     def test_volunteers_requires_auth(self, api_client):
-        """Test volunteers endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/dashboard/volunteers/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -224,10 +185,8 @@ class TestDashboardVolunteersAPI:
         )
 
     def test_volunteers_denied_for_regular_member(self, api_client, member_user):
-        """Test volunteers endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/volunteers/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -237,10 +196,8 @@ class TestDashboardHelpRequestsAPI:
     """Tests for Dashboard help_requests endpoint."""
 
     def test_help_requests_endpoint(self, api_client, pastor_user):
-        """Test help requests stats endpoint returns data."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/help_requests/')
         assert response.status_code == status.HTTP_200_OK
         assert 'total' in response.data
@@ -248,7 +205,6 @@ class TestDashboardHelpRequestsAPI:
         assert 'resolved_this_month' in response.data
 
     def test_help_requests_requires_auth(self, api_client):
-        """Test help_requests endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/dashboard/help_requests/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -256,67 +212,50 @@ class TestDashboardHelpRequestsAPI:
         )
 
     def test_help_requests_denied_for_regular_member(self, api_client, member_user):
-        """Test help_requests endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/help_requests/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-# =============================================================================
-# ADDITIONAL DONATION STATS TESTS
-# =============================================================================
 
 @pytest.mark.django_db
 class TestDonationStatsEdgeCases:
     """Tests for donation stats edge cases."""
 
     def test_donation_stats_with_invalid_year(self, api_client, pastor_user):
-        """Test donation stats with invalid year falls back to None (current year)."""
+        """Invalid year falls back to current year."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/donations/?year=abc')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == date.today().year
 
     def test_donation_stats_without_year(self, api_client, pastor_user):
-        """Test donation stats without year uses current year."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/donations/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == date.today().year
 
-
-# =============================================================================
-# ADDITIONAL BIRTHDAY ENDPOINT TESTS
-# =============================================================================
 
 @pytest.mark.django_db
 class TestBirthdaysEdgeCases:
     """Tests for birthdays endpoint edge cases."""
 
     def test_birthdays_with_custom_days(self, api_client, pastor_user):
-        """Test birthdays endpoint with custom days parameter."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/birthdays/?days=30')
         assert response.status_code == status.HTTP_200_OK
 
     def test_birthdays_with_invalid_days(self, api_client, pastor_user):
-        """Test birthdays endpoint with invalid days falls back to 7."""
+        """Invalid days falls back to default."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/birthdays/?days=notanumber')
         assert response.status_code == status.HTTP_200_OK
 
     def test_birthdays_requires_auth(self, api_client):
-        """Test birthdays endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/dashboard/birthdays/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -324,27 +263,19 @@ class TestBirthdaysEdgeCases:
         )
 
     def test_birthdays_denied_for_regular_member(self, api_client, member_user):
-        """Test birthdays endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/birthdays/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-# =============================================================================
-# ADDITIONAL REPORT VIEWSET TESTS
-# =============================================================================
 
 @pytest.mark.django_db
 class TestReportAttendanceEdgeCases:
     """Tests for attendance report edge cases."""
 
     def test_attendance_with_valid_dates(self, api_client, pastor_user):
-        """Test attendance report with valid start_date and end_date."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/attendance/?start_date=2025-01-01&end_date=2025-12-31'
         )
@@ -353,57 +284,49 @@ class TestReportAttendanceEdgeCases:
         assert response.data['end_date'] == '2025-12-31'
 
     def test_attendance_with_invalid_start_date(self, api_client, pastor_user):
-        """Test attendance report with invalid start_date falls back to None."""
+        """Invalid start_date falls back to None."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/attendance/?start_date=invalid'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_attendance_with_invalid_end_date(self, api_client, pastor_user):
-        """Test attendance report with invalid end_date falls back to None."""
+        """Invalid end_date falls back to None."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/attendance/?end_date=invalid'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_attendance_with_both_invalid_dates(self, api_client, pastor_user):
-        """Test attendance report with both invalid dates falls back to defaults."""
+        """Both invalid dates fall back to defaults."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/attendance/?start_date=bad&end_date=bad'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_attendance_with_only_start_date(self, api_client, pastor_user):
-        """Test attendance report with only start_date."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/attendance/?start_date=2025-06-01'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_attendance_with_only_end_date(self, api_client, pastor_user):
-        """Test attendance report with only end_date."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/attendance/?end_date=2025-06-30'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_attendance_requires_auth(self, api_client):
-        """Test attendance endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/reports/attendance/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -411,10 +334,8 @@ class TestReportAttendanceEdgeCases:
         )
 
     def test_attendance_denied_for_regular_member(self, api_client, member_user):
-        """Test attendance endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/attendance/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -424,25 +345,20 @@ class TestReportDonationEdgeCases:
     """Tests for donation report edge cases with different years."""
 
     def test_donation_report_2025(self, api_client, pastor_user):
-        """Test donation report with year 2025."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/donations/2025/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2025
 
     def test_donation_report_2024(self, api_client, pastor_user):
-        """Test donation report with year 2024."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/donations/2024/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2024
 
     def test_donation_report_requires_auth(self, api_client):
-        """Test donation report endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/reports/donations/2026/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -450,18 +366,14 @@ class TestReportDonationEdgeCases:
         )
 
     def test_donation_report_denied_for_regular_member(self, api_client, member_user):
-        """Test donation report endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/donations/2026/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_donation_report_response_fields(self, api_client, pastor_user):
-        """Test donation report returns all expected fields."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/donations/2026/')
         assert response.status_code == status.HTTP_200_OK
         assert 'year' in response.data
@@ -478,10 +390,8 @@ class TestReportVolunteerEdgeCases:
     """Tests for volunteer report edge cases."""
 
     def test_volunteer_report_with_valid_dates(self, api_client, pastor_user):
-        """Test volunteer report with valid date parameters."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/volunteers/?start_date=2025-01-01&end_date=2025-12-31'
         )
@@ -490,37 +400,33 @@ class TestReportVolunteerEdgeCases:
         assert response.data['end_date'] == '2025-12-31'
 
     def test_volunteer_report_with_invalid_start_date(self, api_client, pastor_user):
-        """Test volunteer report with invalid start_date falls back to None."""
+        """Invalid start_date falls back to None."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/volunteers/?start_date=invalid'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_volunteer_report_with_invalid_end_date(self, api_client, pastor_user):
-        """Test volunteer report with invalid end_date falls back to None."""
+        """Invalid end_date falls back to None."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/volunteers/?end_date=invalid'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_volunteer_report_with_both_invalid_dates(self, api_client, pastor_user):
-        """Test volunteer report with both invalid dates falls back to defaults."""
+        """Both invalid dates fall back to defaults."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get(
             '/api/v1/reports/reports/volunteers/?start_date=bad&end_date=bad'
         )
         assert response.status_code == status.HTTP_200_OK
 
     def test_volunteer_report_requires_auth(self, api_client):
-        """Test volunteer report endpoint requires authentication."""
         response = api_client.get('/api/v1/reports/reports/volunteers/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -528,18 +434,14 @@ class TestReportVolunteerEdgeCases:
         )
 
     def test_volunteer_report_denied_for_regular_member(self, api_client, member_user):
-        """Test volunteer report endpoint denied for regular member."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/volunteers/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_volunteer_report_response_fields(self, api_client, pastor_user):
-        """Test volunteer report returns all expected fields."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/volunteers/')
         assert response.status_code == status.HTTP_200_OK
         assert 'start_date' in response.data
@@ -551,36 +453,27 @@ class TestReportVolunteerEdgeCases:
         assert 'top_volunteers' in response.data
 
 
-# =============================================================================
-# ADDITIONAL TREASURER REPORT TESTS
-# =============================================================================
-
 @pytest.mark.django_db
 class TestTreasurerDonationReportEdgeCases:
     """Tests for treasurer donation report edge cases."""
 
     def test_treasurer_report_with_year(self, api_client):
-        """Test treasurer can access donation report with specific year."""
         user = UserFactory()
         TreasurerFactory(user=user)
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/2025/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2025
 
     def test_treasurer_report_without_year_uses_current(self, api_client):
-        """Test treasurer report defaults to current year when no year given."""
         user = UserFactory()
         TreasurerFactory(user=user)
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == date.today().year
 
     def test_treasurer_report_requires_auth(self, api_client):
-        """Test treasurer report requires authentication."""
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
@@ -588,37 +481,29 @@ class TestTreasurerDonationReportEdgeCases:
         )
 
     def test_pastor_can_access_treasurer_report(self, api_client, pastor_user):
-        """Test pastor can access treasurer donation report."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_pastor_can_access_treasurer_report_with_year(self, api_client, pastor_user):
-        """Test pastor can access treasurer donation report with year."""
         user, member = pastor_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/2024/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['year'] == 2024
 
     def test_admin_can_access_treasurer_report(self, api_client):
-        """Test admin can access treasurer donation report."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_treasurer_report_response_fields(self, api_client):
-        """Test treasurer report returns all expected fields."""
         user = UserFactory()
         TreasurerFactory(user=user)
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/')
         assert response.status_code == status.HTTP_200_OK
         assert 'year' in response.data
@@ -628,81 +513,61 @@ class TestTreasurerDonationReportEdgeCases:
         assert 'monthly' in response.data
 
     def test_member_cannot_access_treasurer_report_with_year(self, api_client, member_user):
-        """Test regular member cannot access treasurer report with year."""
         user, member = member_user
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/treasurer/donations/2025/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-# =============================================================================
-# DASHBOARD ADMIN ROLE TESTS
-# =============================================================================
-
 @pytest.mark.django_db
 class TestDashboardAdminAccess:
-    """Tests for Dashboard admin access (via IsAdmin permission)."""
+    """Tests for Dashboard admin access."""
 
     def test_admin_can_access_dashboard(self, api_client):
-        """Test admin user can access dashboard."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_admin_can_access_member_stats(self, api_client):
-        """Test admin user can access member stats."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/members/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_admin_can_access_events(self, api_client):
-        """Test admin user can access event stats."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/events/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_admin_can_access_help_requests(self, api_client):
-        """Test admin user can access help requests."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/dashboard/help_requests/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_admin_can_access_reports_attendance(self, api_client):
-        """Test admin user can access reports attendance."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/attendance/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_admin_can_access_reports_volunteers(self, api_client):
-        """Test admin user can access reports volunteers."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/volunteers/')
         assert response.status_code == status.HTTP_200_OK
 
     def test_admin_can_access_reports_donations(self, api_client):
-        """Test admin user can access reports donations."""
         user = UserFactory()
         MemberFactory(user=user, role='admin')
         api_client.force_authenticate(user=user)
-
         response = api_client.get('/api/v1/reports/reports/donations/2026/')
         assert response.status_code == status.HTTP_200_OK

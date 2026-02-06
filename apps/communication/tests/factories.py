@@ -1,4 +1,4 @@
-"""Communication test factories."""
+"""Test factories for communication app."""
 import factory
 from factory.django import DjangoModelFactory
 from apps.communication.models import Newsletter, Notification, NotificationPreference
@@ -7,7 +7,7 @@ from apps.core.constants import NewsletterStatus, NotificationType
 
 
 class NewsletterFactory(DjangoModelFactory):
-    """Factory for Newsletter model."""
+    """Creates test newsletters with draft status by default."""
 
     class Meta:
         model = Newsletter
@@ -21,7 +21,7 @@ class NewsletterFactory(DjangoModelFactory):
 
 
 class NotificationFactory(DjangoModelFactory):
-    """Factory for Notification model."""
+    """Creates test notifications for members."""
 
     class Meta:
         model = Notification
@@ -34,7 +34,7 @@ class NotificationFactory(DjangoModelFactory):
 
 
 class NotificationPreferenceFactory(DjangoModelFactory):
-    """Factory for NotificationPreference model."""
+    """Creates test notification preferences with all channels enabled."""
 
     class Meta:
         model = NotificationPreference

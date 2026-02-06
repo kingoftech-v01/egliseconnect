@@ -1,20 +1,9 @@
-"""
-Core admin - Admin configuration for core app.
-
-This module is mostly empty as the core app doesn't have models,
-but provides base admin classes for other apps.
-"""
+"""Base admin classes for all apps."""
 from django.contrib import admin
 
 
-# =============================================================================
-# BASE ADMIN CLASSES
-# =============================================================================
-
 class BaseModelAdmin(admin.ModelAdmin):
-    """
-    Base admin class for models inheriting from BaseModel.
-    """
+    """Base admin for models with common audit fields."""
     list_display = ['id', 'created_at', 'updated_at', 'is_active']
     list_filter = ['is_active', 'created_at']
     search_fields = ['id']
@@ -27,9 +16,7 @@ class BaseModelAdmin(admin.ModelAdmin):
 
 
 class SoftDeleteModelAdmin(BaseModelAdmin):
-    """
-    Base admin class for models inheriting from SoftDeleteModel.
-    """
+    """Base admin for soft-deletable models with restore/hard-delete actions."""
     list_display = ['id', 'created_at', 'updated_at', 'is_active', 'deleted_at']
     list_filter = ['is_active', 'deleted_at', 'created_at']
     readonly_fields = ['id', 'created_at', 'updated_at', 'deleted_at']

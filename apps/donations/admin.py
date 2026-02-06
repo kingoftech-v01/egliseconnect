@@ -1,6 +1,4 @@
-"""
-Donations admin - Admin configuration for donation management.
-"""
+"""Donation management admin configuration."""
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
@@ -9,13 +7,9 @@ from apps.core.admin import SoftDeleteModelAdmin, BaseModelAdmin
 from .models import Donation, DonationCampaign, TaxReceipt
 
 
-# =============================================================================
-# DONATION ADMIN
-# =============================================================================
-
 @admin.register(Donation)
 class DonationAdmin(SoftDeleteModelAdmin):
-    """Admin for Donation model."""
+    """Admin for donations with payment and receipt tracking."""
 
     list_display = [
         'donation_number',
@@ -89,13 +83,9 @@ class DonationAdmin(SoftDeleteModelAdmin):
     )
 
 
-# =============================================================================
-# CAMPAIGN ADMIN
-# =============================================================================
-
 @admin.register(DonationCampaign)
 class DonationCampaignAdmin(BaseModelAdmin):
-    """Admin for DonationCampaign model."""
+    """Admin for fundraising campaigns with goal tracking."""
 
     list_display = [
         'name',
@@ -147,13 +137,9 @@ class DonationCampaignAdmin(BaseModelAdmin):
     progress_percentage.short_description = _('Progression')
 
 
-# =============================================================================
-# TAX RECEIPT ADMIN
-# =============================================================================
-
 @admin.register(TaxReceipt)
 class TaxReceiptAdmin(BaseModelAdmin):
-    """Admin for TaxReceipt model."""
+    """Admin for annual tax receipts."""
 
     list_display = [
         'receipt_number',

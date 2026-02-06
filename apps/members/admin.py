@@ -1,6 +1,4 @@
-"""
-Members admin - Admin configuration for member management.
-"""
+"""Member management admin configuration."""
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
@@ -9,38 +7,30 @@ from apps.core.admin import SoftDeleteModelAdmin, BaseModelAdmin
 from .models import Member, Family, Group, GroupMembership, DirectoryPrivacy
 
 
-# =============================================================================
-# INLINE ADMINS
-# =============================================================================
-
 class GroupMembershipInline(admin.TabularInline):
-    """Inline admin for group memberships."""
+    """Inline for managing member's group assignments."""
     model = GroupMembership
     extra = 0
     autocomplete_fields = ['member', 'group']
 
 
 class DirectoryPrivacyInline(admin.StackedInline):
-    """Inline admin for privacy settings."""
+    """Inline for member privacy settings."""
     model = DirectoryPrivacy
     can_delete = False
 
 
 class FamilyMemberInline(admin.TabularInline):
-    """Inline admin for family members."""
+    """Inline for viewing family members."""
     model = Member
     extra = 0
     fields = ['member_number', 'first_name', 'last_name', 'role']
     readonly_fields = ['member_number']
 
 
-# =============================================================================
-# MEMBER ADMIN
-# =============================================================================
-
 @admin.register(Member)
 class MemberAdmin(SoftDeleteModelAdmin):
-    """Admin for Member model."""
+    """Admin for church members with contact and role management."""
 
     list_display = [
         'member_number',
@@ -125,13 +115,9 @@ class MemberAdmin(SoftDeleteModelAdmin):
     full_name.admin_order_field = 'last_name'
 
 
-# =============================================================================
-# FAMILY ADMIN
-# =============================================================================
-
 @admin.register(Family)
 class FamilyAdmin(BaseModelAdmin):
-    """Admin for Family model."""
+    """Admin for family units."""
 
     list_display = ['name', 'city', 'province', 'member_count', 'is_active']
     list_filter = ['province', 'is_active']
@@ -165,13 +151,9 @@ class FamilyAdmin(BaseModelAdmin):
     member_count.short_description = _('Membres')
 
 
-# =============================================================================
-# GROUP ADMIN
-# =============================================================================
-
 @admin.register(Group)
 class GroupAdmin(BaseModelAdmin):
-    """Admin for Group model."""
+    """Admin for ministry groups and committees."""
 
     list_display = ['name', 'group_type', 'leader', 'member_count', 'is_active']
     list_filter = ['group_type', 'is_active']
@@ -205,13 +187,9 @@ class GroupAdmin(BaseModelAdmin):
     member_count.short_description = _('Membres')
 
 
-# =============================================================================
-# GROUP MEMBERSHIP ADMIN
-# =============================================================================
-
 @admin.register(GroupMembership)
 class GroupMembershipAdmin(BaseModelAdmin):
-    """Admin for GroupMembership model."""
+    """Admin for member-group relationships."""
 
     list_display = ['member', 'group', 'role', 'joined_date', 'is_active']
     list_filter = ['role', 'group', 'is_active', 'joined_date']
@@ -219,13 +197,9 @@ class GroupMembershipAdmin(BaseModelAdmin):
     autocomplete_fields = ['member', 'group']
 
 
-# =============================================================================
-# DIRECTORY PRIVACY ADMIN
-# =============================================================================
-
 @admin.register(DirectoryPrivacy)
 class DirectoryPrivacyAdmin(BaseModelAdmin):
-    """Admin for DirectoryPrivacy model."""
+    """Admin for member directory visibility settings."""
 
     list_display = [
         'member',

@@ -1,18 +1,11 @@
-"""
-Core validators - Reusable validators for ÉgliseConnect.
-"""
+"""Reusable file validators for uploads."""
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 
 def validate_image_file(value):
-    """
-    Validate uploaded image files for size and content type.
-
-    - Maximum file size: 5 MB
-    - Allowed content types: JPEG, PNG, GIF, WebP
-    """
-    max_size = 5 * 1024 * 1024  # 5 MB
+    """Validate image files (max 5MB, JPEG/PNG/GIF/WebP only)."""
+    max_size = 5 * 1024 * 1024
 
     if value.size > max_size:
         raise ValidationError(
@@ -32,13 +25,8 @@ def validate_image_file(value):
 
 
 def validate_pdf_file(value):
-    """
-    Validate uploaded PDF files for size and content type.
-
-    - Maximum file size: 10 MB
-    - Allowed content types: PDF
-    """
-    max_size = 10 * 1024 * 1024  # 10 MB
+    """Validate PDF files (max 10MB)."""
+    max_size = 10 * 1024 * 1024
 
     if value.size > max_size:
         raise ValidationError(

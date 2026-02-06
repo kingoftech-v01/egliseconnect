@@ -1,18 +1,10 @@
-"""
-Core constants - Centralized constants and choices for ÉgliseConnect.
-
-This module contains all the choices and constants used across the application.
-"""
+"""Centralized constants and choices for the application."""
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
-# =============================================================================
-# MEMBER ROLES
-# =============================================================================
-
 class Roles:
-    """Member role choices."""
+    """Member role definitions."""
     MEMBER = 'member'
     VOLUNTEER = 'volunteer'
     GROUP_LEADER = 'group_leader'
@@ -29,22 +21,14 @@ class Roles:
         (ADMIN, _('Administrateur')),
     ]
 
-    # Roles that can manage other members
+    # Permission groups for access control
     STAFF_ROLES = [PASTOR, ADMIN]
-
-    # Roles that can view all members
     VIEW_ALL_ROLES = [PASTOR, TREASURER, ADMIN]
-
-    # Roles that can manage finances
     FINANCE_ROLES = [TREASURER, ADMIN]
 
 
-# =============================================================================
-# FAMILY STATUS
-# =============================================================================
-
 class FamilyStatus:
-    """Family status choices."""
+    """Marital/family status options."""
     SINGLE = 'single'
     MARRIED = 'married'
     WIDOWED = 'widowed'
@@ -58,12 +42,8 @@ class FamilyStatus:
     ]
 
 
-# =============================================================================
-# GROUP TYPES
-# =============================================================================
-
 class GroupType:
-    """Group type choices."""
+    """Church group categories."""
     CELL = 'cell'
     MINISTRY = 'ministry'
     COMMITTEE = 'committee'
@@ -81,12 +61,8 @@ class GroupType:
     ]
 
 
-# =============================================================================
-# DIRECTORY PRIVACY
-# =============================================================================
-
 class PrivacyLevel:
-    """Directory privacy level choices."""
+    """Directory visibility settings."""
     PUBLIC = 'public'
     GROUP = 'group'
     PRIVATE = 'private'
@@ -98,12 +74,8 @@ class PrivacyLevel:
     ]
 
 
-# =============================================================================
-# DONATION TYPES
-# =============================================================================
-
 class DonationType:
-    """Donation type choices."""
+    """Donation categories for financial tracking."""
     TITHE = 'tithe'
     OFFERING = 'offering'
     SPECIAL = 'special'
@@ -123,12 +95,8 @@ class DonationType:
     ]
 
 
-# =============================================================================
-# PAYMENT METHODS
-# =============================================================================
-
 class PaymentMethod:
-    """Payment method choices."""
+    """Accepted payment methods."""
     CASH = 'cash'
     CHECK = 'check'
     CARD = 'card'
@@ -146,12 +114,8 @@ class PaymentMethod:
     ]
 
 
-# =============================================================================
-# EVENT TYPES
-# =============================================================================
-
 class EventType:
-    """Event type choices."""
+    """Church event categories."""
     WORSHIP = 'worship'
     GROUP = 'group'
     MEAL = 'meal'
@@ -173,12 +137,8 @@ class EventType:
     ]
 
 
-# =============================================================================
-# RSVP STATUS
-# =============================================================================
-
 class RSVPStatus:
-    """RSVP status choices."""
+    """Event attendance response states."""
     PENDING = 'pending'
     CONFIRMED = 'confirmed'
     DECLINED = 'declined'
@@ -192,12 +152,8 @@ class RSVPStatus:
     ]
 
 
-# =============================================================================
-# VOLUNTEER ROLES
-# =============================================================================
-
 class VolunteerRole:
-    """Volunteer role type choices."""
+    """Volunteer ministry areas."""
     WORSHIP = 'worship'
     HOSPITALITY = 'hospitality'
     TECHNICAL = 'technical'
@@ -219,12 +175,8 @@ class VolunteerRole:
     ]
 
 
-# =============================================================================
-# VOLUNTEER SCHEDULE STATUS
-# =============================================================================
-
 class ScheduleStatus:
-    """Volunteer schedule status choices."""
+    """Volunteer assignment states."""
     SCHEDULED = 'scheduled'
     CONFIRMED = 'confirmed'
     DECLINED = 'declined'
@@ -240,12 +192,8 @@ class ScheduleStatus:
     ]
 
 
-# =============================================================================
-# VOLUNTEER FREQUENCY
-# =============================================================================
-
 class VolunteerFrequency:
-    """Volunteer availability frequency choices."""
+    """Volunteer availability preferences."""
     WEEKLY = 'weekly'
     BIWEEKLY = 'biweekly'
     MONTHLY = 'monthly'
@@ -259,12 +207,8 @@ class VolunteerFrequency:
     ]
 
 
-# =============================================================================
-# HELP REQUEST CATEGORIES
-# =============================================================================
-
 class HelpRequestCategory:
-    """Help request category choices."""
+    """Types of assistance requests."""
     PRAYER = 'prayer'
     FINANCIAL = 'financial'
     MATERIAL = 'material'
@@ -284,44 +228,30 @@ class HelpRequestCategory:
     ]
 
 
-# =============================================================================
-# HELP REQUEST URGENCY
-# =============================================================================
-
 class HelpRequestUrgency(models.TextChoices):
-    """Help request urgency choices."""
+    """Priority levels for help requests."""
     LOW = 'low', _('Faible')
     MEDIUM = 'medium', _('Moyenne')
     HIGH = 'high', _('Élevée')
     URGENT = 'urgent', _('Urgente')
 
 
-# Alias for backwards compatibility
-Urgency = HelpRequestUrgency
+Urgency = HelpRequestUrgency  # Backwards compatibility alias
 
-
-# =============================================================================
-# HELP REQUEST STATUS
-# =============================================================================
 
 class HelpRequestStatus(models.TextChoices):
-    """Help request status choices."""
+    """Workflow states for help requests."""
     NEW = 'new', _('Nouvelle')
     IN_PROGRESS = 'in_progress', _('En cours')
     RESOLVED = 'resolved', _('Résolue')
     CLOSED = 'closed', _('Fermée')
 
 
-# Alias for backwards compatibility
-RequestStatus = HelpRequestStatus
+RequestStatus = HelpRequestStatus  # Backwards compatibility alias
 
-
-# =============================================================================
-# NEWSLETTER STATUS
-# =============================================================================
 
 class NewsletterStatus:
-    """Newsletter status choices."""
+    """Newsletter delivery states."""
     DRAFT = 'draft'
     SCHEDULED = 'scheduled'
     SENDING = 'sending'
@@ -337,12 +267,8 @@ class NewsletterStatus:
     ]
 
 
-# =============================================================================
-# NOTIFICATION TYPES
-# =============================================================================
-
 class NotificationType:
-    """Notification type choices."""
+    """System notification categories."""
     BIRTHDAY = 'birthday'
     EVENT = 'event'
     VOLUNTEER = 'volunteer'
@@ -360,12 +286,8 @@ class NotificationType:
     ]
 
 
-# =============================================================================
-# CANADIAN PROVINCES
-# =============================================================================
-
 class Province:
-    """Canadian province choices."""
+    """Canadian provinces and territories."""
     AB = 'AB'
     BC = 'BC'
     MB = 'MB'

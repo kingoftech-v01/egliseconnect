@@ -1,6 +1,4 @@
-"""
-Tests for members API views.
-"""
+"""Tests for members API views."""
 import pytest
 from django.urls import reverse
 from rest_framework import status
@@ -21,13 +19,13 @@ from .factories import (
 
 @pytest.fixture
 def api_client():
-    """Return an API client."""
+    """API client for making requests."""
     return APIClient()
 
 
 @pytest.fixture
 def authenticated_member(api_client):
-    """Return an authenticated regular member."""
+    """Regular member with authentication."""
     member = MemberWithUserFactory()
     api_client.force_authenticate(user=member.user)
     return member
@@ -35,7 +33,7 @@ def authenticated_member(api_client):
 
 @pytest.fixture
 def authenticated_pastor(api_client):
-    """Return an authenticated pastor."""
+    """Pastor with authentication."""
     user = UserFactory()
     member = PastorFactory(user=user)
     api_client.force_authenticate(user=user)
@@ -44,7 +42,7 @@ def authenticated_pastor(api_client):
 
 @pytest.fixture
 def authenticated_admin(api_client):
-    """Return an authenticated admin."""
+    """Admin with authentication."""
     user = UserFactory()
     member = AdminMemberFactory(user=user)
     api_client.force_authenticate(user=user)
@@ -56,29 +54,27 @@ class TestMemberViewSet:
     """Tests for MemberViewSet."""
 
     def test_list_members_as_pastor(self, api_client, authenticated_pastor):
-        """Test that pastors can list all members."""
-        # Create some members
+        """Pastors can list all members."""
         MemberFactory.create_batch(5)
 
         url = '/api/v1/members/members/'
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        # 5 created + 1 pastor
         assert response.data['count'] >= 5
 
     def test_list_members_as_regular_member(self, api_client, authenticated_member):
-        """Test that regular members only see themselves."""
+        """Regular members only see themselves."""
         MemberFactory.create_batch(5)
 
         url = '/api/v1/members/members/'
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['count'] == 1  # Only themselves
+        assert response.data['count'] == 1
 
     def test_retrieve_own_profile(self, api_client, authenticated_member):
-        """Test member can retrieve their own profile."""
+        """Members can retrieve their own profile."""
         url = f'/api/v1/members/members/{authenticated_member.id}/'
         response = api_client.get(url)
 
@@ -86,7 +82,7 @@ class TestMemberViewSet:
         assert response.data['id'] == str(authenticated_member.id)
 
     def test_me_endpoint(self, api_client, authenticated_member):
-        """Test /me/ endpoint returns current user's profile."""
+        """/me/ endpoint returns current user's profile."""
         url = '/api/v1/members/members/me/'
         response = api_client.get(url)
 
@@ -94,7 +90,7 @@ class TestMemberViewSet:
         assert response.data['id'] == str(authenticated_member.id)
 
     def test_update_own_profile(self, api_client, authenticated_member):
-        """Test member can update their own profile."""
+        """Members can update their own profile."""
         url = f'/api/v1/members/members/{authenticated_member.id}/'
         data = {'first_name': 'Updated'}
         response = api_client.patch(url, data)
@@ -105,7 +101,7 @@ class TestMemberViewSet:
         assert authenticated_member.first_name == 'Updated'
 
     def test_create_member_public(self, api_client):
-        """Test that member creation is public (registration)."""
+        """Member creation is public for registration."""
         url = '/api/v1/members/members/'
         data = {
             'first_name': 'New',
@@ -119,7 +115,7 @@ class TestMemberViewSet:
         assert Member.objects.filter(email='new@example.com').exists()
 
     def test_delete_requires_staff(self, api_client, authenticated_member):
-        """Test that only staff can delete members."""
+        """Only staff can delete members."""
         other_member = MemberFactory()
 
         url = f'/api/v1/members/members/{other_member.id}/'
@@ -128,7 +124,7 @@ class TestMemberViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_as_pastor(self, api_client, authenticated_pastor):
-        """Test that pastors can delete members."""
+        """Pastors can delete members."""
         member = MemberFactory()
 
         url = f'/api/v1/members/members/{member.id}/'
@@ -137,7 +133,7 @@ class TestMemberViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_search_members(self, api_client, authenticated_pastor):
-        """Test member search."""
+        """Search filters by name."""
         MemberFactory(first_name='Jean', last_name='Dupont')
         MemberFactory(first_name='Marie', last_name='Martin')
 
@@ -148,14 +144,13 @@ class TestMemberViewSet:
         assert response.data['count'] == 1
 
     def test_filter_by_role(self, api_client, authenticated_pastor):
-        """Test filtering members by role."""
+        """Filter by role works."""
         MemberFactory.create_batch(3)
 
         url = '/api/v1/members/members/?role=pastor'
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        # Should find at least the authenticated pastor
         assert response.data['count'] >= 1
 
 
@@ -164,21 +159,21 @@ class TestBirthdayEndpoint:
     """Tests for birthday endpoint."""
 
     def test_birthdays_today(self, api_client, authenticated_member):
-        """Test birthdays today endpoint."""
+        """Birthdays today endpoint works."""
         url = '/api/v1/members/members/birthdays/?period=today'
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
 
     def test_birthdays_week(self, api_client, authenticated_member):
-        """Test birthdays this week endpoint."""
+        """Birthdays this week endpoint works."""
         url = '/api/v1/members/members/birthdays/?period=week'
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
 
     def test_birthdays_month(self, api_client, authenticated_member):
-        """Test birthdays this month endpoint."""
+        """Birthdays this month endpoint works."""
         url = '/api/v1/members/members/birthdays/?period=month&month=6'
         response = api_client.get(url)
 
@@ -190,8 +185,7 @@ class TestDirectoryEndpoint:
     """Tests for directory endpoint."""
 
     def test_directory_respects_privacy(self, api_client, authenticated_member):
-        """Test that directory respects privacy settings."""
-        # Create a private member
+        """Directory hides private members from regular members."""
         private_member = MemberFactory()
         DirectoryPrivacy.objects.filter(member=private_member).update(visibility='private')
 
@@ -200,12 +194,11 @@ class TestDirectoryEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
 
-        # Private member should not be visible to regular members
         ids = [item['id'] for item in response.data['results']]
         assert str(private_member.id) not in ids
 
     def test_directory_search(self, api_client, authenticated_member):
-        """Test directory search."""
+        """Directory search works."""
         MemberFactory(first_name='Searchable', last_name='User')
 
         url = '/api/v1/members/members/directory/?search=Searchable'
@@ -219,7 +212,7 @@ class TestGroupViewSet:
     """Tests for GroupViewSet."""
 
     def test_list_groups(self, api_client, authenticated_member):
-        """Test listing groups."""
+        """List groups works."""
         GroupFactory.create_batch(3)
 
         url = '/api/v1/members/groups/'
@@ -229,7 +222,7 @@ class TestGroupViewSet:
         assert response.data['count'] >= 3
 
     def test_retrieve_group(self, api_client, authenticated_member):
-        """Test retrieving a group."""
+        """Retrieve single group works."""
         group = GroupFactory()
 
         url = f'/api/v1/members/groups/{group.id}/'
@@ -239,7 +232,7 @@ class TestGroupViewSet:
         assert response.data['name'] == group.name
 
     def test_create_group_requires_staff(self, api_client, authenticated_member):
-        """Test that creating groups requires staff."""
+        """Creating groups requires staff role."""
         url = '/api/v1/members/groups/'
         data = {'name': 'New Group', 'group_type': 'cell'}
         response = api_client.post(url, data)
@@ -247,7 +240,7 @@ class TestGroupViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_create_group_as_pastor(self, api_client, authenticated_pastor):
-        """Test that pastors can create groups."""
+        """Pastors can create groups."""
         url = '/api/v1/members/groups/'
         data = {'name': 'New Group', 'group_type': 'cell'}
         response = api_client.post(url, data)
@@ -260,7 +253,7 @@ class TestFamilyViewSet:
     """Tests for FamilyViewSet."""
 
     def test_list_families(self, api_client, authenticated_member):
-        """Test listing families."""
+        """List families works."""
         FamilyFactory.create_batch(3)
 
         url = '/api/v1/members/families/'
@@ -270,7 +263,7 @@ class TestFamilyViewSet:
         assert response.data['count'] >= 3
 
     def test_create_family_requires_staff(self, api_client, authenticated_member):
-        """Test that creating families requires staff."""
+        """Creating families requires staff role."""
         url = '/api/v1/members/families/'
         data = {'name': 'New Family'}
         response = api_client.post(url, data)
