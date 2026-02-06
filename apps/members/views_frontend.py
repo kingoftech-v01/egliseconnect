@@ -1,16 +1,4 @@
-"""
-Members Frontend Views - Template-based views for member management.
-
-This module provides template-based views for human users:
-- List views with filtering/pagination
-- Detail views with related data
-- Create/Update forms
-- Birthday views
-- Directory views
-
-All views render HTML templates using Django's render().
-Uses HTMX for dynamic interactions and Alpine.js for client-side reactivity.
-"""
+"""Template-based views for member management using HTMX and Alpine.js."""
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -44,20 +32,9 @@ from .forms import (
 )
 
 
-# =============================================================================
-# MEMBER LIST VIEWS
-# =============================================================================
-
 @login_required
 def member_list(request):
-    """
-    List all members with filtering, search, and pagination.
-
-    Accessible by pastors and admins only.
-
-    Template: members/member_list.html
-    """
-    # Check permissions
+    """List all members with filtering, search, and pagination (pastors/admins only)."""
     if hasattr(request.user, 'member_profile'):
         if request.user.member_profile.role not in [Roles.PASTOR, Roles.ADMIN]:
             messages.error(request, _("Vous n'avez pas accès à la liste des membres."))
@@ -66,7 +43,6 @@ def member_list(request):
         messages.error(request, _("Vous n'avez pas accès à la liste des membres."))
         return redirect('/')
 
-    # Get query parameters
     form = MemberSearchForm(request.GET)
     search = request.GET.get('search', '').strip()
     role_filter = request.GET.get('role')
@@ -80,10 +56,8 @@ def member_list(request):
         sort_by = 'last_name'
     page = request.GET.get('page', 1)
 
-    # Base queryset
     members = Member.objects.all().select_related('family')
 
-    # Apply search
     if search:
         members = members.filter(
             Q(first_name__icontains=search) |
@@ -93,7 +67,6 @@ def member_list(request):
             Q(phone__icontains=search)
         )
 
-    # Apply filters
     if role_filter:
         members = members.filter(role=role_filter)
 
@@ -103,13 +76,11 @@ def member_list(request):
     if group_filter:
         members = members.filter(group_memberships__group_id=group_filter)
 
-    # Apply sorting
     if sort_by.startswith('-'):
         members = members.order_by(sort_by, 'last_name')
     else:
         members = members.order_by(sort_by)
 
-    # Pagination
     paginator = Paginator(members, 20)
     members_page = paginator.get_page(page)
 
@@ -128,26 +99,14 @@ def member_list(request):
     return render(request, 'members/member_list.html', context)
 
 
-# =============================================================================
-# MEMBER DETAIL VIEWS
-# =============================================================================
-
 @login_required
 def member_detail(request, pk):
-    """
-    Display detailed information for a single member.
-
-    Members can view their own profile.
-    Staff can view any profile.
-
-    Template: members/member_detail.html
-    """
+    """Display detailed member information with role-based access control."""
     member = get_object_or_404(
         Member.objects.select_related('family'),
         pk=pk
     )
 
-    # Check permissions
     can_view = False
     can_edit = False
 
@@ -157,16 +116,14 @@ def member_detail(request, pk):
     elif hasattr(request.user, 'member_profile'):
         current_member = request.user.member_profile
 
-        # Own profile
         if current_member.id == member.id:
             can_view = True
             can_edit = True
-        # Staff roles
         elif current_member.role in [Roles.PASTOR, Roles.ADMIN]:
             can_view = True
             can_edit = True
-        # Group leader checking group member
         elif current_member.role == Roles.GROUP_LEADER:
+            # Group leaders can view members in their groups
             led_groups = current_member.led_groups.values_list('id', flat=True)
             is_group_member = member.group_memberships.filter(
                 group_id__in=led_groups
@@ -177,7 +134,6 @@ def member_detail(request, pk):
         messages.error(request, _("Vous n'avez pas accès à ce profil."))
         return redirect('/')
 
-    # Get related data
     groups = member.group_memberships.filter(is_active=True).select_related('group')
     family_members = []
     if member.family:
@@ -194,16 +150,8 @@ def member_detail(request, pk):
     return render(request, 'members/member_detail.html', context)
 
 
-# =============================================================================
-# MEMBER CREATE/UPDATE VIEWS
-# =============================================================================
-
 def member_create(request):
-    """
-    Create a new member (public registration).
-
-    Template: members/member_form.html
-    """
+    """Public registration form for new members."""
     if request.method == 'POST':
         form = MemberRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
@@ -215,7 +163,6 @@ def member_create(request):
                 }
             )
 
-            # Log in if account was created
             if form.cleaned_data.get('create_account') and member.user:
                 from django.contrib.auth import login
                 login(request, member.user)
@@ -237,14 +184,9 @@ def member_create(request):
 
 @login_required
 def member_update(request, pk):
-    """
-    Update an existing member profile.
-
-    Template: members/member_form.html
-    """
+    """Update member profile (admins get full form, members get limited form)."""
     member = get_object_or_404(Member, pk=pk)
 
-    # Check permissions
     can_edit = False
     is_admin = False
 
@@ -264,7 +206,6 @@ def member_update(request, pk):
         messages.error(request, _("Vous n'avez pas la permission de modifier ce profil."))
         return redirect('frontend:members:member_detail', pk=pk)
 
-    # Select appropriate form
     FormClass = MemberAdminForm if is_admin else MemberProfileForm
 
     if request.method == 'POST':
@@ -288,17 +229,9 @@ def member_update(request, pk):
     return render(request, 'members/member_form.html', context)
 
 
-# =============================================================================
-# BIRTHDAY VIEWS
-# =============================================================================
-
 @login_required
 def birthday_list(request):
-    """
-    List birthdays for today, this week, or this month.
-
-    Template: members/birthday_list.html
-    """
+    """List birthdays filtered by period (today/week/month)."""
     period = request.GET.get('period', 'week')
     month = request.GET.get('month')
 
@@ -340,24 +273,14 @@ def birthday_list(request):
     return render(request, 'members/birthday_list.html', context)
 
 
-# =============================================================================
-# DIRECTORY VIEWS
-# =============================================================================
-
 @login_required
 def directory(request):
-    """
-    Member directory with privacy settings applied.
-
-    Template: members/directory.html
-    """
+    """Member directory with privacy settings applied."""
     search = request.GET.get('search', '').strip()
     page = request.GET.get('page', 1)
 
-    # Base queryset
     members = Member.objects.filter(is_active=True).select_related('privacy_settings')
 
-    # Apply search
     if search:
         members = members.filter(
             Q(first_name__icontains=search) |
@@ -365,19 +288,16 @@ def directory(request):
             Q(member_number__icontains=search)
         )
 
-    # Filter by privacy settings
     user = request.user
     if hasattr(user, 'member_profile'):
         current_member = user.member_profile
 
-        # Staff sees everyone
         if current_member.role not in Roles.STAFF_ROLES and not user.is_staff:
-            # Get user's groups
             user_groups = set(
                 current_member.group_memberships.filter(is_active=True).values_list('group_id', flat=True)
             )
 
-            # Filter by visibility
+            # Filter by visibility: public, same group, or self
             members = members.filter(
                 Q(privacy_settings__visibility='public') |
                 Q(
@@ -387,12 +307,10 @@ def directory(request):
                 Q(id=current_member.id)
             ).distinct()
     elif not user.is_staff:
-        # Users without member_profile and not staff see only public profiles
         members = members.filter(privacy_settings__visibility='public')
 
     members = members.order_by('last_name', 'first_name')
 
-    # Pagination
     paginator = Paginator(members, 24)
     members_page = paginator.get_page(page)
 
@@ -406,17 +324,9 @@ def directory(request):
     return render(request, 'members/directory.html', context)
 
 
-# =============================================================================
-# PRIVACY SETTINGS VIEWS
-# =============================================================================
-
 @login_required
 def privacy_settings(request):
-    """
-    Manage directory privacy settings.
-
-    Template: members/privacy_settings.html
-    """
+    """Manage directory privacy settings."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Vous devez avoir un profil membre."))
         return redirect('frontend:members:member_create')
@@ -445,17 +355,9 @@ def privacy_settings(request):
     return render(request, 'members/privacy_settings.html', context)
 
 
-# =============================================================================
-# GROUP VIEWS
-# =============================================================================
-
 @login_required
 def group_list(request):
-    """
-    List all groups.
-
-    Template: members/group_list.html
-    """
+    """List all active groups."""
     groups = Group.objects.filter(is_active=True).select_related('leader')
 
     group_type = request.GET.get('type')
@@ -473,15 +375,10 @@ def group_list(request):
 
 @login_required
 def group_detail(request, pk):
-    """
-    Display group details with members.
-
-    Template: members/group_detail.html
-    """
+    """Display group details with members."""
     group = get_object_or_404(Group.objects.select_related('leader'), pk=pk)
     memberships = group.memberships.filter(is_active=True).select_related('member')
 
-    # Check if current user is leader
     is_leader = False
     if hasattr(request.user, 'member_profile'):
         is_leader = group.leader == request.user.member_profile
@@ -496,21 +393,12 @@ def group_detail(request, pk):
     return render(request, 'members/group_detail.html', context)
 
 
-# =============================================================================
-# FAMILY VIEWS
-# =============================================================================
-
 @login_required
 def family_detail(request, pk):
-    """
-    Display family details with members.
-
-    Template: members/family_detail.html
-    """
+    """Display family details with members."""
     family = get_object_or_404(Family, pk=pk)
     members = family.members.filter(is_active=True)
 
-    # Check if current user is family member
     is_family_member = False
     if hasattr(request.user, 'member_profile'):
         is_family_member = request.user.member_profile.family == family

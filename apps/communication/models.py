@@ -1,4 +1,4 @@
-"""Communication models - Newsletter and notifications."""
+"""Communication models."""
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.core.models import BaseModel
@@ -29,7 +29,7 @@ class Newsletter(BaseModel):
 
 
 class NewsletterRecipient(BaseModel):
-    """Newsletter recipient tracking."""
+    """Tracks delivery and open status per recipient."""
     newsletter = models.ForeignKey(Newsletter, on_delete=models.CASCADE, related_name='recipients')
     member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='received_newsletters')
     email = models.EmailField(verbose_name=_('Courriel'))
@@ -45,7 +45,7 @@ class NewsletterRecipient(BaseModel):
 
 
 class Notification(BaseModel):
-    """Individual notification."""
+    """In-app notification for a member."""
     member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=200, verbose_name=_('Titre'))
     message = models.TextField(verbose_name=_('Message'))
@@ -61,7 +61,7 @@ class Notification(BaseModel):
 
 
 class NotificationPreference(BaseModel):
-    """Member notification preferences."""
+    """Per-member settings for notification channels."""
     member = models.OneToOneField('members.Member', on_delete=models.CASCADE, related_name='notification_preferences')
     email_newsletter = models.BooleanField(default=True)
     email_events = models.BooleanField(default=True)

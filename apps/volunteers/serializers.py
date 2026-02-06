@@ -1,4 +1,4 @@
-"""Volunteers serializers."""
+"""Volunteer serializers."""
 from rest_framework import serializers
 from .models import VolunteerPosition, VolunteerAvailability, VolunteerSchedule, SwapRequest
 

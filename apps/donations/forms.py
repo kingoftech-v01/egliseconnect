@@ -1,11 +1,4 @@
-"""
-Donations forms - Forms for donation management.
-
-Forms:
-- DonationForm: Online donation form
-- PhysicalDonationForm: Form for recording physical donations (treasurer)
-- DonationCampaignForm: Campaign management form
-"""
+"""Forms for donation management."""
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
@@ -14,16 +7,8 @@ from apps.core.constants import DonationType, PaymentMethod
 from .models import Donation, DonationCampaign
 
 
-# =============================================================================
-# DONATION FORMS
-# =============================================================================
-
 class DonationForm(forms.ModelForm):
-    """
-    Online donation form.
-
-    Used by members to make donations through the website.
-    """
+    """Online donation form for members."""
 
     class Meta:
         model = Donation
@@ -44,14 +29,12 @@ class DonationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Only show active campaigns
         self.fields['campaign'].queryset = DonationCampaign.objects.filter(
             is_active=True
         )
         self.fields['campaign'].required = False
 
     def clean_amount(self):
-        """Validate amount is positive."""
         amount = self.cleaned_data.get('amount')
         if amount and amount <= 0:
             raise forms.ValidationError(_('Le montant doit être positif.'))
@@ -59,11 +42,7 @@ class DonationForm(forms.ModelForm):
 
 
 class PhysicalDonationForm(forms.ModelForm):
-    """
-    Form for recording physical donations.
-
-    Used by treasurer to record cash, check, and other physical donations.
-    """
+    """Form for treasurer to record cash, check, and other physical donations."""
 
     class Meta:
         model = Donation
@@ -88,21 +67,20 @@ class PhysicalDonationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Limit payment methods to physical ones
+        # Only allow physical payment methods
         self.fields['payment_method'].choices = [
             (PaymentMethod.CASH, _('Espèces')),
             (PaymentMethod.CHECK, _('Chèque')),
             (PaymentMethod.BANK_TRANSFER, _('Virement bancaire')),
             (PaymentMethod.OTHER, _('Autre')),
         ]
-        # Only show active campaigns
         self.fields['campaign'].queryset = DonationCampaign.objects.filter(
             is_active=True
         )
         self.fields['campaign'].required = False
 
     def clean(self):
-        """Validate check number is provided for check payments."""
+        """Check payments require a check number."""
         cleaned_data = super().clean()
         payment_method = cleaned_data.get('payment_method')
         check_number = cleaned_data.get('check_number')
@@ -113,14 +91,8 @@ class PhysicalDonationForm(forms.ModelForm):
         return cleaned_data
 
 
-# =============================================================================
-# CAMPAIGN FORMS
-# =============================================================================
-
 class DonationCampaignForm(forms.ModelForm):
-    """
-    Form for creating and editing donation campaigns.
-    """
+    """Form for creating and editing donation campaigns."""
 
     class Meta:
         model = DonationCampaign
@@ -144,7 +116,7 @@ class DonationCampaignForm(forms.ModelForm):
         }
 
     def clean(self):
-        """Validate dates."""
+        """End date must be after start date."""
         cleaned_data = super().clean()
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
@@ -155,14 +127,8 @@ class DonationCampaignForm(forms.ModelForm):
         return cleaned_data
 
 
-# =============================================================================
-# FILTER FORMS
-# =============================================================================
-
 class DonationFilterForm(forms.Form):
-    """
-    Filter form for donation list.
-    """
+    """Filter form for donation list."""
 
     date_from = forms.DateField(
         required=False,
@@ -203,9 +169,7 @@ class DonationFilterForm(forms.Form):
 
 
 class DonationReportForm(forms.Form):
-    """
-    Form for generating donation reports.
-    """
+    """Form for generating donation reports."""
 
     PERIOD_CHOICES = [
         ('month', _('Mois')),

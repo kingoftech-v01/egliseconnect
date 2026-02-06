@@ -1,26 +1,11 @@
-"""
-Donations serializers - DRF serializers for donation API.
-
-Serializers:
-- DonationSerializer: Full donation serializer
-- DonationListSerializer: Lightweight for lists
-- DonationCreateSerializer: For creating donations
-- DonationCampaignSerializer: Campaign serializer
-- TaxReceiptSerializer: Tax receipt serializer
-"""
+"""DRF serializers for donation API."""
 from rest_framework import serializers
 
 from .models import Donation, DonationCampaign, TaxReceipt
 
 
-# =============================================================================
-# DONATION SERIALIZERS
-# =============================================================================
-
 class DonationListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight serializer for donation lists.
-    """
+    """Lightweight serializer for donation lists."""
 
     member_name = serializers.CharField(source='member.full_name', read_only=True)
     donation_type_display = serializers.CharField(source='get_donation_type_display', read_only=True)
@@ -47,9 +32,7 @@ class DonationListSerializer(serializers.ModelSerializer):
 
 
 class DonationSerializer(serializers.ModelSerializer):
-    """
-    Full donation serializer.
-    """
+    """Full donation serializer with all fields."""
 
     member_name = serializers.CharField(source='member.full_name', read_only=True)
     member_number = serializers.CharField(source='member.member_number', read_only=True)
@@ -93,11 +76,7 @@ class DonationSerializer(serializers.ModelSerializer):
 
 
 class DonationCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for creating online donations.
-
-    Member is set automatically from the request.
-    """
+    """Serializer for online donations. Member is set from request."""
 
     class Meta:
         model = Donation
@@ -109,18 +88,13 @@ class DonationCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_amount(self, value):
-        """Validate amount is positive."""
         if value <= 0:
             raise serializers.ValidationError("Le montant doit être positif.")
         return value
 
 
 class PhysicalDonationCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for recording physical donations.
-
-    Used by treasurer.
-    """
+    """Serializer for treasurer to record physical donations."""
 
     class Meta:
         model = Donation
@@ -136,13 +110,12 @@ class PhysicalDonationCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_amount(self, value):
-        """Validate amount is positive."""
         if value <= 0:
             raise serializers.ValidationError("Le montant doit être positif.")
         return value
 
     def validate(self, data):
-        """Validate check number for check payments."""
+        """Check payments require a check number."""
         if data.get('payment_method') == 'check' and not data.get('check_number'):
             raise serializers.ValidationError({
                 'check_number': "Le numéro de chèque est requis."
@@ -151,9 +124,7 @@ class PhysicalDonationCreateSerializer(serializers.ModelSerializer):
 
 
 class MemberDonationHistorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for member's donation history.
-    """
+    """Serializer for member's own donation history."""
 
     donation_type_display = serializers.CharField(source='get_donation_type_display', read_only=True)
     campaign_name = serializers.CharField(source='campaign.name', read_only=True, allow_null=True)
@@ -172,14 +143,8 @@ class MemberDonationHistorySerializer(serializers.ModelSerializer):
         ]
 
 
-# =============================================================================
-# CAMPAIGN SERIALIZERS
-# =============================================================================
-
 class DonationCampaignSerializer(serializers.ModelSerializer):
-    """
-    Full campaign serializer.
-    """
+    """Full campaign serializer with computed fields."""
 
     current_amount = serializers.DecimalField(
         max_digits=12,
@@ -211,14 +176,11 @@ class DonationCampaignSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
     def get_donation_count(self, obj):
-        """Get number of donations for this campaign."""
         return obj.donations.filter(is_active=True).count()
 
 
 class DonationCampaignListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight campaign serializer for lists.
-    """
+    """Lightweight campaign serializer for lists."""
 
     current_amount = serializers.DecimalField(
         max_digits=12,
@@ -242,14 +204,8 @@ class DonationCampaignListSerializer(serializers.ModelSerializer):
         ]
 
 
-# =============================================================================
-# TAX RECEIPT SERIALIZERS
-# =============================================================================
-
 class TaxReceiptSerializer(serializers.ModelSerializer):
-    """
-    Full tax receipt serializer.
-    """
+    """Full tax receipt serializer."""
 
     member_full_name = serializers.CharField(source='member.full_name', read_only=True)
 
@@ -279,9 +235,7 @@ class TaxReceiptSerializer(serializers.ModelSerializer):
 
 
 class TaxReceiptListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight tax receipt serializer for lists.
-    """
+    """Lightweight tax receipt serializer for lists."""
 
     member_full_name = serializers.CharField(source='member.full_name', read_only=True)
 
@@ -298,14 +252,8 @@ class TaxReceiptListSerializer(serializers.ModelSerializer):
         ]
 
 
-# =============================================================================
-# SUMMARY SERIALIZERS
-# =============================================================================
-
 class DonationSummarySerializer(serializers.Serializer):
-    """
-    Serializer for donation summaries.
-    """
+    """Serializer for donation statistics."""
 
     period = serializers.CharField()
     total_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -316,9 +264,7 @@ class DonationSummarySerializer(serializers.Serializer):
 
 
 class MemberDonationSummarySerializer(serializers.Serializer):
-    """
-    Serializer for member donation summary.
-    """
+    """Serializer for per-member donation summary."""
 
     member_id = serializers.UUIDField()
     member_name = serializers.CharField()

@@ -1,9 +1,4 @@
-"""
-Core mixins - View mixins for ÉgliseConnect.
-
-This module provides mixins for Django views that handle
-permissions, context data, and common functionality.
-"""
+"""View mixins for permissions, context, and form handling."""
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
@@ -13,14 +8,8 @@ from .constants import Roles
 from .permissions import get_user_role
 
 
-# =============================================================================
-# PERMISSION MIXINS
-# =============================================================================
-
 class MemberRequiredMixin(LoginRequiredMixin):
-    """
-    Mixin that requires the user to be an authenticated member.
-    """
+    """Requires user to have a member profile. Redirects to profile creation if missing."""
     login_url = '/accounts/login/'
 
     def dispatch(self, request, *args, **kwargs):
@@ -35,9 +24,7 @@ class MemberRequiredMixin(LoginRequiredMixin):
 
 
 class VolunteerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Mixin that requires the user to be a volunteer or higher.
-    """
+    """Requires volunteer role or higher (group_leader, pastor, treasurer, admin)."""
     login_url = '/accounts/login/'
 
     def test_func(self):
@@ -63,9 +50,7 @@ class VolunteerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 class GroupLeaderRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Mixin that requires the user to be a group leader or higher.
-    """
+    """Requires group_leader role or higher."""
     login_url = '/accounts/login/'
 
     def test_func(self):
@@ -87,9 +72,7 @@ class GroupLeaderRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 class PastorRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Mixin that requires the user to be a pastor or admin.
-    """
+    """Requires pastor role or admin."""
     login_url = '/accounts/login/'
 
     def test_func(self):
@@ -110,9 +93,7 @@ class PastorRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 class TreasurerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Mixin that requires the user to be a treasurer or admin.
-    """
+    """Requires treasurer role or admin."""
     login_url = '/accounts/login/'
 
     def test_func(self):
@@ -133,9 +114,7 @@ class TreasurerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Mixin that requires the user to be an admin.
-    """
+    """Requires admin role or superuser."""
     login_url = '/accounts/login/'
 
     def test_func(self):
@@ -153,9 +132,7 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 class FinanceStaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Mixin that requires the user to have finance access (treasurer, pastor, admin).
-    """
+    """Requires finance access: treasurer, pastor, or admin."""
     login_url = '/accounts/login/'
 
     def test_func(self):
@@ -176,32 +153,23 @@ class FinanceStaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return redirect('/')
 
 
-# =============================================================================
-# OWNERSHIP MIXINS
-# =============================================================================
-
 class OwnerOrStaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """
-    Mixin that requires the user to be the owner of the object or staff.
-
-    The view must implement get_object() and the object must have
-    either a 'user' or 'member' attribute.
+    Requires user to own the object or be staff.
+    Object ownership checked via 'user' or 'member' attribute.
     """
     login_url = '/accounts/login/'
 
     def test_func(self):
         user = self.request.user
 
-        # Staff can access anything
         if user.is_staff or user.is_superuser:
             return True
 
-        # Check if user is pastor/admin
         if hasattr(user, 'member_profile'):
             if user.member_profile.role in Roles.STAFF_ROLES:
                 return True
 
-        # Get the object and check ownership
         obj = self.get_object()
 
         if hasattr(obj, 'user'):
@@ -218,19 +186,12 @@ class OwnerOrStaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return redirect('/')
 
 
-# =============================================================================
-# CONTEXT MIXINS
-# =============================================================================
-
 class ChurchContextMixin:
-    """
-    Mixin that adds church-related context data to views.
-    """
+    """Adds current_user_role, current_member, and today_birthdays (for staff) to context."""
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Add user role
         if self.request.user.is_authenticated:
             context['current_user_role'] = get_user_role(self.request.user)
 
@@ -240,7 +201,7 @@ class ChurchContextMixin:
             context['current_user_role'] = None
             context['current_member'] = None
 
-        # Add today's birthdays for staff
+        # Staff see today's birthdays in navbar
         if self.request.user.is_authenticated:
             role = context.get('current_user_role')
             if role in [Roles.PASTOR, Roles.ADMIN, Roles.GROUP_LEADER]:
@@ -251,15 +212,10 @@ class ChurchContextMixin:
 
 
 class PageTitleMixin:
-    """
-    Mixin that adds page title to context.
-
-    Set page_title attribute on the view or override get_page_title().
-    """
+    """Adds page_title to context. Set page_title attr or override get_page_title()."""
     page_title = None
 
     def get_page_title(self):
-        """Return the page title."""
         return self.page_title
 
     def get_context_data(self, **kwargs):
@@ -269,18 +225,10 @@ class PageTitleMixin:
 
 
 class BreadcrumbMixin:
-    """
-    Mixin that adds breadcrumbs to context.
-
-    Override get_breadcrumbs() to return a list of (label, url) tuples.
-    """
+    """Adds breadcrumbs to context. Override get_breadcrumbs() -> [(label, url), ...]."""
 
     def get_breadcrumbs(self):
-        """
-        Return breadcrumbs as a list of (label, url) tuples.
-
-        The last item should have url as None (current page).
-        """
+        """Return list of (label, url) tuples. Last item's url should be None."""
         return []
 
     def get_context_data(self, **kwargs):
@@ -289,14 +237,8 @@ class BreadcrumbMixin:
         return context
 
 
-# =============================================================================
-# FORM MIXINS
-# =============================================================================
-
 class FormMessageMixin:
-    """
-    Mixin that adds success/error messages for form views.
-    """
+    """Shows success/error messages on form submission."""
     success_message = _("Opération réussie.")
     error_message = _("Une erreur s'est produite. Veuillez réessayer.")
 
@@ -311,11 +253,7 @@ class FormMessageMixin:
 
 
 class SetOwnerMixin:
-    """
-    Mixin that automatically sets the owner/member on create.
-
-    Works with forms that have a 'member' field.
-    """
+    """Auto-sets member/user/created_by on form save if not already set."""
 
     def form_valid(self, form):
         if hasattr(form.instance, 'member') and not form.instance.member_id:
@@ -332,31 +270,20 @@ class SetOwnerMixin:
         return super().form_valid(form)
 
 
-# =============================================================================
-# QUERYSET MIXINS
-# =============================================================================
-
 class FilterByMemberMixin:
-    """
-    Mixin that filters queryset to only show objects belonging to the current member.
-
-    Staff members see all objects.
-    """
+    """Filters queryset to current user's objects. Staff/admin see all."""
 
     def get_queryset(self):
         queryset = super().get_queryset()
         user = self.request.user
 
-        # Staff see everything
         if user.is_staff or user.is_superuser:
             return queryset
 
-        # Check if user is pastor/admin
         if hasattr(user, 'member_profile'):
             if user.member_profile.role in Roles.STAFF_ROLES:
                 return queryset
 
-            # Filter by member
             if hasattr(queryset.model, 'member'):
                 return queryset.filter(member=user.member_profile)
 

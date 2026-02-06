@@ -1,24 +1,16 @@
-"""
-Celery configuration for ÉgliseConnect.
-
-Used for async tasks like sending newsletters, generating reports, etc.
-"""
+"""Celery configuration for async tasks (newsletters, reports, etc)."""
 import os
 
 from celery import Celery
 
-# Set the default Django settings module for the 'celery' program.
-# NOTE: In production, DJANGO_SETTINGS_MODULE must be set explicitly
-# in the environment to 'config.settings.production'.
+# Production must set DJANGO_SETTINGS_MODULE to 'config.settings.production'
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.production')
 
 app = Celery('egliseconnect')
 
-# Using a string here means the worker doesn't have to serialize
-# the configuration object to child processes.
+# String config avoids serializing configuration object to child processes
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
 

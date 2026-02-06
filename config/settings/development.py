@@ -1,23 +1,15 @@
-"""
-Django development settings for ÉgliseConnect project.
-"""
+"""Django development settings for ÉgliseConnect."""
 import os
 
-# Provide a dev-only fallback SECRET_KEY before importing base settings.
-# In production, SECRET_KEY must be set explicitly in the environment.
+# Dev-only fallback SECRET_KEY; production must set this explicitly in environment
 os.environ.setdefault('SECRET_KEY', 'django-insecure-dev-only-key-do-not-use-in-production')
 
 from .base import *  # noqa: F401, F403
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 
-
-# =============================================================================
-# DATABASE CONFIGURATION (Development)
-# =============================================================================
 
 DATABASES = {
     'default': {
@@ -27,33 +19,17 @@ DATABASES = {
 }
 
 
-# =============================================================================
-# EMAIL CONFIGURATION (Development)
-# =============================================================================
-
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-
-# =============================================================================
-# CORS CONFIGURATION (Development)
-# =============================================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
 
 
-# =============================================================================
-# DEBUG TOOLBAR (Optional)
-# =============================================================================
-
-# Uncomment to enable Django Debug Toolbar
+# Django Debug Toolbar (uncomment to enable)
 # INSTALLED_APPS += ['debug_toolbar']
 # MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 # INTERNAL_IPS = ['127.0.0.1']
 
-
-# =============================================================================
-# LOGGING (Development)
-# =============================================================================
 
 LOGGING = {
     'version': 1,

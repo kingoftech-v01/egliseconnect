@@ -1,14 +1,4 @@
-"""
-Members API Views - REST API endpoints for member management.
-
-ViewSets:
-- MemberViewSet: Full CRUD for members
-- FamilyViewSet: Family management
-- GroupViewSet: Group management
-- GroupMembershipViewSet: Group membership management
-
-Endpoints follow the namespace: api:v1:members:resource-name
-"""
+"""REST API endpoints for member management."""
 from django.db.models import Q
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -48,27 +38,8 @@ from .serializers import (
 )
 
 
-# =============================================================================
-# MEMBER VIEWSET
-# =============================================================================
-
 class MemberViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Member CRUD operations.
-
-    Provides:
-    - list: GET /api/v1/members/members/
-    - retrieve: GET /api/v1/members/members/{uuid}/
-    - create: POST /api/v1/members/members/
-    - update: PUT /api/v1/members/members/{uuid}/
-    - partial_update: PATCH /api/v1/members/members/{uuid}/
-    - destroy: DELETE /api/v1/members/members/{uuid}/
-
-    Custom actions:
-    - me: GET /api/v1/members/members/me/
-    - birthdays: GET /api/v1/members/members/birthdays/
-    - directory: GET /api/v1/members/members/directory/
-    """
+    """CRUD operations for members with role-based access control."""
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['role', 'family_status', 'family', 'is_active']
@@ -78,16 +49,12 @@ class MemberViewSet(viewsets.ModelViewSet):
     lookup_field = 'pk'
 
     def get_queryset(self):
-        """
-        Return queryset based on user permissions.
-        """
+        """Filter queryset based on user's role and permissions."""
         user = self.request.user
 
-        # Staff sees everything
         if user.is_staff or user.is_superuser:
             return Member.objects.all().select_related('family')
 
-        # Check member role
         if hasattr(user, 'member_profile'):
             member = user.member_profile
 
@@ -113,7 +80,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         return Member.objects.none()
 
     def get_serializer_class(self):
-        """Return appropriate serializer based on action and user role."""
+        """Return serializer based on action and user role."""
         user = self.request.user
 
         if self.action == 'list':
@@ -123,7 +90,6 @@ class MemberViewSet(viewsets.ModelViewSet):
             return MemberCreateSerializer
 
         if self.action in ['update', 'partial_update']:
-            # Check if user is admin/staff
             if user.is_staff or (
                 hasattr(user, 'member_profile') and
                 user.member_profile.role in [Roles.PASTOR, Roles.ADMIN]
@@ -142,8 +108,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """Return permissions based on action."""
         if self.action == 'create':
-            # Anyone can register
-            return []
+            return []  # Public registration
 
         if self.action in ['list']:
             return [IsMember()]
@@ -167,12 +132,7 @@ class MemberViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'put', 'patch'])
     def me(self, request):
-        """
-        Get or update current user's member profile.
-
-        GET /api/v1/members/members/me/
-        PUT/PATCH /api/v1/members/members/me/
-        """
+        """Get or update current user's member profile."""
         if not hasattr(request.user, 'member_profile'):
             return Response(
                 {'error': 'Aucun profil membre trouvé'},
@@ -185,7 +145,6 @@ class MemberViewSet(viewsets.ModelViewSet):
             serializer = MemberSerializer(member)
             return Response(serializer.data)
 
-        # PUT or PATCH
         serializer = MemberProfileSerializer(
             member,
             data=request.data,
@@ -199,14 +158,7 @@ class MemberViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def birthdays(self, request):
-        """
-        Get birthdays for today, this week, or this month.
-
-        GET /api/v1/members/members/birthdays/
-        GET /api/v1/members/members/birthdays/?period=today
-        GET /api/v1/members/members/birthdays/?period=week
-        GET /api/v1/members/members/birthdays/?period=month&month=6
-        """
+        """Get birthdays filtered by period (today/week/month)."""
         period = request.query_params.get('period', 'week')
         month = request.query_params.get('month')
 
@@ -220,7 +172,7 @@ class MemberViewSet(viewsets.ModelViewSet):
                     members = get_month_birthdays()
             else:
                 members = get_month_birthdays()
-        else:  # week
+        else:
             members = get_week_birthdays()
 
         serializer = BirthdaySerializer(members, many=True)
@@ -228,16 +180,9 @@ class MemberViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def directory(self, request):
-        """
-        Get member directory with privacy settings applied.
-
-        GET /api/v1/members/members/directory/
-        GET /api/v1/members/members/directory/?search=dupont
-        """
-        # Get members with public or group visibility
+        """Member directory with privacy settings applied."""
         queryset = Member.objects.filter(is_active=True)
 
-        # Apply search
         search = request.query_params.get('search', '').strip()
         if search:
             queryset = queryset.filter(
@@ -246,38 +191,31 @@ class MemberViewSet(viewsets.ModelViewSet):
                 Q(member_number__icontains=search)
             )
 
-        # Filter by privacy settings
         user = request.user
         if hasattr(user, 'member_profile'):
             member = user.member_profile
 
-            # Staff sees everyone
-            if member.role in Roles.STAFF_ROLES:
-                pass
-            else:
-                # Get user's groups
+            if member.role not in Roles.STAFF_ROLES:
                 user_groups = set(
                     member.group_memberships.filter(is_active=True).values_list('group_id', flat=True)
                 )
 
-                # Filter by visibility
+                # Filter by visibility: public, same group, or self
                 queryset = queryset.filter(
                     Q(privacy_settings__visibility='public') |
                     Q(
                         privacy_settings__visibility='group',
                         group_memberships__group_id__in=user_groups
                     ) |
-                    Q(id=member.id)  # Always include self
+                    Q(id=member.id)
                 ).distinct()
         elif not user.is_staff:
-            # Users without member_profile and not staff see only public profiles
             queryset = queryset.filter(
                 privacy_settings__visibility='public'
             )
 
         queryset = queryset.select_related('privacy_settings').order_by('last_name', 'first_name')
 
-        # Paginate
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = DirectoryMemberSerializer(page, many=True)
@@ -287,21 +225,8 @@ class MemberViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-# =============================================================================
-# FAMILY VIEWSET
-# =============================================================================
-
 class FamilyViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Family CRUD operations.
-
-    Provides:
-    - list: GET /api/v1/members/families/
-    - retrieve: GET /api/v1/members/families/{uuid}/
-    - create: POST /api/v1/members/families/
-    - update: PUT /api/v1/members/families/{uuid}/
-    - destroy: DELETE /api/v1/members/families/{uuid}/
-    """
+    """CRUD operations for families."""
 
     queryset = Family.objects.all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -321,26 +246,8 @@ class FamilyViewSet(viewsets.ModelViewSet):
         return [IsPastorOrAdmin()]
 
 
-# =============================================================================
-# GROUP VIEWSET
-# =============================================================================
-
 class GroupViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Group CRUD operations.
-
-    Provides:
-    - list: GET /api/v1/members/groups/
-    - retrieve: GET /api/v1/members/groups/{uuid}/
-    - create: POST /api/v1/members/groups/
-    - update: PUT /api/v1/members/groups/{uuid}/
-    - destroy: DELETE /api/v1/members/groups/{uuid}/
-
-    Custom actions:
-    - members: GET /api/v1/members/groups/{uuid}/members/
-    - add_member: POST /api/v1/members/groups/{uuid}/add-member/
-    - remove_member: POST /api/v1/members/groups/{uuid}/remove-member/
-    """
+    """CRUD operations for groups with member management actions."""
 
     queryset = Group.objects.all().select_related('leader')
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -362,11 +269,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def members(self, request, pk=None):
-        """
-        Get members of this group.
-
-        GET /api/v1/members/groups/{uuid}/members/
-        """
+        """Get active members of this group."""
         group = self.get_object()
         memberships = group.memberships.filter(is_active=True).select_related('member')
 
@@ -375,12 +278,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='add-member')
     def add_member(self, request, pk=None):
-        """
-        Add a member to this group.
-
-        POST /api/v1/members/groups/{uuid}/add-member/
-        Body: {"member": "<uuid>", "role": "member"}
-        """
+        """Add a member to this group."""
         group = self.get_object()
         member_id = request.data.get('member')
         role = request.data.get('role', 'member')
@@ -410,12 +308,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='remove-member')
     def remove_member(self, request, pk=None):
-        """
-        Remove a member from this group.
-
-        POST /api/v1/members/groups/{uuid}/remove-member/
-        Body: {"member": "<uuid>"}
-        """
+        """Remove a member from this group."""
         group = self.get_object()
         member_id = request.data.get('member')
 
@@ -433,22 +326,14 @@ class GroupViewSet(viewsets.ModelViewSet):
             )
 
 
-# =============================================================================
-# PRIVACY VIEWSET
-# =============================================================================
-
 class DirectoryPrivacyViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing directory privacy settings.
-
-    Members can only access their own privacy settings.
-    """
+    """Manage directory privacy settings (members can only access their own)."""
 
     serializer_class = DirectoryPrivacySerializer
     permission_classes = [IsMember]
 
     def get_queryset(self):
-        """Return only current user's privacy settings."""
+        """Return only current user's privacy settings (staff sees all)."""
         user = self.request.user
 
         if user.is_staff or user.is_superuser:
@@ -461,12 +346,7 @@ class DirectoryPrivacyViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'put', 'patch'])
     def me(self, request):
-        """
-        Get or update current user's privacy settings.
-
-        GET /api/v1/members/privacy/me/
-        PUT/PATCH /api/v1/members/privacy/me/
-        """
+        """Get or update current user's privacy settings."""
         if not hasattr(request.user, 'member_profile'):
             return Response(
                 {'error': 'Aucun profil membre trouvé'},
@@ -478,14 +358,12 @@ class DirectoryPrivacyViewSet(viewsets.ModelViewSet):
         try:
             privacy = member.privacy_settings
         except DirectoryPrivacy.DoesNotExist:
-            # Create default settings
             privacy = DirectoryPrivacy.objects.create(member=member)
 
         if request.method == 'GET':
             serializer = DirectoryPrivacySerializer(privacy)
             return Response(serializer.data)
 
-        # PUT or PATCH
         serializer = DirectoryPrivacySerializer(
             privacy,
             data=request.data,

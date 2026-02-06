@@ -1,4 +1,4 @@
-"""Reports services - Business logic for generating reports and statistics."""
+"""Reports services."""
 from datetime import date, timedelta
 from decimal import Decimal
 from django.db.models import Count, Sum, Avg, Q
@@ -7,11 +7,10 @@ from django.utils import timezone
 
 
 class DashboardService:
-    """Service for generating dashboard statistics."""
+    """Aggregates statistics for the admin dashboard."""
 
     @staticmethod
     def get_member_stats():
-        """Get member statistics."""
         from apps.members.models import Member
 
         total = Member.objects.count()
@@ -24,7 +23,6 @@ class DashboardService:
             created_at__year=timezone.now().year
         ).count()
 
-        # Role breakdown
         role_breakdown = Member.objects.values('role').annotate(
             count=Count('id')
         ).order_by('role')
@@ -40,7 +38,6 @@ class DashboardService:
 
     @staticmethod
     def get_donation_stats(year=None):
-        """Get donation statistics."""
         from apps.donations.models import Donation
 
         year = year or timezone.now().year
@@ -50,7 +47,6 @@ class DashboardService:
         total_count = donations.count()
         average_amount = donations.aggregate(avg=Avg('amount'))['avg'] or Decimal('0')
 
-        # Monthly breakdown
         monthly = donations.annotate(
             month=TruncMonth('date')
         ).values('month').annotate(
@@ -58,13 +54,11 @@ class DashboardService:
             count=Count('id')
         ).order_by('month')
 
-        # By type
         by_type = donations.values('donation_type').annotate(
             total=Sum('amount'),
             count=Count('id')
         ).order_by('-total')
 
-        # By payment method
         by_method = donations.values('payment_method').annotate(
             total=Sum('amount'),
             count=Count('id')
@@ -82,7 +76,6 @@ class DashboardService:
 
     @staticmethod
     def get_event_stats(year=None):
-        """Get event statistics."""
         from apps.events.models import Event, EventRSVP
 
         year = year or timezone.now().year
@@ -95,12 +88,10 @@ class DashboardService:
         ).count()
         cancelled = events.filter(is_cancelled=True).count()
 
-        # By type
         by_type = events.values('event_type').annotate(
             count=Count('id')
         ).order_by('-count')
 
-        # RSVP stats
         rsvps = EventRSVP.objects.filter(event__start_datetime__year=year)
         total_rsvps = rsvps.count()
         confirmed_rsvps = rsvps.filter(status='confirmed').count()
@@ -117,7 +108,6 @@ class DashboardService:
 
     @staticmethod
     def get_volunteer_stats():
-        """Get volunteer statistics."""
         from apps.volunteers.models import (
             VolunteerPosition, VolunteerSchedule, VolunteerAvailability
         )
@@ -125,20 +115,17 @@ class DashboardService:
         positions = VolunteerPosition.objects.filter(is_active=True)
         total_positions = positions.count()
 
-        # Volunteers per position
         availability = VolunteerAvailability.objects.filter(
             is_available=True
         ).values('position__name').annotate(
             count=Count('member', distinct=True)
         ).order_by('-count')
 
-        # Upcoming schedules
         upcoming_schedules = VolunteerSchedule.objects.filter(
             date__gte=date.today(),
             date__lte=date.today() + timedelta(days=30)
         ).count()
 
-        # Confirmed vs pending
         this_month = VolunteerSchedule.objects.filter(
             date__month=timezone.now().month,
             date__year=timezone.now().year
@@ -156,7 +143,6 @@ class DashboardService:
 
     @staticmethod
     def get_help_request_stats():
-        """Get help request statistics."""
         from apps.help_requests.models import HelpRequest
 
         total = HelpRequest.objects.count()
@@ -169,14 +155,12 @@ class DashboardService:
             resolved_at__year=timezone.now().year
         ).count()
 
-        # By urgency
         by_urgency = HelpRequest.objects.filter(
             status__in=['new', 'in_progress']
         ).values('urgency').annotate(
             count=Count('id')
         ).order_by('urgency')
 
-        # By category
         by_category = HelpRequest.objects.values(
             'category__name'
         ).annotate(
@@ -193,7 +177,6 @@ class DashboardService:
 
     @staticmethod
     def get_upcoming_birthdays(days=7):
-        """Get upcoming birthdays."""
         from apps.core.utils import get_upcoming_birthdays
 
         birthdays = get_upcoming_birthdays(days)
@@ -209,7 +192,6 @@ class DashboardService:
 
     @staticmethod
     def get_dashboard_summary():
-        """Get complete dashboard summary."""
         return {
             'members': DashboardService.get_member_stats(),
             'donations': DashboardService.get_donation_stats(),
@@ -222,11 +204,10 @@ class DashboardService:
 
 
 class ReportService:
-    """Service for generating detailed reports."""
+    """Generates detailed reports for export or display."""
 
     @staticmethod
     def get_attendance_report(start_date=None, end_date=None):
-        """Get attendance report for events."""
         from apps.events.models import Event, EventRSVP
 
         if not start_date:
@@ -263,13 +244,11 @@ class ReportService:
 
     @staticmethod
     def get_donation_report(year):
-        """Get detailed annual donation report."""
         from apps.donations.models import Donation
         from apps.members.models import Member
 
         donations = Donation.objects.filter(date__year=year)
 
-        # Monthly totals
         monthly = []
         for month in range(1, 13):
             month_donations = donations.filter(date__month=month)
@@ -279,7 +258,7 @@ class ReportService:
                 'count': month_donations.count(),
             })
 
-        # Top donors (anonymized)
+        # Top donors shown by rank only (anonymized for privacy)
         top_donors = donations.values('member').annotate(
             total=Sum('amount')
         ).order_by('-total')[:10]
@@ -291,7 +270,6 @@ class ReportService:
                 'total': d['total'],
             })
 
-        # Campaign performance
         campaign_data = donations.exclude(campaign__isnull=True).values(
             'campaign__name'
         ).annotate(
@@ -311,7 +289,6 @@ class ReportService:
 
     @staticmethod
     def get_volunteer_report(start_date=None, end_date=None):
-        """Get volunteer activity report."""
         from apps.volunteers.models import VolunteerSchedule, VolunteerPosition
 
         if not start_date:
@@ -324,14 +301,12 @@ class ReportService:
             date__lte=end_date
         )
 
-        # By position
         by_position = schedules.values('position__name').annotate(
             total=Count('id'),
             completed=Count('id', filter=Q(status='completed')),
             no_show=Count('id', filter=Q(status='no_show'))
         ).order_by('-total')
 
-        # Most active volunteers
         top_volunteers = schedules.filter(
             status='completed'
         ).values('member__first_name', 'member__last_name').annotate(

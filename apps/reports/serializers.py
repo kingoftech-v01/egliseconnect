@@ -3,7 +3,6 @@ from rest_framework import serializers
 
 
 class MemberStatsSerializer(serializers.Serializer):
-    """Serializer for member statistics."""
     total = serializers.IntegerField()
     active = serializers.IntegerField()
     inactive = serializers.IntegerField()
@@ -13,7 +12,6 @@ class MemberStatsSerializer(serializers.Serializer):
 
 
 class DonationStatsSerializer(serializers.Serializer):
-    """Serializer for donation statistics."""
     year = serializers.IntegerField()
     total_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_count = serializers.IntegerField()
@@ -24,7 +22,6 @@ class DonationStatsSerializer(serializers.Serializer):
 
 
 class EventStatsSerializer(serializers.Serializer):
-    """Serializer for event statistics."""
     year = serializers.IntegerField()
     total_events = serializers.IntegerField()
     upcoming = serializers.IntegerField()
@@ -35,7 +32,6 @@ class EventStatsSerializer(serializers.Serializer):
 
 
 class VolunteerStatsSerializer(serializers.Serializer):
-    """Serializer for volunteer statistics."""
     total_positions = serializers.IntegerField()
     volunteers_by_position = serializers.ListField()
     upcoming_schedules = serializers.IntegerField()
@@ -44,7 +40,6 @@ class VolunteerStatsSerializer(serializers.Serializer):
 
 
 class HelpRequestStatsSerializer(serializers.Serializer):
-    """Serializer for help request statistics."""
     total = serializers.IntegerField()
     open = serializers.IntegerField()
     resolved_this_month = serializers.IntegerField()
@@ -53,7 +48,6 @@ class HelpRequestStatsSerializer(serializers.Serializer):
 
 
 class BirthdaySerializer(serializers.Serializer):
-    """Serializer for birthday data."""
     member_id = serializers.UUIDField()
     member_name = serializers.CharField()
     birthday = serializers.DateField()
@@ -61,7 +55,6 @@ class BirthdaySerializer(serializers.Serializer):
 
 
 class DashboardSummarySerializer(serializers.Serializer):
-    """Serializer for complete dashboard summary."""
     members = MemberStatsSerializer()
     donations = DonationStatsSerializer()
     events = EventStatsSerializer()
@@ -72,7 +65,6 @@ class DashboardSummarySerializer(serializers.Serializer):
 
 
 class AttendanceReportSerializer(serializers.Serializer):
-    """Serializer for attendance report."""
     start_date = serializers.DateField()
     end_date = serializers.DateField()
     total_events = serializers.IntegerField()
@@ -80,7 +72,6 @@ class AttendanceReportSerializer(serializers.Serializer):
 
 
 class DonationReportSerializer(serializers.Serializer):
-    """Serializer for donation report."""
     year = serializers.IntegerField()
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_count = serializers.IntegerField()
@@ -91,7 +82,6 @@ class DonationReportSerializer(serializers.Serializer):
 
 
 class VolunteerReportSerializer(serializers.Serializer):
-    """Serializer for volunteer report."""
     start_date = serializers.DateField()
     end_date = serializers.DateField()
     total_shifts = serializers.IntegerField()

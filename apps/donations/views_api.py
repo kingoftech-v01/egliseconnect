@@ -1,13 +1,4 @@
-"""
-Donations API Views - REST API endpoints for donation management.
-
-ViewSets:
-- DonationViewSet: Donation CRUD and actions
-- DonationCampaignViewSet: Campaign management
-- TaxReceiptViewSet: Tax receipt management
-
-Endpoints follow the namespace: api:v1:donations:resource-name
-"""
+"""REST API endpoints for donation management."""
 from decimal import Decimal
 
 from django.db.models import Sum, Avg, Count, Q
@@ -43,26 +34,8 @@ from .serializers import (
 )
 
 
-# =============================================================================
-# DONATION VIEWSET
-# =============================================================================
-
 class DonationViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Donation CRUD operations.
-
-    Provides:
-    - list: GET /api/v1/donations/donations/
-    - retrieve: GET /api/v1/donations/donations/{uuid}/
-    - create: POST /api/v1/donations/donations/
-    - update: PUT /api/v1/donations/donations/{uuid}/
-    - destroy: DELETE /api/v1/donations/donations/{uuid}/
-
-    Custom actions:
-    - my_history: GET /api/v1/donations/donations/my-history/
-    - record_physical: POST /api/v1/donations/donations/record-physical/
-    - summary: GET /api/v1/donations/donations/summary/
-    """
+    """CRUD operations for donations with role-based access."""
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['donation_type', 'payment_method', 'campaign', 'date']
@@ -71,27 +44,23 @@ class DonationViewSet(viewsets.ModelViewSet):
     ordering = ['-date', '-created_at']
 
     def get_queryset(self):
-        """Return queryset based on user permissions."""
+        """Finance staff see all donations; members see only their own."""
         user = self.request.user
 
-        # Staff and finance roles see everything
         if user.is_staff or user.is_superuser:
             return Donation.objects.all().select_related('member', 'campaign')
 
         if hasattr(user, 'member_profile'):
             member = user.member_profile
 
-            # Finance staff see all
             if member.role in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
                 return Donation.objects.all().select_related('member', 'campaign')
 
-            # Regular members only see their own
             return Donation.objects.filter(member=member).select_related('campaign')
 
         return Donation.objects.none()
 
     def get_serializer_class(self):
-        """Return appropriate serializer based on action."""
         if self.action == 'list':
             return DonationListSerializer
         if self.action == 'create':
@@ -103,7 +72,6 @@ class DonationViewSet(viewsets.ModelViewSet):
         return DonationSerializer
 
     def get_permissions(self):
-        """Return permissions based on action."""
         if self.action == 'create':
             return [IsMember()]
         if self.action in ['list', 'retrieve']:
@@ -119,7 +87,7 @@ class DonationViewSet(viewsets.ModelViewSet):
         return [IsMember()]
 
     def perform_create(self, serializer):
-        """Set member and payment method for online donations."""
+        """Set member from request user and mark as online payment."""
         if not hasattr(self.request.user, 'member_profile'):
             from rest_framework.exceptions import ValidationError
             raise ValidationError({'error': 'Aucun profil membre trouvé'})
@@ -131,12 +99,7 @@ class DonationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='my-history')
     def my_history(self, request):
-        """
-        Get current user's donation history.
-
-        GET /api/v1/donations/donations/my-history/
-        GET /api/v1/donations/donations/my-history/?year=2026
-        """
+        """Get current user's donation history, optionally filtered by year."""
         if not hasattr(request.user, 'member_profile'):
             return Response(
                 {'error': 'Aucun profil membre trouvé'},
@@ -146,7 +109,6 @@ class DonationViewSet(viewsets.ModelViewSet):
         member = request.user.member_profile
         queryset = Donation.objects.filter(member=member)
 
-        # Filter by year if provided
         year = request.query_params.get('year')
         if year:
             try:
@@ -156,7 +118,6 @@ class DonationViewSet(viewsets.ModelViewSet):
 
         queryset = queryset.order_by('-date')
 
-        # Paginate
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = MemberDonationHistorySerializer(page, many=True)
@@ -167,11 +128,7 @@ class DonationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='record-physical')
     def record_physical(self, request):
-        """
-        Record a physical donation (cash, check, etc.).
-
-        POST /api/v1/donations/donations/record-physical/
-        """
+        """Record a physical donation (cash, check, etc.) - treasurer only."""
         serializer = PhysicalDonationCreateSerializer(data=request.data)
         if serializer.is_valid():
             donation = serializer.save(recorded_by=request.user.member_profile)
@@ -183,13 +140,7 @@ class DonationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
-        """
-        Get donation summary/statistics.
-
-        GET /api/v1/donations/donations/summary/
-        GET /api/v1/donations/donations/summary/?period=month&year=2026&month=1
-        GET /api/v1/donations/donations/summary/?period=year&year=2026
-        """
+        """Get donation statistics for a period (month or year)."""
         period = request.query_params.get('period', 'month')
         try:
             year = int(request.query_params.get('year', timezone.now().year))
@@ -204,7 +155,6 @@ class DonationViewSet(viewsets.ModelViewSet):
 
         queryset = Donation.objects.filter(is_active=True)
 
-        # Apply date filters
         if period == 'month' and month:
             queryset = queryset.filter(date__year=year, date__month=month)
             period_label = f'{month}/{year}'
@@ -212,7 +162,6 @@ class DonationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__year=year)
             period_label = str(year)
         else:
-            # Default to current month
             today = timezone.now()
             queryset = queryset.filter(
                 date__year=today.year,
@@ -220,21 +169,18 @@ class DonationViewSet(viewsets.ModelViewSet):
             )
             period_label = f'{today.month}/{today.year}'
 
-        # Calculate stats
         stats = queryset.aggregate(
             total_amount=Sum('amount'),
             donation_count=Count('id'),
             average_donation=Avg('amount'),
         )
 
-        # By type
         by_type = dict(
             queryset.values('donation_type')
             .annotate(total=Sum('amount'))
             .values_list('donation_type', 'total')
         )
 
-        # By payment method
         by_method = dict(
             queryset.values('payment_method')
             .annotate(total=Sum('amount'))
@@ -254,21 +200,8 @@ class DonationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-# =============================================================================
-# CAMPAIGN VIEWSET
-# =============================================================================
-
 class DonationCampaignViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for DonationCampaign CRUD operations.
-
-    Provides:
-    - list: GET /api/v1/donations/campaigns/
-    - retrieve: GET /api/v1/donations/campaigns/{uuid}/
-    - create: POST /api/v1/donations/campaigns/
-    - update: PUT /api/v1/donations/campaigns/{uuid}/
-    - destroy: DELETE /api/v1/donations/campaigns/{uuid}/
-    """
+    """CRUD operations for fundraising campaigns."""
 
     queryset = DonationCampaign.objects.all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -289,11 +222,7 @@ class DonationCampaignViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def active(self, request):
-        """
-        Get active campaigns.
-
-        GET /api/v1/donations/campaigns/active/
-        """
+        """Get currently active campaigns."""
         today = timezone.now().date()
         campaigns = self.queryset.filter(
             is_active=True,
@@ -306,19 +235,8 @@ class DonationCampaignViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-# =============================================================================
-# TAX RECEIPT VIEWSET
-# =============================================================================
-
 class TaxReceiptViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for TaxReceipt management.
-
-    Provides:
-    - list: GET /api/v1/donations/receipts/
-    - retrieve: GET /api/v1/donations/receipts/{uuid}/
-    - generate: POST /api/v1/donations/receipts/generate/
-    """
+    """Tax receipt management with generation capabilities."""
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['year', 'email_sent']
@@ -327,7 +245,7 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
     ordering = ['-year', '-generated_at']
 
     def get_queryset(self):
-        """Return queryset based on user permissions."""
+        """Finance staff see all receipts; members see only their own."""
         user = self.request.user
 
         if user.is_staff or user.is_superuser:
@@ -336,11 +254,9 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
         if hasattr(user, 'member_profile'):
             member = user.member_profile
 
-            # Finance staff see all
             if member.role in [Roles.TREASURER, Roles.ADMIN]:
                 return TaxReceipt.objects.all().select_related('member')
 
-            # Regular members only see their own
             return TaxReceipt.objects.filter(member=member)
 
         return TaxReceipt.objects.none()
@@ -357,11 +273,7 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='my-receipts')
     def my_receipts(self, request):
-        """
-        Get current user's tax receipts.
-
-        GET /api/v1/donations/receipts/my-receipts/
-        """
+        """Get current user's tax receipts."""
         if not hasattr(request.user, 'member_profile'):
             return Response(
                 {'error': 'Aucun profil membre trouvé'},
@@ -376,17 +288,11 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='generate/(?P<year>[0-9]{4})')
     def generate(self, request, year=None):
-        """
-        Generate tax receipts for a year.
-
-        POST /api/v1/donations/receipts/generate/2026/
-        POST /api/v1/donations/receipts/generate/2026/?member={uuid}
-        """
+        """Generate tax receipts for a year, for one member or all members with donations."""
         year = int(year)
         member_id = request.query_params.get('member')
 
         if member_id:
-            # Generate for specific member
             from apps.members.models import Member
             try:
                 member = Member.objects.get(pk=member_id)
@@ -407,7 +313,6 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Generate for all members with donations
         from apps.members.models import Member
 
         members_with_donations = Member.objects.filter(
@@ -427,13 +332,11 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
         })
 
     def _generate_receipt_for_member(self, member, year, user):
-        """Generate a tax receipt for a specific member and year."""
-        # Check if receipt already exists
+        """Generate a tax receipt for a member. Returns existing receipt if already generated."""
         existing = TaxReceipt.objects.filter(member=member, year=year).first()
         if existing:
             return existing
 
-        # Calculate total donations
         total = Donation.objects.filter(
             member=member,
             date__year=year,
@@ -443,7 +346,6 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
         if not total or total <= 0:
             return None
 
-        # Generate receipt
         receipt = TaxReceipt.objects.create(
             receipt_number=generate_receipt_number(year),
             member=member,

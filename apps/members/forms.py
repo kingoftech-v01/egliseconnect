@@ -1,14 +1,4 @@
-"""
-Members forms - Forms for member management.
-
-Forms:
-- MemberRegistrationForm: Public registration form
-- MemberProfileForm: Profile update form for members
-- MemberAdminForm: Full admin form for staff
-- FamilyForm: Family management form
-- GroupForm: Group management form
-- DirectoryPrivacyForm: Privacy settings form
-"""
+"""Forms for member management."""
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
@@ -18,19 +8,9 @@ from .models import Member, Family, Group, GroupMembership, DirectoryPrivacy
 User = get_user_model()
 
 
-# =============================================================================
-# MEMBER FORMS
-# =============================================================================
-
 class MemberRegistrationForm(forms.ModelForm):
-    """
-    Public registration form for new members.
+    """Public registration form - collects essential info, more can be added via profile."""
 
-    Only collects essential information. Additional details can be
-    added later through the profile form.
-    """
-
-    # Optional: Create user account
     create_account = forms.BooleanField(
         required=False,
         initial=True,
@@ -96,7 +76,6 @@ class MemberRegistrationForm(forms.ModelForm):
             elif password != password_confirm:
                 self.add_error('password_confirm', _('Les mots de passe ne correspondent pas.'))
             else:
-                # Use Django's built-in password validators
                 from django.contrib.auth.password_validation import validate_password
                 from django.core.exceptions import ValidationError
                 try:
@@ -113,7 +92,6 @@ class MemberRegistrationForm(forms.ModelForm):
         if commit:
             member.save()
 
-            # Create user account if requested
             if self.cleaned_data.get('create_account'):
                 user = User.objects.create_user(
                     username=self.cleaned_data['email'],
@@ -125,18 +103,13 @@ class MemberRegistrationForm(forms.ModelForm):
                 member.user = user
                 member.save(update_fields=['user'])
 
-            # Create default privacy settings
             DirectoryPrivacy.objects.create(member=member)
 
         return member
 
 
 class MemberProfileForm(forms.ModelForm):
-    """
-    Profile update form for members to edit their own information.
-
-    Does not include role, notes, or other staff-only fields.
-    """
+    """Profile update form - excludes role, notes, and other staff-only fields."""
 
     class Meta:
         model = Member
@@ -161,11 +134,7 @@ class MemberProfileForm(forms.ModelForm):
 
 
 class MemberAdminForm(forms.ModelForm):
-    """
-    Full admin form for staff to edit all member fields.
-
-    Includes role, notes, and other staff-only fields.
-    """
+    """Full admin form with all fields including role and notes."""
 
     class Meta:
         model = Member
@@ -198,14 +167,8 @@ class MemberAdminForm(forms.ModelForm):
         }
 
 
-# =============================================================================
-# FAMILY FORMS
-# =============================================================================
-
 class FamilyForm(forms.ModelForm):
-    """
-    Form for creating and editing families.
-    """
+    """Form for creating and editing families."""
 
     class Meta:
         model = Family
@@ -223,14 +186,8 @@ class FamilyForm(forms.ModelForm):
         }
 
 
-# =============================================================================
-# GROUP FORMS
-# =============================================================================
-
 class GroupForm(forms.ModelForm):
-    """
-    Form for creating and editing groups.
-    """
+    """Form for creating and editing groups."""
 
     class Meta:
         model = Group
@@ -251,7 +208,7 @@ class GroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Limit leader choices to group leaders and above
+        # Only allow group leaders and above to be selected as leader
         from apps.core.constants import Roles
         self.fields['leader'].queryset = Member.objects.filter(
             role__in=[Roles.GROUP_LEADER, Roles.PASTOR, Roles.ADMIN]
@@ -259,9 +216,7 @@ class GroupForm(forms.ModelForm):
 
 
 class GroupMembershipForm(forms.ModelForm):
-    """
-    Form for adding members to groups.
-    """
+    """Form for adding members to groups."""
 
     class Meta:
         model = GroupMembership
@@ -271,14 +226,8 @@ class GroupMembershipForm(forms.ModelForm):
         }
 
 
-# =============================================================================
-# PRIVACY FORMS
-# =============================================================================
-
 class DirectoryPrivacyForm(forms.ModelForm):
-    """
-    Form for members to manage their privacy settings.
-    """
+    """Form for members to manage their privacy settings."""
 
     class Meta:
         model = DirectoryPrivacy
@@ -292,14 +241,8 @@ class DirectoryPrivacyForm(forms.ModelForm):
         ]
 
 
-# =============================================================================
-# SEARCH/FILTER FORMS
-# =============================================================================
-
 class MemberSearchForm(forms.Form):
-    """
-    Search and filter form for member list.
-    """
+    """Search and filter form for member list."""
 
     search = forms.CharField(
         required=False,

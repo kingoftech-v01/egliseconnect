@@ -1,15 +1,4 @@
-"""
-Donations Frontend Views - Template-based views for donation management.
-
-This module provides template-based views for:
-- Donation creation (online giving)
-- Donation history
-- Physical donation recording (treasurer)
-- Campaign viewing
-- Tax receipts
-
-All views render HTML templates using Django's render().
-"""
+"""Template-based views for donation management."""
 from decimal import Decimal
 
 from django.shortcuts import render, get_object_or_404, redirect
@@ -32,17 +21,9 @@ from .forms import (
 )
 
 
-# =============================================================================
-# DONATION VIEWS
-# =============================================================================
-
 @login_required
 def donation_create(request):
-    """
-    Create an online donation.
-
-    Template: donations/donation_form.html
-    """
+    """Create an online donation."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Vous devez avoir un profil membre pour faire un don."))
         return redirect('frontend:members:member_create')
@@ -68,7 +49,6 @@ def donation_create(request):
     else:
         form = DonationForm()
 
-    # Get active campaigns
     campaigns = DonationCampaign.objects.filter(is_active=True)
 
     context = {
@@ -84,14 +64,9 @@ def donation_create(request):
 
 @login_required
 def donation_detail(request, pk):
-    """
-    Display donation details.
-
-    Template: donations/donation_detail.html
-    """
+    """Display donation details."""
     donation = get_object_or_404(Donation, pk=pk)
 
-    # Check permissions
     can_view = False
 
     if request.user.is_staff:
@@ -118,11 +93,7 @@ def donation_detail(request, pk):
 
 @login_required
 def donation_history(request):
-    """
-    Display member's donation history.
-
-    Template: donations/donation_history.html
-    """
+    """Display member's donation history."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Vous devez avoir un profil membre."))
         return redirect('frontend:members:member_create')
@@ -141,14 +112,11 @@ def donation_history(request):
 
     donations = donations.order_by('-date')
 
-    # Calculate totals
     total = donations.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    # Pagination
     paginator = Paginator(donations, 20)
     donations_page = paginator.get_page(page)
 
-    # Get years for filter
     years = Donation.objects.filter(member=member).dates('date', 'year', order='DESC')
 
     context = {
@@ -162,18 +130,9 @@ def donation_history(request):
     return render(request, 'donations/donation_history.html', context)
 
 
-# =============================================================================
-# TREASURER VIEWS
-# =============================================================================
-
 @login_required
 def donation_admin_list(request):
-    """
-    List all donations (treasurer/admin view).
-
-    Template: donations/donation_admin_list.html
-    """
-    # Check permissions
+    """List all donations - treasurer/admin view."""
     if hasattr(request.user, 'member_profile'):
         if request.user.member_profile.role not in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
             messages.error(request, _("Vous n'avez pas accès à cette page."))
@@ -185,7 +144,6 @@ def donation_admin_list(request):
     form = DonationFilterForm(request.GET)
     donations = Donation.objects.all().select_related('member', 'campaign')
 
-    # Apply filters
     if form.is_valid():
         if form.cleaned_data.get('date_from'):
             donations = donations.filter(date__gte=form.cleaned_data['date_from'])
@@ -207,10 +165,8 @@ def donation_admin_list(request):
 
     donations = donations.order_by('-date', '-created_at')
 
-    # Calculate totals
     total = donations.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    # Pagination
     paginator = Paginator(donations, 50)
     page = request.GET.get('page', 1)
     donations_page = paginator.get_page(page)
@@ -228,12 +184,7 @@ def donation_admin_list(request):
 
 @login_required
 def donation_record(request):
-    """
-    Record a physical donation (treasurer).
-
-    Template: donations/donation_record.html
-    """
-    # Check permissions
+    """Record a physical donation - treasurer only."""
     if hasattr(request.user, 'member_profile'):
         if request.user.member_profile.role not in [Roles.TREASURER, Roles.ADMIN]:
             messages.error(request, _("Seul le trésorier peut enregistrer des dons."))
@@ -270,17 +221,9 @@ def donation_record(request):
     return render(request, 'donations/donation_record.html', context)
 
 
-# =============================================================================
-# CAMPAIGN VIEWS
-# =============================================================================
-
 @login_required
 def campaign_list(request):
-    """
-    List donation campaigns.
-
-    Template: donations/campaign_list.html
-    """
+    """List donation campaigns."""
     campaigns = DonationCampaign.objects.filter(is_active=True).order_by('-start_date')
 
     context = {
@@ -293,14 +236,9 @@ def campaign_list(request):
 
 @login_required
 def campaign_detail(request, pk):
-    """
-    Display campaign details.
-
-    Template: donations/campaign_detail.html
-    """
+    """Display campaign details."""
     campaign = get_object_or_404(DonationCampaign, pk=pk)
 
-    # Get recent donations for this campaign
     recent_donations = campaign.donations.filter(is_active=True).order_by('-date')[:10]
 
     context = {
@@ -312,24 +250,15 @@ def campaign_detail(request, pk):
     return render(request, 'donations/campaign_detail.html', context)
 
 
-# =============================================================================
-# TAX RECEIPT VIEWS
-# =============================================================================
-
 @login_required
 def receipt_list(request):
-    """
-    List member's tax receipts.
-
-    Template: donations/receipt_list.html
-    """
+    """List tax receipts."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Vous devez avoir un profil membre."))
         return redirect('frontend:members:member_create')
 
     member = request.user.member_profile
 
-    # Check if user is finance staff
     is_finance = member.role in [Roles.TREASURER, Roles.ADMIN] or request.user.is_staff
 
     if is_finance:
@@ -339,7 +268,6 @@ def receipt_list(request):
 
     receipts = receipts.order_by('-year', '-generated_at')
 
-    # Pagination
     paginator = Paginator(receipts, 20)
     page = request.GET.get('page', 1)
     receipts_page = paginator.get_page(page)
@@ -355,14 +283,9 @@ def receipt_list(request):
 
 @login_required
 def receipt_detail(request, pk):
-    """
-    Display tax receipt details.
-
-    Template: donations/receipt_detail.html
-    """
+    """Display tax receipt details."""
     receipt = get_object_or_404(TaxReceipt, pk=pk)
 
-    # Check permissions
     can_view = False
 
     if request.user.is_staff:
@@ -387,18 +310,9 @@ def receipt_detail(request, pk):
     return render(request, 'donations/receipt_detail.html', context)
 
 
-# =============================================================================
-# REPORT VIEWS
-# =============================================================================
-
 @login_required
 def donation_monthly_report(request):
-    """
-    Display monthly donation report.
-
-    Template: donations/monthly_report.html
-    """
-    # Check permissions
+    """Display monthly donation report - finance staff only."""
     if hasattr(request.user, 'member_profile'):
         if request.user.member_profile.role not in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
             messages.error(request, _("Vous n'avez pas accès aux rapports."))
@@ -407,7 +321,6 @@ def donation_monthly_report(request):
         messages.error(request, _("Vous n'avez pas accès aux rapports."))
         return redirect('/')
 
-    # Get year and month from request
     try:
         year = int(request.GET.get('year', timezone.now().year))
     except (ValueError, TypeError):
@@ -417,23 +330,19 @@ def donation_monthly_report(request):
     except (ValueError, TypeError):
         month = timezone.now().month
 
-    # Get donations for the period
     donations = Donation.objects.filter(
         date__year=year,
         date__month=month,
         is_active=True
     ).select_related('member')
 
-    # Calculate stats
     total = donations.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     count = donations.count()
 
-    # By type
     by_type = donations.values('donation_type').annotate(
         total=Sum('amount')
     ).order_by('-total')
 
-    # By payment method
     by_method = donations.values('payment_method').annotate(
         total=Sum('amount')
     ).order_by('-total')

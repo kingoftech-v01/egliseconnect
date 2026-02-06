@@ -1,22 +1,11 @@
-"""
-Core permissions - Permission classes for ÉgliseConnect.
-
-This module provides permission classes used across the application
-for both DRF API views and Django views.
-"""
+"""DRF permission classes for role-based access control."""
 from rest_framework import permissions
 
 from .constants import Roles
 
 
-# =============================================================================
-# BASE PERMISSION CLASSES
-# =============================================================================
-
 class IsMember(permissions.BasePermission):
-    """
-    Permission class that allows access to any authenticated member.
-    """
+    """Allows any authenticated user."""
     message = "Vous devez être un membre pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -24,16 +13,13 @@ class IsMember(permissions.BasePermission):
 
 
 class IsVolunteer(permissions.BasePermission):
-    """
-    Permission class that allows access to volunteers and above.
-    """
+    """Requires volunteer role or higher."""
     message = "Vous devez être un volontaire pour accéder à cette ressource."
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Check if user has a member profile with volunteer+ role
         if hasattr(request.user, 'member_profile'):
             return request.user.member_profile.role in [
                 Roles.VOLUNTEER,
@@ -47,9 +33,7 @@ class IsVolunteer(permissions.BasePermission):
 
 
 class IsGroupLeader(permissions.BasePermission):
-    """
-    Permission class that allows access to group leaders and above.
-    """
+    """Requires group_leader role or higher."""
     message = "Vous devez être un leader de groupe pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -67,9 +51,7 @@ class IsGroupLeader(permissions.BasePermission):
 
 
 class IsPastor(permissions.BasePermission):
-    """
-    Permission class that allows access to pastors and admins only.
-    """
+    """Requires pastor role or admin."""
     message = "Vous devez être un pasteur pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -86,9 +68,7 @@ class IsPastor(permissions.BasePermission):
 
 
 class IsTreasurer(permissions.BasePermission):
-    """
-    Permission class that allows access to treasurers and admins only.
-    """
+    """Requires treasurer role or admin."""
     message = "Vous devez être trésorier pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -105,9 +85,7 @@ class IsTreasurer(permissions.BasePermission):
 
 
 class IsAdmin(permissions.BasePermission):
-    """
-    Permission class that allows access to admins only.
-    """
+    """Requires admin role or superuser."""
     message = "Vous devez être administrateur pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -121,9 +99,7 @@ class IsAdmin(permissions.BasePermission):
 
 
 class IsPastorOrAdmin(permissions.BasePermission):
-    """
-    Permission class that allows access to pastors and admins.
-    """
+    """Requires pastor or admin role."""
     message = "Vous devez être pasteur ou administrateur pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -137,9 +113,7 @@ class IsPastorOrAdmin(permissions.BasePermission):
 
 
 class IsFinanceStaff(permissions.BasePermission):
-    """
-    Permission class that allows access to finance staff (treasurer, pastor, admin).
-    """
+    """Requires finance access: treasurer, pastor, or admin."""
     message = "Vous devez avoir accès aux finances pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -156,29 +130,20 @@ class IsFinanceStaff(permissions.BasePermission):
         return request.user.is_staff
 
 
-# =============================================================================
-# OBJECT-LEVEL PERMISSION CLASSES
-# =============================================================================
-
 class IsOwnerOrStaff(permissions.BasePermission):
     """
-    Object-level permission to only allow owners or staff to access/modify.
-
-    Assumes the model instance has an `user` or `member` attribute.
+    Object-level: allows owner (via obj.user or obj.member) or staff.
     """
     message = "Vous n'avez pas la permission de modifier cette ressource."
 
     def has_object_permission(self, request, view, obj):
-        # Staff can do anything
         if request.user.is_staff:
             return True
 
-        # Check if user is pastor/admin
         if hasattr(request.user, 'member_profile'):
             if request.user.member_profile.role in Roles.STAFF_ROLES:
                 return True
 
-        # Check ownership
         if hasattr(obj, 'user'):
             return obj.user == request.user
         if hasattr(obj, 'member'):
@@ -189,27 +154,20 @@ class IsOwnerOrStaff(permissions.BasePermission):
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
-    """
-    Object-level permission to only allow owners to edit.
-    Read access is allowed for all authenticated users.
-    """
+    """Object-level: read for all, write only for owner or staff."""
     message = "Vous n'avez pas la permission de modifier cette ressource."
 
     def has_object_permission(self, request, view, obj):
-        # Read permissions are allowed to any authenticated request
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Staff can do anything
         if request.user.is_staff:
             return True
 
-        # Check if user is pastor/admin
         if hasattr(request.user, 'member_profile'):
             if request.user.member_profile.role in Roles.STAFF_ROLES:
                 return True
 
-        # Check ownership for write permissions
         if hasattr(obj, 'user'):
             return obj.user == request.user
         if hasattr(obj, 'member'):
@@ -220,68 +178,48 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 
 class CanViewMember(permissions.BasePermission):
-    """
-    Permission to view member details based on privacy settings and role.
-    """
+    """Object-level: checks privacy settings (public/group/private) for member profiles."""
     message = "Vous n'avez pas la permission de voir ce profil."
 
     def has_object_permission(self, request, view, obj):
         user = request.user
 
-        # Staff can see everything
         if user.is_staff:
             return True
 
-        # Check if user has member profile
         if not hasattr(user, 'member_profile'):
             return False
 
         member = user.member_profile
 
-        # Admins and pastors can see everyone
         if member.role in [Roles.PASTOR, Roles.ADMIN]:
             return True
 
-        # User can see their own profile
+        # Always allow viewing own profile
         if obj == member:
             return True
 
-        # Check privacy settings if they exist
         if hasattr(obj, 'privacy_settings'):
             privacy = obj.privacy_settings
 
-            # Public profiles are visible to all members
             if privacy.visibility == 'public':
                 return True
 
-            # Group-level visibility
             if privacy.visibility == 'group':
-                # Check if they share any groups
+                # Allow if they share any group
                 user_groups = set(member.groups.values_list('id', flat=True))
                 obj_groups = set(obj.groups.values_list('id', flat=True))
                 return bool(user_groups & obj_groups)
 
-            # Private profiles are only visible to staff (handled above)
+            # 'private' - staff only (handled above)
             return False
 
-        # Default: allow viewing if no privacy settings
+        # No privacy settings = public by default
         return True
 
 
-# =============================================================================
-# UTILITY FUNCTIONS
-# =============================================================================
-
 def get_user_role(user):
-    """
-    Get the role of a user.
-
-    Args:
-        user: Django User instance
-
-    Returns:
-        str: Role string or None if no member profile
-    """
+    """Get role string for user. Superusers are ADMIN, staff without profile are PASTOR."""
     if user.is_superuser:
         return Roles.ADMIN
 
@@ -295,15 +233,7 @@ def get_user_role(user):
 
 
 def is_staff_member(user):
-    """
-    Check if a user is a staff member (pastor, treasurer, or admin).
-
-    Args:
-        user: Django User instance
-
-    Returns:
-        bool: True if user is staff
-    """
+    """Check if user has staff-level access (pastor, treasurer, or admin)."""
     if user.is_staff or user.is_superuser:
         return True
 
@@ -318,15 +248,7 @@ def is_staff_member(user):
 
 
 def can_manage_finances(user):
-    """
-    Check if a user can manage finances.
-
-    Args:
-        user: Django User instance
-
-    Returns:
-        bool: True if user can manage finances
-    """
+    """Check if user can access financial data."""
     if user.is_superuser:
         return True
 

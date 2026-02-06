@@ -1,4 +1,4 @@
-"""Volunteers models - Volunteer scheduling and management."""
+"""Volunteer scheduling and management models."""
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.core.models import BaseModel
@@ -6,7 +6,7 @@ from apps.core.constants import VolunteerRole, ScheduleStatus, VolunteerFrequenc
 
 
 class VolunteerPosition(BaseModel):
-    """Volunteer position/role definition."""
+    """A volunteer role that members can sign up for."""
     name = models.CharField(max_length=100, verbose_name=_('Nom'))
     role_type = models.CharField(max_length=20, choices=VolunteerRole.CHOICES, verbose_name=_('Type'))
     description = models.TextField(blank=True, verbose_name=_('Description'))
@@ -24,7 +24,7 @@ class VolunteerPosition(BaseModel):
 
 
 class VolunteerAvailability(BaseModel):
-    """Member's volunteer availability."""
+    """Tracks when a member is available for a specific position."""
     member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='volunteer_availability')
     position = models.ForeignKey(VolunteerPosition, on_delete=models.CASCADE, related_name='available_volunteers')
     is_available = models.BooleanField(default=True, verbose_name=_('Disponible'))
@@ -38,7 +38,7 @@ class VolunteerAvailability(BaseModel):
 
 
 class VolunteerSchedule(BaseModel):
-    """Scheduled volunteer assignment."""
+    """A scheduled volunteer assignment for a specific date."""
     member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='volunteer_schedules')
     position = models.ForeignKey(VolunteerPosition, on_delete=models.CASCADE, related_name='schedules')
     event = models.ForeignKey('events.Event', on_delete=models.CASCADE, null=True, blank=True, related_name='volunteer_schedules')
@@ -57,7 +57,7 @@ class VolunteerSchedule(BaseModel):
 
 
 class SwapRequest(BaseModel):
-    """Request to swap volunteer shifts."""
+    """Request to swap a scheduled shift with another volunteer."""
     original_schedule = models.ForeignKey(VolunteerSchedule, on_delete=models.CASCADE, related_name='swap_requests')
     requested_by = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='swap_requests_made')
     swap_with = models.ForeignKey('members.Member', on_delete=models.SET_NULL, null=True, blank=True, related_name='swap_requests_received')

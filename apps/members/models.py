@@ -1,13 +1,4 @@
-"""
-Members models - Member profiles, families, and groups.
-
-Models:
-- Member: Church member profile with auto-generated member number
-- Family: Family unit grouping related members
-- Group: Church groups (cells, ministries, committees)
-- GroupMembership: Many-to-many relationship between members and groups
-- DirectoryPrivacy: Privacy settings for member directory visibility
-"""
+"""Member profiles, families, and groups."""
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -20,16 +11,8 @@ from apps.core.validators import validate_image_file
 User = get_user_model()
 
 
-# =============================================================================
-# FAMILY MODEL
-# =============================================================================
-
 class Family(BaseModel):
-    """
-    Family unit grouping related members.
-
-    A family shares a common address and can have donations tracked together.
-    """
+    """Family unit that shares a common address and can track donations together."""
 
     name = models.CharField(
         max_length=200,
@@ -76,12 +59,12 @@ class Family(BaseModel):
 
     @property
     def member_count(self):
-        """Return the number of members in this family."""
+        """Count of active members in this family."""
         return self.members.filter(is_active=True).count()
 
     @property
     def full_address(self):
-        """Return formatted full address."""
+        """Formatted address string."""
         parts = [self.address]
         if self.city:
             parts.append(self.city)
@@ -92,19 +75,9 @@ class Family(BaseModel):
         return ', '.join(filter(None, parts))
 
 
-# =============================================================================
-# MEMBER MODEL
-# =============================================================================
-
 class Member(SoftDeleteModel):
-    """
-    Church member profile.
+    """Church member with auto-generated member number (MBR-YYYY-XXXX)."""
 
-    Each member has a unique auto-generated member number (MBR-YYYY-XXXX).
-    Members can be linked to a Django User for authentication.
-    """
-
-    # Link to Django User (optional, for authentication)
     user = models.OneToOneField(
         User,
         on_delete=models.SET_NULL,
@@ -114,7 +87,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('Compte utilisateur')
     )
 
-    # Unique member number (auto-generated)
     member_number = models.CharField(
         max_length=20,
         unique=True,
@@ -123,7 +95,6 @@ class Member(SoftDeleteModel):
         help_text=_('Généré automatiquement')
     )
 
-    # Personal information
     first_name = models.CharField(
         max_length=100,
         verbose_name=_('Prénom')
@@ -157,7 +128,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('Date de naissance')
     )
 
-    # Address (can inherit from family or be individual)
     address = models.TextField(
         blank=True,
         verbose_name=_('Adresse')
@@ -182,7 +152,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('Code postal')
     )
 
-    # Photo
     photo = models.ImageField(
         upload_to='members/photos/%Y/%m/',
         blank=True,
@@ -191,7 +160,6 @@ class Member(SoftDeleteModel):
         validators=[validate_image_file],
     )
 
-    # Role in the church
     role = models.CharField(
         max_length=20,
         choices=Roles.CHOICES,
@@ -199,7 +167,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('Rôle')
     )
 
-    # Family status
     family_status = models.CharField(
         max_length=20,
         choices=FamilyStatus.CHOICES,
@@ -207,7 +174,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('État civil')
     )
 
-    # Family link
     family = models.ForeignKey(
         Family,
         on_delete=models.SET_NULL,
@@ -217,7 +183,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('Famille')
     )
 
-    # Church membership details
     joined_date = models.DateField(
         null=True,
         blank=True,
@@ -230,7 +195,6 @@ class Member(SoftDeleteModel):
         verbose_name=_('Date de baptême')
     )
 
-    # Notes (visible only to staff)
     notes = models.TextField(
         blank=True,
         verbose_name=_('Notes pastorales'),
@@ -261,12 +225,11 @@ class Member(SoftDeleteModel):
 
     @property
     def full_name(self):
-        """Return full name."""
         return f'{self.first_name} {self.last_name}'
 
     @property
     def full_address(self):
-        """Return formatted full address."""
+        """Formatted address string."""
         parts = [self.address]
         if self.city:
             parts.append(self.city)
@@ -289,29 +252,19 @@ class Member(SoftDeleteModel):
 
     @property
     def is_staff_member(self):
-        """Check if member has staff role."""
         return self.role in Roles.STAFF_ROLES
 
     @property
     def can_manage_finances(self):
-        """Check if member can manage finances."""
         return self.role in Roles.FINANCE_ROLES
 
     def get_groups(self):
-        """Get all groups this member belongs to."""
+        """Get all active groups this member belongs to."""
         return Group.objects.filter(memberships__member=self, memberships__is_active=True)
 
 
-# =============================================================================
-# GROUP MODEL
-# =============================================================================
-
 class Group(BaseModel):
-    """
-    Church group (cell, ministry, committee, etc.).
-
-    Groups have leaders and members with different roles.
-    """
+    """Church group (cell, ministry, committee) with leaders and members."""
 
     name = models.CharField(
         max_length=200,
@@ -330,7 +283,6 @@ class Group(BaseModel):
         verbose_name=_('Description')
     )
 
-    # Leader
     leader = models.ForeignKey(
         Member,
         on_delete=models.SET_NULL,
@@ -340,7 +292,6 @@ class Group(BaseModel):
         verbose_name=_('Leader')
     )
 
-    # Meeting details
     meeting_day = models.CharField(
         max_length=20,
         blank=True,
@@ -359,7 +310,6 @@ class Group(BaseModel):
         verbose_name=_('Lieu de réunion')
     )
 
-    # Contact
     email = models.EmailField(
         blank=True,
         verbose_name=_('Courriel du groupe')
@@ -375,20 +325,12 @@ class Group(BaseModel):
 
     @property
     def member_count(self):
-        """Return the number of active members in this group."""
+        """Count of active members in this group."""
         return self.memberships.filter(is_active=True).count()
 
 
-# =============================================================================
-# GROUP MEMBERSHIP MODEL
-# =============================================================================
-
 class GroupMembership(BaseModel):
-    """
-    Membership of a member in a group.
-
-    Tracks when members joined groups and their role within the group.
-    """
+    """Tracks when members joined groups and their role within the group."""
 
     MEMBERSHIP_ROLE_CHOICES = [
         ('member', _('Membre')),
@@ -437,16 +379,8 @@ class GroupMembership(BaseModel):
         return f'{self.member.full_name} - {self.group.name}'
 
 
-# =============================================================================
-# DIRECTORY PRIVACY MODEL
-# =============================================================================
-
 class DirectoryPrivacy(BaseModel):
-    """
-    Privacy settings for member directory visibility.
-
-    Controls what information other members can see in the directory.
-    """
+    """Controls what information other members can see in the directory."""
 
     member = models.OneToOneField(
         Member,
@@ -455,7 +389,6 @@ class DirectoryPrivacy(BaseModel):
         verbose_name=_('Membre')
     )
 
-    # Overall visibility
     visibility = models.CharField(
         max_length=20,
         choices=PrivacyLevel.CHOICES,
@@ -463,7 +396,6 @@ class DirectoryPrivacy(BaseModel):
         verbose_name=_('Visibilité du profil')
     )
 
-    # Individual field visibility
     show_email = models.BooleanField(
         default=True,
         verbose_name=_('Afficher le courriel')

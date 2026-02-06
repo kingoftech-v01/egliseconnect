@@ -4,8 +4,6 @@ from .models import HelpRequest, HelpRequestCategory, HelpRequestComment
 
 
 class HelpRequestCategorySerializer(serializers.ModelSerializer):
-    """Serializer for help request categories."""
-
     class Meta:
         model = HelpRequestCategory
         fields = ['id', 'name', 'name_fr', 'description', 'icon', 'is_active']
@@ -13,7 +11,6 @@ class HelpRequestCategorySerializer(serializers.ModelSerializer):
 
 
 class HelpRequestCommentSerializer(serializers.ModelSerializer):
-    """Serializer for help request comments."""
     author_name = serializers.CharField(source='author.full_name', read_only=True)
 
     class Meta:
@@ -26,7 +23,6 @@ class HelpRequestCommentSerializer(serializers.ModelSerializer):
 
 
 class HelpRequestSerializer(serializers.ModelSerializer):
-    """Serializer for help requests."""
     member_name = serializers.CharField(source='member.full_name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     assigned_to_name = serializers.CharField(
@@ -55,8 +51,6 @@ class HelpRequestSerializer(serializers.ModelSerializer):
 
 
 class HelpRequestCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating help requests."""
-
     class Meta:
         model = HelpRequest
         fields = [
@@ -69,18 +63,14 @@ class HelpRequestCreateSerializer(serializers.ModelSerializer):
 
 
 class HelpRequestAssignSerializer(serializers.Serializer):
-    """Serializer for assigning a help request."""
     assigned_to = serializers.UUIDField()
 
 
 class HelpRequestResolveSerializer(serializers.Serializer):
-    """Serializer for resolving a help request."""
     resolution_notes = serializers.CharField(required=False, allow_blank=True)
 
 
 class CommentCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating comments."""
-
     class Meta:
         model = HelpRequestComment
         fields = ['content', 'is_internal']

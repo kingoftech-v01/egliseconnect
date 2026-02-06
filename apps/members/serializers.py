@@ -1,32 +1,11 @@
-"""
-Members serializers - DRF serializers for member API.
-
-Serializers:
-- MemberSerializer: Full member serializer
-- MemberListSerializer: Lightweight serializer for lists
-- MemberCreateSerializer: For member creation
-- MemberProfileSerializer: For profile updates
-- BirthdaySerializer: For birthday lists
-- FamilySerializer: Family serializer
-- GroupSerializer: Group serializer
-- GroupMembershipSerializer: Group membership serializer
-- DirectoryPrivacySerializer: Privacy settings serializer
-"""
+"""DRF serializers for member API."""
 from rest_framework import serializers
 
 from .models import Member, Family, Group, GroupMembership, DirectoryPrivacy
 
 
-# =============================================================================
-# MEMBER SERIALIZERS
-# =============================================================================
-
 class MemberListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight serializer for member lists.
-
-    Used for list views and search results.
-    """
+    """Lightweight serializer for member lists and search results."""
 
     full_name = serializers.CharField(read_only=True)
     age = serializers.IntegerField(read_only=True)
@@ -51,11 +30,7 @@ class MemberListSerializer(serializers.ModelSerializer):
 
 
 class MemberSerializer(serializers.ModelSerializer):
-    """
-    Full member serializer.
-
-    Used for detail views. Includes all fields and related data.
-    """
+    """Full member serializer with all fields and related data."""
 
     full_name = serializers.CharField(read_only=True)
     full_address = serializers.CharField(read_only=True)
@@ -115,11 +90,7 @@ class MemberSerializer(serializers.ModelSerializer):
 
 
 class MemberCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for member creation.
-
-    Handles validation and auto-generation of member number.
-    """
+    """Serializer for member creation with auto-generated member number."""
 
     class Meta:
         model = Member
@@ -140,19 +111,13 @@ class MemberCreateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        """Create member with auto-generated number."""
         member = Member.objects.create(**validated_data)
-        # Create default privacy settings
         DirectoryPrivacy.objects.create(member=member)
         return member
 
 
 class MemberProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for member profile updates.
-
-    Members can only update their own non-sensitive fields.
-    """
+    """Serializer for members updating their own non-sensitive fields."""
 
     class Meta:
         model = Member
@@ -173,11 +138,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
 
 
 class MemberAdminSerializer(serializers.ModelSerializer):
-    """
-    Serializer for admin member management.
-
-    Includes all fields including role and notes.
-    """
+    """Admin serializer with all fields including role and notes."""
 
     full_name = serializers.CharField(read_only=True)
 
@@ -212,11 +173,7 @@ class MemberAdminSerializer(serializers.ModelSerializer):
 
 
 class BirthdaySerializer(serializers.ModelSerializer):
-    """
-    Serializer for birthday lists.
-
-    Lightweight serializer focused on birthday information.
-    """
+    """Lightweight serializer focused on birthday information."""
 
     full_name = serializers.CharField(read_only=True)
     age = serializers.IntegerField(read_only=True)
@@ -239,20 +196,14 @@ class BirthdaySerializer(serializers.ModelSerializer):
         ]
 
     def get_birth_day(self, obj):
-        """Get day of birth."""
         return obj.birth_date.day if obj.birth_date else None
 
     def get_birth_month(self, obj):
-        """Get month of birth."""
         return obj.birth_date.month if obj.birth_date else None
 
 
 class DirectoryMemberSerializer(serializers.ModelSerializer):
-    """
-    Serializer for directory listing.
-
-    Respects privacy settings.
-    """
+    """Directory listing serializer that respects privacy settings."""
 
     full_name = serializers.CharField(read_only=True)
 
@@ -271,7 +222,6 @@ class DirectoryMemberSerializer(serializers.ModelSerializer):
         """Apply privacy settings to output."""
         data = super().to_representation(instance)
 
-        # Check if privacy settings exist
         if hasattr(instance, 'privacy_settings'):
             privacy = instance.privacy_settings
 
@@ -287,14 +237,8 @@ class DirectoryMemberSerializer(serializers.ModelSerializer):
         return data
 
 
-# =============================================================================
-# FAMILY SERIALIZERS
-# =============================================================================
-
 class FamilySerializer(serializers.ModelSerializer):
-    """
-    Full family serializer.
-    """
+    """Full family serializer with members."""
 
     member_count = serializers.IntegerField(read_only=True)
     full_address = serializers.CharField(read_only=True)
@@ -321,9 +265,7 @@ class FamilySerializer(serializers.ModelSerializer):
 
 
 class FamilyListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight family serializer for lists.
-    """
+    """Lightweight family serializer for lists."""
 
     member_count = serializers.IntegerField(read_only=True)
 
@@ -337,14 +279,8 @@ class FamilyListSerializer(serializers.ModelSerializer):
         ]
 
 
-# =============================================================================
-# GROUP SERIALIZERS
-# =============================================================================
-
 class GroupSerializer(serializers.ModelSerializer):
-    """
-    Full group serializer.
-    """
+    """Full group serializer."""
 
     member_count = serializers.IntegerField(read_only=True)
     group_type_display = serializers.CharField(source='get_group_type_display', read_only=True)
@@ -373,9 +309,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class GroupListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight group serializer for lists.
-    """
+    """Lightweight group serializer for lists."""
 
     member_count = serializers.IntegerField(read_only=True)
     group_type_display = serializers.CharField(source='get_group_type_display', read_only=True)
@@ -392,9 +326,7 @@ class GroupListSerializer(serializers.ModelSerializer):
 
 
 class GroupMembershipSerializer(serializers.ModelSerializer):
-    """
-    Group membership serializer.
-    """
+    """Group membership serializer."""
 
     member_name = serializers.CharField(source='member.full_name', read_only=True)
     group_name = serializers.CharField(source='group.name', read_only=True)
@@ -416,14 +348,8 @@ class GroupMembershipSerializer(serializers.ModelSerializer):
         ]
 
 
-# =============================================================================
-# PRIVACY SERIALIZERS
-# =============================================================================
-
 class DirectoryPrivacySerializer(serializers.ModelSerializer):
-    """
-    Privacy settings serializer.
-    """
+    """Privacy settings serializer."""
 
     visibility_display = serializers.CharField(source='get_visibility_display', read_only=True)
 

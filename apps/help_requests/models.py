@@ -6,12 +6,11 @@ from apps.core.constants import HelpRequestUrgency, HelpRequestStatus
 
 
 class HelpRequestCategory(BaseModel):
-    """Category for help requests (Prayer, Financial, Material, Pastoral)."""
+    """Category like Prayer, Financial, Material, or Pastoral."""
     name = models.CharField(max_length=100)
     name_fr = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=50, blank=True, help_text="Icon name for UI")
-    # Note: is_active is inherited from BaseModel, no need to redeclare it
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -24,7 +23,7 @@ class HelpRequestCategory(BaseModel):
 
 
 class HelpRequest(BaseModel):
-    """Help request ticket from a member."""
+    """Support ticket submitted by a member."""
     request_number = models.CharField(max_length=20, unique=True, editable=False)
     member = models.ForeignKey(
         'members.Member',
@@ -81,14 +80,13 @@ class HelpRequest(BaseModel):
         return generate_request_number()
 
     def mark_resolved(self, notes=''):
-        """Mark the request as resolved."""
         self.status = HelpRequestStatus.RESOLVED
         self.resolved_at = timezone.now()
         self.resolution_notes = notes
         self.save(update_fields=['status', 'resolved_at', 'resolution_notes', 'updated_at'])
 
     def assign_to(self, member):
-        """Assign request to a staff member."""
+        """Assign to staff and auto-transition from NEW to IN_PROGRESS."""
         self.assigned_to = member
         if self.status == HelpRequestStatus.NEW:
             self.status = HelpRequestStatus.IN_PROGRESS
@@ -96,7 +94,7 @@ class HelpRequest(BaseModel):
 
 
 class HelpRequestComment(BaseModel):
-    """Comment on a help request."""
+    """Comment or internal note on a help request."""
     help_request = models.ForeignKey(
         HelpRequest,
         on_delete=models.CASCADE,

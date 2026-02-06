@@ -1,10 +1,4 @@
-"""
-Events models - Event and RSVP management.
-
-Models:
-- Event: Church events with calendar support
-- EventRSVP: RSVP tracking for events
-"""
+"""Event and RSVP models."""
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 

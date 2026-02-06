@@ -22,14 +22,12 @@ from .serializers import (
 
 
 class HelpRequestCategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for help request categories."""
     queryset = HelpRequestCategory.objects.filter(is_active=True)
     serializer_class = HelpRequestCategorySerializer
     permission_classes = [IsAuthenticated]
 
 
 class HelpRequestViewSet(viewsets.ModelViewSet):
-    """ViewSet for help requests."""
     serializer_class = HelpRequestSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -39,20 +37,18 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """Filter queryset based on user role."""
+        """Filter based on user role: pastors/admins see all, group leaders see their members' non-confidential requests, regular members see only their own."""
         user = self.request.user
         member = getattr(user, 'member_profile', None)
 
         if not member:
             return HelpRequest.objects.none()
 
-        # Pastors and admins see all requests
         if member.role in ['pastor', 'admin']:
             return HelpRequest.objects.select_related(
                 'member', 'category', 'assigned_to'
             ).prefetch_related('comments')
 
-        # Group leaders see their group members' non-confidential requests
         if member.role == 'group_leader':
             from apps.members.models import GroupMembership
             group_member_ids = GroupMembership.objects.filter(
@@ -64,7 +60,6 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
                 models.Q(member_id__in=group_member_ids, is_confidential=False)
             ).select_related('member', 'category', 'assigned_to')
 
-        # Regular members see only their own requests
         return HelpRequest.objects.filter(member=member).select_related(
             'member', 'category', 'assigned_to'
         )
@@ -81,7 +76,6 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def my_requests(self, request):
-        """Get current user's help requests."""
         member = getattr(request.user, 'member_profile', None)
         if not member:
             return Response({'detail': 'Member profile required.'}, status=400)
@@ -94,7 +88,6 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsPastor | IsAdmin])
     def assign(self, request, pk=None):
-        """Assign help request to a staff member."""
         help_request = self.get_object()
         serializer = HelpRequestAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -112,7 +105,6 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsPastor | IsAdmin])
     def resolve(self, request, pk=None):
-        """Mark help request as resolved."""
         help_request = self.get_object()
         serializer = HelpRequestResolveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -124,7 +116,6 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def comment(self, request, pk=None):
-        """Add a comment to the help request."""
         help_request = self.get_object()
         member = getattr(request.user, 'member_profile', None)
 
@@ -134,7 +125,7 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
         serializer = CommentCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Only pastors/admins can create internal comments
+        # Non-staff cannot create internal comments
         is_internal = serializer.validated_data.get('is_internal', False)
         if is_internal and member.role not in ['pastor', 'admin']:
             is_internal = False
@@ -153,7 +144,6 @@ class HelpRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
-        """Get comments for a help request."""
         help_request = self.get_object()
         member = getattr(request.user, 'member_profile', None)
 

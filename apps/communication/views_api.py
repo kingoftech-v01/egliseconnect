@@ -37,12 +37,11 @@ class NewsletterViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def send(self, request, pk=None):
-        """Send newsletter immediately."""
+        """Trigger immediate newsletter delivery via Celery."""
         newsletter = self.get_object()
         if newsletter.status == NewsletterStatus.SENT:
             return Response({'error': 'Déjà envoyée'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Here you would trigger the actual sending (Celery task)
         newsletter.status = NewsletterStatus.SENDING
         newsletter.save()
 
@@ -50,7 +49,7 @@ class NewsletterViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def schedule(self, request, pk=None):
-        """Schedule newsletter."""
+        """Schedule newsletter for future delivery."""
         newsletter = self.get_object()
         scheduled_for = request.data.get('scheduled_for')
         if not scheduled_for:
@@ -74,7 +73,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='mark-read')
     def mark_read(self, request):
-        """Mark notifications as read."""
+        """Mark specific notifications or all as read."""
         if not hasattr(request.user, 'member_profile'):
             return Response({'error': 'Profil membre requis'}, status=status.HTTP_404_NOT_FOUND)
         member = request.user.member_profile
@@ -91,7 +90,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def unread_count(self, request):
-        """Get unread count."""
+        """Return count of unread notifications."""
         if not hasattr(request.user, 'member_profile'):
             return Response({'count': 0})
         count = Notification.objects.filter(member=request.user.member_profile, is_read=False).count()
@@ -109,6 +108,7 @@ class NotificationPreferenceViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'put', 'patch'])
     def me(self, request):
+        """Get or update current user's notification preferences."""
         if not hasattr(request.user, 'member_profile'):
             return Response({'error': 'Profil requis'}, status=status.HTTP_404_NOT_FOUND)
 

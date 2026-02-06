@@ -1,4 +1,4 @@
-"""Volunteers Frontend Views."""
+"""Volunteers frontend views."""
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,7 +9,7 @@ from .models import VolunteerPosition, VolunteerSchedule, VolunteerAvailability
 
 @login_required
 def position_list(request):
-    """List volunteer positions."""
+    """Display active volunteer positions."""
     positions = VolunteerPosition.objects.filter(is_active=True)
     context = {'positions': positions, 'page_title': _('Postes de bénévolat')}
     return render(request, 'volunteers/position_list.html', context)
@@ -17,7 +17,7 @@ def position_list(request):
 
 @login_required
 def schedule_list(request):
-    """View volunteer schedule."""
+    """Display all volunteer schedules."""
     schedules = VolunteerSchedule.objects.filter(is_active=True).select_related('member', 'position').order_by('date')
     context = {'schedules': schedules, 'page_title': _('Horaire des bénévoles')}
     return render(request, 'volunteers/schedule_list.html', context)
@@ -25,7 +25,7 @@ def schedule_list(request):
 
 @login_required
 def my_schedule(request):
-    """View my volunteer schedule."""
+    """Display current user's volunteer schedule."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Profil membre requis."))
         return redirect('/')
@@ -36,7 +36,7 @@ def my_schedule(request):
 
 @login_required
 def availability_update(request):
-    """Update volunteer availability."""
+    """Allow users to update their availability for each position."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Profil membre requis."))
         return redirect('/')

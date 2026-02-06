@@ -11,7 +11,6 @@ from .forms import HelpRequestForm, HelpRequestCommentForm, HelpRequestAssignFor
 
 @login_required
 def request_create(request):
-    """Create a new help request."""
     member = getattr(request.user, 'member_profile', None)
     if not member:
         messages.error(request, "Profil membre requis.")
@@ -38,7 +37,7 @@ def request_create(request):
 
 @login_required
 def request_list(request):
-    """List all help requests (pastor/admin only)."""
+    """Pastor/admin only."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin']:
         messages.error(request, "Accès non autorisé.")
@@ -48,7 +47,6 @@ def request_list(request):
         'member', 'category', 'assigned_to'
     ).order_by('-created_at')
 
-    # Apply filters
     status_filter = request.GET.get('status')
     urgency_filter = request.GET.get('urgency')
     category_filter = request.GET.get('category')
@@ -73,7 +71,6 @@ def request_list(request):
 
 @login_required
 def request_detail(request, pk):
-    """View help request details."""
     member = getattr(request.user, 'member_profile', None)
     if not member:
         messages.error(request, "Profil membre requis.")
@@ -81,7 +78,7 @@ def request_detail(request, pk):
 
     help_request = get_object_or_404(HelpRequest, pk=pk)
 
-    # Check access permissions
+    # Group leaders can view their members' non-confidential requests
     is_group_member = False
     if member.role == 'group_leader':
         from apps.members.models import GroupMembership
@@ -100,7 +97,6 @@ def request_detail(request, pk):
         messages.error(request, "Accès non autorisé à cette demande.")
         return redirect('frontend:help_requests:my_requests')
 
-    # Get comments (filter internal for non-staff)
     comments = help_request.comments.select_related('author')
     if member.role not in ['pastor', 'admin']:
         comments = comments.filter(is_internal=False)
@@ -119,7 +115,6 @@ def request_detail(request, pk):
 
 @login_required
 def my_requests(request):
-    """List current user's help requests."""
     member = getattr(request.user, 'member_profile', None)
     if not member:
         messages.error(request, "Profil membre requis.")
@@ -136,7 +131,7 @@ def my_requests(request):
 
 @login_required
 def request_update(request, pk):
-    """Update help request status (pastor/admin only)."""
+    """Pastor/admin only."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin']:
         messages.error(request, "Accès non autorisé.")
@@ -170,7 +165,6 @@ def request_update(request, pk):
 
 @login_required
 def request_comment(request, pk):
-    """Add comment to a help request."""
     member = getattr(request.user, 'member_profile', None)
     if not member:
         messages.error(request, "Profil membre requis.")
@@ -178,7 +172,6 @@ def request_comment(request, pk):
 
     help_request = get_object_or_404(HelpRequest, pk=pk)
 
-    # Check access
     can_comment = (
         help_request.member == member or
         member.role in ['pastor', 'admin']
@@ -195,7 +188,7 @@ def request_comment(request, pk):
             comment.help_request = help_request
             comment.author = member
 
-            # Only staff can create internal comments
+            # Non-staff cannot create internal comments
             if comment.is_internal and member.role not in ['pastor', 'admin']:
                 comment.is_internal = False
 

@@ -4,8 +4,6 @@ from .models import HelpRequest, HelpRequestComment
 
 
 class HelpRequestForm(forms.ModelForm):
-    """Form for creating a help request."""
-
     class Meta:
         model = HelpRequest
         fields = ['category', 'title', 'description', 'urgency', 'is_confidential']
@@ -22,8 +20,6 @@ class HelpRequestForm(forms.ModelForm):
 
 
 class HelpRequestCommentForm(forms.ModelForm):
-    """Form for adding a comment."""
-
     class Meta:
         model = HelpRequestComment
         fields = ['content', 'is_internal']
@@ -37,7 +33,6 @@ class HelpRequestCommentForm(forms.ModelForm):
 
 
 class HelpRequestAssignForm(forms.Form):
-    """Form for assigning a help request."""
     assigned_to = forms.UUIDField(
         label='Assigner à',
         widget=forms.Select()
@@ -46,7 +41,6 @@ class HelpRequestAssignForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from apps.members.models import Member
-        # Get staff members (pastors and admins)
         staff = Member.objects.filter(
             role__in=['pastor', 'admin'],
             is_active=True
@@ -57,7 +51,6 @@ class HelpRequestAssignForm(forms.Form):
 
 
 class HelpRequestResolveForm(forms.Form):
-    """Form for resolving a help request."""
     resolution_notes = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'rows': 3}),

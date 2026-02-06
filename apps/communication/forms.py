@@ -3,7 +3,7 @@ import bleach
 from django import forms
 from .models import Newsletter
 
-# Allowed HTML tags and attributes for newsletter content
+# Safe HTML subset for newsletter content (used by serializers too)
 ALLOWED_TAGS = [
     'a', 'abbr', 'acronym', 'b', 'blockquote', 'br', 'code', 'div',
     'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'img',
@@ -34,7 +34,7 @@ class NewsletterForm(forms.ModelForm):
         }
 
     def clean_content(self):
-        """Sanitize HTML content to prevent XSS."""
+        """Sanitize HTML to prevent XSS."""
         content = self.cleaned_data.get('content', '')
         return bleach.clean(
             content,

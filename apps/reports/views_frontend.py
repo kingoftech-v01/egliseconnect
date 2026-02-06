@@ -11,7 +11,6 @@ from .services import DashboardService, ReportService
 
 @login_required
 def dashboard(request):
-    """Main dashboard view."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin', 'treasurer']:
         messages.error(request, "Accès non autorisé au tableau de bord.")
@@ -26,7 +25,6 @@ def dashboard(request):
 
 @login_required
 def member_stats(request):
-    """Member statistics view."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin']:
         messages.error(request, "Accès non autorisé.")
@@ -41,7 +39,6 @@ def member_stats(request):
 
 @login_required
 def donation_report(request):
-    """Donation report view."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin', 'treasurer']:
         messages.error(request, "Accès non autorisé.")
@@ -56,7 +53,6 @@ def donation_report(request):
     report = ReportService.get_donation_report(year)
     stats = DashboardService.get_donation_stats(year)
 
-    # Available years for filter
     available_years = range(date.today().year, date.today().year - 5, -1)
 
     return render(request, 'reports/donation_report.html', {
@@ -69,7 +65,6 @@ def donation_report(request):
 
 @login_required
 def attendance_report(request):
-    """Attendance report view."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin']:
         messages.error(request, "Accès non autorisé.")
@@ -100,7 +95,6 @@ def attendance_report(request):
 
 @login_required
 def volunteer_report(request):
-    """Volunteer activity report view."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in ['pastor', 'admin']:
         messages.error(request, "Accès non autorisé.")
@@ -131,7 +125,6 @@ def volunteer_report(request):
 
 @login_required
 def birthday_report(request):
-    """Birthday calendar view."""
     member = getattr(request.user, 'member_profile', None)
     if not member:
         messages.error(request, "Profil membre requis.")

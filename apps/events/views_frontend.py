@@ -1,4 +1,4 @@
-"""Events Frontend Views."""
+"""Events frontend views."""
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -14,7 +14,7 @@ from .forms import EventForm, RSVPForm
 
 @login_required
 def event_list(request):
-    """List all events."""
+    """Display paginated event list with optional type and date filters."""
     events = Event.objects.filter(is_published=True, is_cancelled=False).order_by('start_datetime')
     event_type = request.GET.get('type')
     if event_type:
@@ -37,7 +37,7 @@ def event_list(request):
 
 @login_required
 def event_detail(request, pk):
-    """Event details with RSVP."""
+    """Display event details and user's RSVP status."""
     event = get_object_or_404(Event, pk=pk)
     user_rsvp = None
     if hasattr(request.user, 'member_profile'):
@@ -54,7 +54,7 @@ def event_detail(request, pk):
 
 @login_required
 def event_rsvp(request, pk):
-    """Submit RSVP."""
+    """Handle RSVP form submission."""
     event = get_object_or_404(Event, pk=pk)
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Profil membre requis."))
@@ -81,6 +81,6 @@ def event_rsvp(request, pk):
 
 @login_required
 def event_calendar(request):
-    """Calendar view."""
+    """Render the calendar page (data loaded via API)."""
     context = {'page_title': _('Calendrier')}
     return render(request, 'events/event_calendar.html', context)

@@ -1,9 +1,10 @@
-"""Events serializers."""
+"""Event serializers."""
 from rest_framework import serializers
 from .models import Event, EventRSVP
 
 
 class EventListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for event listings."""
     event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
     confirmed_count = serializers.IntegerField(read_only=True)
 
@@ -13,6 +14,7 @@ class EventListSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    """Full event serializer with all fields."""
     event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
     organizer_name = serializers.CharField(source='organizer.full_name', read_only=True, allow_null=True)
     confirmed_count = serializers.IntegerField(read_only=True)

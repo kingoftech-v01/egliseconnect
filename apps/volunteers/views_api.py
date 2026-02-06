@@ -1,4 +1,4 @@
-"""Volunteers API Views."""
+"""Volunteers API views."""
 from django.db import models as db_models
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -13,6 +13,7 @@ from .serializers import VolunteerPositionSerializer, VolunteerAvailabilitySeria
 
 
 class VolunteerPositionViewSet(viewsets.ModelViewSet):
+    """CRUD operations for volunteer positions."""
     queryset = VolunteerPosition.objects.all()
     serializer_class = VolunteerPositionSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -26,6 +27,7 @@ class VolunteerPositionViewSet(viewsets.ModelViewSet):
 
 
 class VolunteerScheduleViewSet(viewsets.ModelViewSet):
+    """CRUD operations for volunteer schedules."""
     queryset = VolunteerSchedule.objects.all().select_related('member', 'position')
     serializer_class = VolunteerScheduleSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -40,6 +42,7 @@ class VolunteerScheduleViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='my-schedule')
     def my_schedule(self, request):
+        """Return schedules for the current user."""
         if not hasattr(request.user, 'member_profile'):
             return Response({'error': 'Profil requis'}, status=status.HTTP_404_NOT_FOUND)
         schedules = self.queryset.filter(member=request.user.member_profile)
@@ -48,6 +51,7 @@ class VolunteerScheduleViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
+        """Mark a schedule as confirmed."""
         schedule = self.get_object()
         schedule.status = ScheduleStatus.CONFIRMED
         schedule.save()
@@ -55,6 +59,7 @@ class VolunteerScheduleViewSet(viewsets.ModelViewSet):
 
 
 class VolunteerAvailabilityViewSet(viewsets.ModelViewSet):
+    """CRUD for volunteer availability (scoped to current user unless staff)."""
     queryset = VolunteerAvailability.objects.all()
     serializer_class = VolunteerAvailabilitySerializer
     permission_classes = [IsMember]
@@ -68,11 +73,12 @@ class VolunteerAvailabilityViewSet(viewsets.ModelViewSet):
 
 
 class SwapRequestViewSet(viewsets.ModelViewSet):
+    """CRUD for shift swap requests."""
     serializer_class = SwapRequestSerializer
     permission_classes = [IsMember]
 
     def get_queryset(self):
-        """Filter swap requests to only show relevant ones to the user."""
+        """Staff sees all; members see only their own requests."""
         user = self.request.user
         if user.is_staff:
             return SwapRequest.objects.all().select_related(

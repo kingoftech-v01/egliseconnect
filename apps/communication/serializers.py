@@ -14,7 +14,7 @@ class NewsletterSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate_content(self, value):
-        """Sanitize HTML content to prevent XSS."""
+        """Sanitize HTML to prevent XSS."""
         return bleach.clean(
             value,
             tags=ALLOWED_TAGS,

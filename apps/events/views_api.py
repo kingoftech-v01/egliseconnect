@@ -1,4 +1,4 @@
-"""Events API Views."""
+"""Events API views."""
 from django.utils import timezone
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -13,7 +13,7 @@ from .serializers import EventSerializer, EventListSerializer, EventRSVPSerializ
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    """ViewSet for Event CRUD."""
+    """CRUD operations for events."""
 
     queryset = Event.objects.all().select_related('organizer')
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -34,7 +34,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def upcoming(self, request):
-        """Get upcoming events."""
+        """Return next 10 published events."""
         events = self.queryset.filter(
             start_datetime__gte=timezone.now(),
             is_published=True,
@@ -45,7 +45,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def calendar(self, request):
-        """Get events for calendar view."""
+        """Return events within optional start/end date range."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         queryset = self.queryset.filter(is_published=True)
@@ -58,7 +58,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def rsvp(self, request, pk=None):
-        """Submit RSVP for event."""
+        """Create or update RSVP for the current user."""
         event = self.get_object()
         if not hasattr(request.user, 'member_profile'):
             return Response({'error': 'Profil membre requis'}, status=status.HTTP_400_BAD_REQUEST)
@@ -75,7 +75,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def attendees(self, request, pk=None):
-        """Get event attendees."""
+        """Return confirmed attendees for this event."""
         event = self.get_object()
         rsvps = event.rsvps.filter(status=RSVPStatus.CONFIRMED).select_related('member')
         serializer = EventRSVPSerializer(rsvps, many=True)

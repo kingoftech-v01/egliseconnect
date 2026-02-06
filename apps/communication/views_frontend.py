@@ -13,8 +13,7 @@ from .forms import NewsletterForm
 
 @login_required
 def newsletter_list(request):
-    """List newsletters."""
-    # Staff sees all, members see sent only
+    # Staff sees all newsletters, members see only sent ones
     if hasattr(request.user, 'member_profile') and request.user.member_profile.role in [Roles.PASTOR, Roles.ADMIN]:
         newsletters = Newsletter.objects.all()
     else:
@@ -30,7 +29,6 @@ def newsletter_list(request):
 
 @login_required
 def newsletter_detail(request, pk):
-    """View newsletter."""
     newsletter = get_object_or_404(Newsletter, pk=pk)
     context = {'newsletter': newsletter, 'page_title': newsletter.subject}
     return render(request, 'communication/newsletter_detail.html', context)
@@ -38,7 +36,7 @@ def newsletter_detail(request, pk):
 
 @login_required
 def newsletter_create(request):
-    """Create newsletter (staff only)."""
+    """Staff only."""
     if hasattr(request.user, 'member_profile'):
         if request.user.member_profile.role not in [Roles.PASTOR, Roles.ADMIN]:
             messages.error(request, _("Accès refusé."))
@@ -65,7 +63,6 @@ def newsletter_create(request):
 
 @login_required
 def notification_list(request):
-    """List my notifications."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Profil requis."))
         return redirect('/')
@@ -81,7 +78,6 @@ def notification_list(request):
 
 @login_required
 def preferences(request):
-    """Notification preferences."""
     if not hasattr(request.user, 'member_profile'):
         messages.error(request, _("Profil requis."))
         return redirect('/')
