@@ -2,9 +2,9 @@
 import json
 import pytest
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from django.test import override_settings
+from django.test import Client, override_settings
 from rest_framework.test import APIClient
 
 from apps.core.constants import Roles
@@ -645,3 +645,73 @@ class TestStripeWebhookView:
         )
         # Should not crash, returns 200 even if payment not found
         assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestStripeWebhookWithStripeConfigured:
+    """Tests for StripeWebhookView when Stripe is configured (not dev mode)."""
+
+    def _url(self):
+        return '/api/v1/payments/webhook/'
+
+    def test_webhook_invalid_signature_returns_400(self):
+        """When Stripe is configured, an invalid signature returns 400."""
+        mock_stripe = MagicMock()
+        mock_stripe.Webhook.construct_event.side_effect = ValueError('Invalid signature')
+
+        client = Client()
+        with patch('apps.payments.views_api.get_stripe', return_value=mock_stripe):
+            with patch('apps.payments.views_api.settings') as mock_settings:
+                mock_settings.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret'
+                response = client.post(
+                    self._url(),
+                    data=b'{}',
+                    content_type='application/json',
+                    HTTP_STRIPE_SIGNATURE='invalid_sig',
+                )
+        assert response.status_code == 400
+
+    def test_webhook_generic_exception_returns_400(self):
+        """When Stripe construct_event raises a generic Exception, returns 400."""
+        mock_stripe = MagicMock()
+        mock_stripe.Webhook.construct_event.side_effect = Exception('Webhook error')
+
+        client = Client()
+        with patch('apps.payments.views_api.get_stripe', return_value=mock_stripe):
+            with patch('apps.payments.views_api.settings') as mock_settings:
+                mock_settings.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret'
+                response = client.post(
+                    self._url(),
+                    data=b'{}',
+                    content_type='application/json',
+                    HTTP_STRIPE_SIGNATURE='invalid_sig',
+                )
+        assert response.status_code == 400
+
+    def test_webhook_valid_stripe_event_succeeds(self):
+        """When Stripe verifies the event, it processes normally."""
+        payment = OnlinePaymentFactory(status=PaymentStatus.PENDING)
+
+        mock_stripe = MagicMock()
+        mock_stripe.Webhook.construct_event.return_value = {
+            'type': 'payment_intent.succeeded',
+            'data': {
+                'object': {
+                    'id': payment.stripe_payment_intent_id,
+                },
+            },
+        }
+
+        client = Client()
+        with patch('apps.payments.views_api.get_stripe', return_value=mock_stripe):
+            with patch('apps.payments.views_api.settings') as mock_settings:
+                mock_settings.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret'
+                response = client.post(
+                    self._url(),
+                    data=b'{}',
+                    content_type='application/json',
+                    HTTP_STRIPE_SIGNATURE='valid_sig',
+                )
+        assert response.status_code == 200
+        payment.refresh_from_db()
+        assert payment.status == PaymentStatus.SUCCEEDED

@@ -137,3 +137,101 @@ class TestTaxReceiptModel:
 
         with pytest.raises(Exception):
             TaxReceiptFactory(member=member, year=2026)
+
+
+@pytest.mark.django_db
+class TestDonationCampaignMissedLines:
+    """Tests covering missed lines in DonationCampaign model."""
+
+    def test_progress_percentage_zero_goal(self):
+        """progress_percentage returns 0 when goal_amount is 0 (line 74)."""
+        campaign = DonationCampaignFactory(goal_amount=Decimal('0.00'))
+        DonationFactory(campaign=campaign, amount=Decimal('100.00'))
+        assert campaign.progress_percentage == 0
+
+    def test_progress_percentage_none_goal(self):
+        """progress_percentage returns 0 when goal_amount is None/falsy."""
+        campaign = DonationCampaignFactory(goal_amount=Decimal('0.00'))
+        assert campaign.progress_percentage == 0
+
+    def test_current_amount_no_donations(self):
+        """current_amount returns 0 when no donations exist (line 84 coverage)."""
+        campaign = DonationCampaignFactory()
+        assert campaign.current_amount == Decimal('0.00')
+
+    def test_is_ongoing_end_date_passed(self):
+        """is_ongoing returns False when end_date has passed (line 84)."""
+        today = timezone.now().date()
+        campaign = DonationCampaignFactory(
+            start_date=today - timezone.timedelta(days=30),
+            end_date=today - timezone.timedelta(days=1),
+            is_active=True,
+        )
+        assert campaign.is_ongoing is False
+
+
+@pytest.mark.django_db
+class TestDonationStrAndProperties:
+    """Tests for __str__ and properties on donation models."""
+
+    def test_donation_str(self):
+        """Donation.__str__ returns donation number, name, and amount (line 192)."""
+        member = MemberFactory(first_name='Jean', last_name='Dupont')
+        donation = DonationFactory(member=member, amount=Decimal('250.00'))
+        result = str(donation)
+        assert donation.donation_number in result
+        assert 'Jean Dupont' in result
+        assert '250.00' in result
+
+    def test_donation_is_online_true(self):
+        """is_online returns True for online/card payments (line 204)."""
+        from apps.core.constants import PaymentMethod
+        donation_online = DonationFactory(payment_method=PaymentMethod.ONLINE)
+        assert donation_online.is_online is True
+        donation_card = DonationFactory(payment_method=PaymentMethod.CARD)
+        assert donation_card.is_online is True
+
+    def test_donation_is_online_false(self):
+        """is_online returns False for cash payments."""
+        from apps.core.constants import PaymentMethod
+        donation = DonationFactory(payment_method=PaymentMethod.CASH)
+        assert donation.is_online is False
+
+    def test_tax_receipt_str(self):
+        """TaxReceipt.__str__ returns receipt number, name, year (line 290)."""
+        member = MemberFactory(first_name='Marie', last_name='Martin')
+        receipt = TaxReceiptFactory(member=member, year=2025)
+        result = str(receipt)
+        assert receipt.receipt_number in result
+        assert 'Marie Martin' in result
+        assert '2025' in result
+
+    def test_donation_campaign_str(self):
+        """DonationCampaign.__str__ returns campaign name."""
+        campaign = DonationCampaignFactory(name='Building Fund')
+        assert str(campaign) == 'Building Fund'
+
+
+@pytest.mark.django_db
+class TestDonationAdminMethods:
+    """Tests for admin display methods (admin.py lines 132, 136)."""
+
+    def test_campaign_admin_current_amount(self):
+        """DonationCampaignAdmin.current_amount returns formatted string."""
+        from django.contrib import admin
+        from apps.donations.admin import DonationCampaignAdmin
+        campaign = DonationCampaignFactory()
+        DonationFactory(campaign=campaign, amount=Decimal('500.00'))
+        admin_obj = DonationCampaignAdmin(DonationCampaign, admin.site)
+        result = admin_obj.current_amount(campaign)
+        assert result == f'${campaign.current_amount}'
+
+    def test_campaign_admin_progress_percentage(self):
+        """DonationCampaignAdmin.progress_percentage returns formatted string."""
+        from django.contrib import admin
+        from apps.donations.admin import DonationCampaignAdmin
+        campaign = DonationCampaignFactory(goal_amount=Decimal('1000.00'))
+        DonationFactory(campaign=campaign, amount=Decimal('500.00'))
+        admin_obj = DonationCampaignAdmin(DonationCampaign, admin.site)
+        result = admin_obj.progress_percentage(campaign)
+        assert result == f'{campaign.progress_percentage}%'

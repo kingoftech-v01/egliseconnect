@@ -597,3 +597,43 @@ class TestOnboardingStatusView:
         response = api_client.get(self.url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data['has_full_access'] is True
+
+
+# ---------------------------------------------------------------------------
+# OnboardingStatsView
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestOnboardingStatsView:
+    """Tests for OnboardingStatsView (admin-only stats endpoint)."""
+
+    url = '/api/v1/onboarding/stats/'
+
+    def test_admin_can_view_stats(self, api_client, admin_member):
+        """Admin can view onboarding statistics."""
+        response = api_client.get(self.url)
+        assert response.status_code == status.HTTP_200_OK
+        assert 'pipeline' in response.data
+        assert 'success_rate' in response.data
+        assert 'avg_completion_days' in response.data
+        assert 'training' in response.data
+        assert 'interviews' in response.data
+
+    def test_pastor_can_view_stats(self, api_client, pastor_member):
+        """Pastor can view onboarding statistics."""
+        response = api_client.get(self.url)
+        assert response.status_code == status.HTTP_200_OK
+        assert 'pipeline' in response.data
+
+    def test_regular_member_denied(self, api_client, regular_member):
+        """Regular members are denied access to stats."""
+        response = api_client.get(self.url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_unauthenticated_denied(self, api_client):
+        """Unauthenticated users are denied."""
+        response = api_client.get(self.url)
+        assert response.status_code in (
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        )

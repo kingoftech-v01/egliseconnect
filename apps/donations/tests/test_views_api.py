@@ -1108,3 +1108,52 @@ class TestDonationFiltering:
         assert response.status_code == status.HTTP_200_OK
         for r in response.data['results']:
             assert r['year'] == 2025
+
+
+@pytest.mark.django_db
+class TestDonationViewSetMissedBranches:
+    """Tests covering missed branches in DonationViewSet."""
+
+    def test_get_serializer_class_record_physical(self):
+        """get_serializer_class returns PhysicalDonationCreateSerializer for record_physical (line 69)."""
+        from apps.donations.views_api import DonationViewSet
+        from apps.donations.serializers import PhysicalDonationCreateSerializer
+        viewset = DonationViewSet()
+        viewset.action = 'record_physical'
+        assert viewset.get_serializer_class() == PhysicalDonationCreateSerializer
+
+    def test_get_serializer_class_my_history(self):
+        """get_serializer_class returns MemberDonationHistorySerializer for my_history (line 71)."""
+        from apps.donations.views_api import DonationViewSet
+        from apps.donations.serializers import MemberDonationHistorySerializer
+        viewset = DonationViewSet()
+        viewset.action = 'my_history'
+        assert viewset.get_serializer_class() == MemberDonationHistorySerializer
+
+    def test_get_permissions_default_action(self):
+        """get_permissions returns IsMember for unknown/default action (line 87)."""
+        from apps.donations.views_api import DonationViewSet
+        from apps.core.permissions import IsMember
+        viewset = DonationViewSet()
+        viewset.action = 'some_unknown_action'
+        perms = viewset.get_permissions()
+        assert len(perms) == 1
+        assert isinstance(perms[0], IsMember)
+
+    def test_my_history_unpaginated_response(self):
+        """my_history returns unpaginated list when paginator returns None (lines 126-127)."""
+        from unittest import mock
+        from apps.donations.views_api import DonationViewSet
+
+        user, member = make_member_with_user(Roles.MEMBER)
+        DonationFactory(member=member)
+
+        client = make_api_client(user)
+        with mock.patch.object(
+            DonationViewSet, 'paginate_queryset', return_value=None
+        ):
+            response = client.get('/api/v1/donations/donations/my-history/')
+        assert response.status_code == status.HTTP_200_OK
+        # Without pagination, response.data is a list, not a dict with 'results'
+        assert isinstance(response.data, list)
+        assert len(response.data) >= 1

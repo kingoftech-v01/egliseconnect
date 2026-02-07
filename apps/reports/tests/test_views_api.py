@@ -3,9 +3,10 @@ import pytest
 from datetime import date
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from apps.members.tests.factories import MemberFactory, UserFactory, TreasurerFactory
+from apps.reports.views_api import ReportViewSet, TreasurerDonationReportView
 
 
 @pytest.fixture
@@ -571,3 +572,59 @@ class TestDashboardAdminAccess:
         api_client.force_authenticate(user=user)
         response = api_client.get('/api/v1/reports/reports/donations/2026/')
         assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+class TestReportDonationYearFallback:
+    """Tests for ReportViewSet.donations when year is invalid (lines 112-113)."""
+
+    def test_donations_none_year_falls_back_to_current(self, pastor_user):
+        """When year=None, falls back to current year via TypeError."""
+        user, member = pastor_user
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        force_authenticate(request, user=user)
+        view = ReportViewSet.as_view({'get': 'donations'})
+        response = view(request, year=None)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['year'] == date.today().year
+
+    def test_donations_invalid_year_falls_back_to_current(self, pastor_user):
+        """When year is an unparseable string, falls back to current year via ValueError."""
+        user, member = pastor_user
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        force_authenticate(request, user=user)
+        view = ReportViewSet.as_view({'get': 'donations'})
+        response = view(request, year='abc')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['year'] == date.today().year
+
+
+@pytest.mark.django_db
+class TestTreasurerDonationYearFallback:
+    """Tests for TreasurerDonationReportView.get when year is invalid (lines 150-151)."""
+
+    def test_treasurer_invalid_year_falls_back_to_current(self):
+        """When year is an invalid string, falls back to current year."""
+        user = UserFactory()
+        MemberFactory(user=user, role='pastor')
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        force_authenticate(request, user=user)
+        view = TreasurerDonationReportView.as_view()
+        response = view(request, year='abc')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['year'] == date.today().year
+
+    def test_treasurer_none_year_uses_current(self):
+        """When year is not provided (None), uses current year."""
+        user = UserFactory()
+        MemberFactory(user=user, role='treasurer')
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        force_authenticate(request, user=user)
+        view = TreasurerDonationReportView.as_view()
+        response = view(request, year=None)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['year'] == date.today().year

@@ -44,6 +44,29 @@ class TestGetStripe:
             result = get_stripe()
             assert result is None
 
+    def test_returns_none_when_stripe_importable_but_no_key(self):
+        """When stripe is importable but STRIPE_SECRET_KEY is empty, returns None."""
+        import types
+        mock_stripe_module = types.ModuleType('stripe')
+        mock_stripe_module.api_key = None
+        with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
+            with patch('apps.payments.services.settings') as mock_settings:
+                mock_settings.STRIPE_SECRET_KEY = ''
+                result = get_stripe()
+                assert result is None
+
+    def test_returns_stripe_when_key_configured(self):
+        """When stripe is importable and STRIPE_SECRET_KEY is set, returns stripe module."""
+        import types
+        mock_stripe_module = types.ModuleType('stripe')
+        mock_stripe_module.api_key = None
+        with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
+            with patch('apps.payments.services.settings') as mock_settings:
+                mock_settings.STRIPE_SECRET_KEY = 'sk_test_12345'
+                result = get_stripe()
+                assert result is not None
+                assert result.api_key == 'sk_test_12345'
+
 
 @pytest.mark.django_db
 class TestGetOrCreateStripeCustomer:

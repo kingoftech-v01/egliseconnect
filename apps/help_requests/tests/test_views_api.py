@@ -137,3 +137,110 @@ class TestHelpRequestAPI:
         response = api_client.get('/api/v1/help-requests/requests/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] == 1
+
+
+@pytest.mark.django_db
+class TestHelpRequestViewSetMissedBranches:
+    """Tests covering uncovered branches in HelpRequestViewSet."""
+
+    def test_queryset_no_member_profile(self, api_client):
+        """User without member_profile gets empty queryset (line 45)."""
+        user = UserFactory()
+        api_client.force_authenticate(user=user)
+        HelpRequestFactory()  # someone else's request
+        response = api_client.get('/api/v1/help-requests/requests/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['count'] == 0
+
+    def test_queryset_group_leader(self, api_client):
+        """Group leader sees own + group members' non-confidential requests (lines 53-58)."""
+        from apps.members.tests.factories import GroupFactory, GroupMembershipFactory
+
+        leader_user = UserFactory()
+        leader = MemberFactory(user=leader_user, role='group_leader')
+        group = GroupFactory(leader=leader)
+        group_member = MemberFactory()
+        GroupMembershipFactory(member=group_member, group=group)
+
+        own_req = HelpRequestFactory(member=leader)
+        member_req = HelpRequestFactory(member=group_member, is_confidential=False)
+        confidential_req = HelpRequestFactory(member=group_member, is_confidential=True)
+        other_req = HelpRequestFactory()  # unrelated member
+
+        api_client.force_authenticate(user=leader_user)
+        response = api_client.get('/api/v1/help-requests/requests/')
+        assert response.status_code == status.HTTP_200_OK
+        ids = [r['id'] for r in response.data['results']]
+        assert str(own_req.pk) in ids
+        assert str(member_req.pk) in ids
+        assert str(confidential_req.pk) not in ids
+        assert str(other_req.pk) not in ids
+
+    def test_my_requests_no_profile(self, api_client):
+        """User without member_profile gets 400 on my_requests (line 81)."""
+        user = UserFactory()
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/v1/help-requests/requests/my_requests/')
+        assert response.status_code == 400
+        assert 'Member profile required' in response.data['detail']
+
+    def test_assign_nonexistent_member(self, api_client, pastor_user):
+        """Assign to non-existent member returns 404 (lines 97-98)."""
+        import uuid
+        user, pastor = pastor_user
+        api_client.force_authenticate(user=user)
+        hr = HelpRequestFactory(status='new')
+        response = api_client.post(
+            f'/api/v1/help-requests/requests/{hr.pk}/assign/',
+            {'assigned_to': str(uuid.uuid4())}
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert 'Member not found' in response.data['detail']
+
+    def test_comment_no_member_profile(self, api_client):
+        """User without member_profile gets 400 on comment (line 123)."""
+        from unittest import mock
+        from apps.help_requests.views_api import HelpRequestViewSet
+
+        user = UserFactory()
+        api_client.force_authenticate(user=user)
+        hr = HelpRequestFactory()
+        # Mock get_object to bypass empty queryset (user has no profile)
+        with mock.patch.object(HelpRequestViewSet, 'get_object', return_value=hr):
+            response = api_client.post(
+                f'/api/v1/help-requests/requests/{hr.pk}/comment/',
+                {'content': 'test comment'}
+            )
+        assert response.status_code == 400
+        assert 'Member profile required' in response.data['detail']
+
+    def test_comments_action_non_staff_filters_internal(self, api_client, member_user):
+        """Non-staff user should not see internal comments (lines 147-157)."""
+        user, member = member_user
+        api_client.force_authenticate(user=user)
+        hr = HelpRequestFactory(member=member)
+        HelpRequestComment.objects.create(
+            help_request=hr, author=member, content='public comment', is_internal=False
+        )
+        HelpRequestComment.objects.create(
+            help_request=hr, author=member, content='internal comment', is_internal=True
+        )
+        response = api_client.get(f'/api/v1/help-requests/requests/{hr.pk}/comments/')
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]['content'] == 'public comment'
+
+    def test_comments_action_staff_sees_all(self, api_client, pastor_user):
+        """Staff user sees all comments including internal (lines 147-157)."""
+        user, pastor = pastor_user
+        api_client.force_authenticate(user=user)
+        hr = HelpRequestFactory()
+        HelpRequestComment.objects.create(
+            help_request=hr, author=pastor, content='public', is_internal=False
+        )
+        HelpRequestComment.objects.create(
+            help_request=hr, author=pastor, content='internal', is_internal=True
+        )
+        response = api_client.get(f'/api/v1/help-requests/requests/{hr.pk}/comments/')
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2

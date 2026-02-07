@@ -295,3 +295,201 @@ class TestCanManageFinances:
         user.is_superuser = False
         user.member_profile = create_member_profile(Roles.PASTOR)
         assert can_manage_finances(user) is False
+
+
+# ==============================================================================
+# Tests for unauthenticated checks and is_staff fallback paths
+# ==============================================================================
+
+from apps.core.permissions import CanViewMember
+
+
+def _make_user_no_profile(is_staff=False, is_superuser=False, is_authenticated=True):
+    """Create a mock user with no member_profile attribute."""
+    user = Mock(spec=['is_authenticated', 'is_staff', 'is_superuser'])
+    user.is_authenticated = is_authenticated
+    user.is_staff = is_staff
+    user.is_superuser = is_superuser
+    return user
+
+
+class TestIsVolunteerUnauthenticated:
+    """Tests for IsVolunteer unauthenticated check (line 21)."""
+
+    def test_unauthenticated_user_denied(self):
+        """Unauthenticated users should be denied by IsVolunteer."""
+        request = Mock()
+        request.user = Mock()
+        request.user.is_authenticated = False
+        permission = IsVolunteer()
+        assert permission.has_permission(request, None) is False
+
+    def test_no_user_denied(self):
+        """Request with no user should be denied by IsVolunteer."""
+        request = Mock()
+        request.user = None
+        permission = IsVolunteer()
+        assert permission.has_permission(request, None) is False
+
+
+class TestIsGroupLeaderStaffFallback:
+    """Tests for IsGroupLeader unauthenticated (line 41) and staff fallback (line 50)."""
+
+    def test_unauthenticated_user_denied(self):
+        """Unauthenticated users should be denied."""
+        request = Mock()
+        request.user = Mock()
+        request.user.is_authenticated = False
+        permission = IsGroupLeader()
+        assert permission.has_permission(request, None) is False
+
+    def test_staff_user_no_profile_allowed(self):
+        """Staff user without member_profile should be allowed (is_staff fallback)."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=True)
+        permission = IsGroupLeader()
+        assert permission.has_permission(request, None) is True
+
+    def test_non_staff_user_no_profile_denied(self):
+        """Non-staff user without member_profile should be denied."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=False)
+        permission = IsGroupLeader()
+        assert permission.has_permission(request, None) is False
+
+
+class TestIsPastorStaffFallback:
+    """Tests for IsPastor unauthenticated (line 59) and staff fallback (line 67)."""
+
+    def test_unauthenticated_user_denied(self):
+        """Unauthenticated users should be denied."""
+        request = Mock()
+        request.user = Mock()
+        request.user.is_authenticated = False
+        permission = IsPastor()
+        assert permission.has_permission(request, None) is False
+
+    def test_staff_user_no_profile_allowed(self):
+        """Staff user without member_profile should be allowed."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=True)
+        permission = IsPastor()
+        assert permission.has_permission(request, None) is True
+
+    def test_non_staff_user_no_profile_denied(self):
+        """Non-staff user without member_profile should be denied."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=False)
+        permission = IsPastor()
+        assert permission.has_permission(request, None) is False
+
+
+class TestIsTreasurerStaffFallback:
+    """Tests for IsTreasurer unauthenticated (line 76) and staff fallback (line 84)."""
+
+    def test_unauthenticated_user_denied(self):
+        """Unauthenticated users should be denied."""
+        request = Mock()
+        request.user = Mock()
+        request.user.is_authenticated = False
+        permission = IsTreasurer()
+        assert permission.has_permission(request, None) is False
+
+    def test_staff_user_no_profile_allowed(self):
+        """Staff user without member_profile should be allowed."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=True)
+        permission = IsTreasurer()
+        assert permission.has_permission(request, None) is True
+
+    def test_non_staff_user_no_profile_denied(self):
+        """Non-staff user without member_profile should be denied."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=False)
+        permission = IsTreasurer()
+        assert permission.has_permission(request, None) is False
+
+
+class TestIsAdminUnauthenticated:
+    """Tests for IsAdmin unauthenticated check (line 93)."""
+
+    def test_unauthenticated_user_denied(self):
+        """Unauthenticated users should be denied."""
+        request = Mock()
+        request.user = Mock()
+        request.user.is_authenticated = False
+        permission = IsAdmin()
+        assert permission.has_permission(request, None) is False
+
+    def test_no_user_denied(self):
+        """Request with no user should be denied."""
+        request = Mock()
+        request.user = None
+        permission = IsAdmin()
+        assert permission.has_permission(request, None) is False
+
+    def test_non_superuser_no_profile_denied(self):
+        """Non-superuser without member_profile should be denied (is_superuser fallback)."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=True, is_superuser=False)
+        permission = IsAdmin()
+        assert permission.has_permission(request, None) is False
+
+
+class TestIsFinanceStaffStaffFallback:
+    """Tests for IsFinanceStaff staff fallback (line 130)."""
+
+    def test_staff_user_no_profile_allowed(self):
+        """Staff user without member_profile should be allowed."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=True)
+        permission = IsFinanceStaff()
+        assert permission.has_permission(request, None) is True
+
+    def test_non_staff_user_no_profile_denied(self):
+        """Non-staff user without member_profile should be denied."""
+        request = Mock()
+        request.user = _make_user_no_profile(is_staff=False)
+        permission = IsFinanceStaff()
+        assert permission.has_permission(request, None) is False
+
+    def test_unauthenticated_user_denied(self):
+        """Unauthenticated users should be denied."""
+        request = Mock()
+        request.user = Mock()
+        request.user.is_authenticated = False
+        permission = IsFinanceStaff()
+        assert permission.has_permission(request, None) is False
+
+
+class TestIsStaffMemberNoProfile:
+    """Tests for is_staff_member fallback (line 247) when user has no member_profile."""
+
+    def test_no_profile_non_staff_returns_false(self):
+        """User without member_profile and not staff should return False."""
+        user = _make_user_no_profile(is_staff=False, is_superuser=False)
+        assert is_staff_member(user) is False
+
+    def test_no_profile_staff_returns_true(self):
+        """Staff user without member_profile should return True."""
+        user = _make_user_no_profile(is_staff=True, is_superuser=False)
+        assert is_staff_member(user) is True
+
+    def test_no_profile_superuser_returns_true(self):
+        """Superuser without member_profile should return True."""
+        user = _make_user_no_profile(is_staff=False, is_superuser=True)
+        assert is_staff_member(user) is True
+
+
+class TestCanManageFinancesNoProfile:
+    """Tests for can_manage_finances fallback when user has no member_profile."""
+
+    def test_no_profile_non_superuser_returns_false(self):
+        """Non-superuser without member_profile should return False."""
+        user = _make_user_no_profile(is_staff=True, is_superuser=False)
+        assert can_manage_finances(user) is False
+
+    def test_no_profile_superuser_returns_true(self):
+        """Superuser without member_profile should return True."""
+        user = _make_user_no_profile(is_staff=False, is_superuser=True)
+        assert can_manage_finances(user) is True

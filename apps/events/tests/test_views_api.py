@@ -447,3 +447,15 @@ class TestEventAttendees:
         response = api_client.get(f'/api/v1/events/events/{event.id}/attendees/')
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 0
+
+
+class TestEventAccessNoProfile:
+    """Tests using user_no_profile fixture (covers fixture line 38)."""
+
+    def test_list_events_user_no_profile(self, api_client, user_no_profile):
+        """User without member profile can list events (IsMember checks auth only)."""
+        api_client.force_authenticate(user=user_no_profile)
+        EventFactory()
+        response = api_client.get('/api/v1/events/events/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['count'] == 1

@@ -61,6 +61,7 @@ def _setup_templates(settings, tmp_path):
         'admin_courses.html',
         'admin_course_form.html',
         'admin_course_detail.html',
+        'admin_stats.html',
     ]
     for name in template_names:
         (onboarding_dir / name).write_text('{{ page_title|default:"test" }}')
@@ -1139,4 +1140,45 @@ class TestAdminCourseDetailView:
         course = TrainingCourseFactory()
         client.force_login(user)
         response = client.get(self._url(course.pk))
+        assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# Admin stats view
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestAdminStatsView:
+    """Tests for admin_stats view."""
+
+    url = '/onboarding/admin/stats/'
+
+    def test_admin_can_access(self, client, admin_user):
+        """Admin can access the stats dashboard."""
+        user, member = admin_user
+        client.force_login(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert 'pipeline' in response.context
+        assert 'success_rate' in response.context
+
+    def test_pastor_can_access(self, client, pastor_user):
+        """Pastor can access the stats dashboard."""
+        user, member = pastor_user
+        client.force_login(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+    def test_regular_member_redirected(self, client, member_user):
+        """Regular member is redirected with error message."""
+        user, member = member_user
+        client.force_login(user)
+        response = client.get(self.url)
+        assert response.status_code == 302
+
+    def test_no_member_profile_redirected(self, client):
+        """User without member_profile is redirected."""
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(self.url)
         assert response.status_code == 302

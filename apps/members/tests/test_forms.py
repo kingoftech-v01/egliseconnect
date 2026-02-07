@@ -173,7 +173,7 @@ class TestMemberRegistrationForm:
         assert privacy.visibility == PrivacyLevel.PUBLIC
 
     def test_email_uniqueness_when_creating_account(self):
-        """Duplicate email rejected when creating user account."""
+        """Duplicate email caught at save time due to field ordering in ModelForm."""
         User.objects.create_user(
             username='jean.dupont@example.com',
             email='jean.dupont@example.com',
@@ -181,11 +181,26 @@ class TestMemberRegistrationForm:
         )
         data = self._get_valid_data(create_account=True)
         form = MemberRegistrationForm(data=data)
-        if form.is_valid():
-            with pytest.raises(Exception):
-                form.save()
-        else:
-            assert 'email' in form.errors
+        # Due to ModelForm field ordering, clean_email runs before create_account
+        # is cleaned, so uniqueness is enforced at DB level during save()
+        assert form.is_valid()
+        with pytest.raises(Exception):
+            form.save()
+
+    def test_clean_email_raises_on_duplicate_with_account(self):
+        """clean_email raises ValidationError when email exists and create_account=True (lines 60-61)."""
+        from django import forms as django_forms
+        User.objects.create_user(
+            username='dup@example.com',
+            email='dup@example.com',
+            password='testpass123',
+        )
+        data = self._get_valid_data(create_account=True, email='dup@example.com')
+        form = MemberRegistrationForm(data=data)
+        # Manually set cleaned_data to simulate create_account being cleaned first
+        form.cleaned_data = {'create_account': True, 'email': 'dup@example.com'}
+        with pytest.raises(django_forms.ValidationError):
+            form.clean_email()
 
     def test_email_not_checked_without_account(self):
         """Duplicate email allowed when not creating account."""

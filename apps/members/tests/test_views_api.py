@@ -269,3 +269,47 @@ class TestFamilyViewSet:
         response = api_client.post(url, data)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+class TestMemberViewSetAdminAccess:
+    """Tests using authenticated_admin fixture (covers test fixture lines 46-49)."""
+
+    def test_admin_can_list_all_members(self, api_client, authenticated_admin):
+        """Admin can list all members."""
+        MemberFactory.create_batch(3)
+        url = '/api/v1/members/members/'
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['count'] >= 3
+
+    def test_admin_can_delete_member(self, api_client, authenticated_admin):
+        """Admin can delete a member."""
+        member = MemberFactory()
+        url = f'/api/v1/members/members/{member.id}/'
+        response = api_client.delete(url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+@pytest.mark.django_db
+class TestDirectoryPrivacyMissedLines:
+    """Tests covering missed lines in DirectoryPrivacyViewSet (views_api.py lines 360-361)."""
+
+    def test_privacy_me_auto_creates_when_missing(self, api_client):
+        """DirectoryPrivacyViewSet.me creates privacy settings if missing (lines 360-361)."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        member = MemberWithUserFactory()
+        user_pk = member.user.pk
+        # Delete the auto-created privacy settings
+        DirectoryPrivacy.objects.filter(member=member).delete()
+        # Verify privacy is gone
+        assert not DirectoryPrivacy.objects.filter(member=member).exists()
+        # Re-fetch user from DB to clear cached reverse relations
+        fresh_user = User.objects.get(pk=user_pk)
+        api_client.force_authenticate(user=fresh_user)
+        # GET me/ should auto-create privacy settings
+        url = '/api/v1/members/privacy/me/'
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert DirectoryPrivacy.objects.filter(member=member).exists()
