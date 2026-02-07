@@ -59,12 +59,19 @@ class TestSendFormDeadlineReminders:
 
     def _make_member_with_deadline(self, days_from_now, status=MembershipStatus.REGISTERED):
         """Create a member with form_deadline set to `days_from_now` days from now."""
-        # Create without user to avoid the onboarding signal overwriting fields
+        # Use localdate + noon to ensure the date matches in Django's __date lookup
+        # which converts to the project's TIME_ZONE (America/Toronto)
+        from datetime import datetime, time
+        target_date = timezone.localdate() + timedelta(days=days_from_now)
+        deadline = timezone.make_aware(
+            datetime.combine(target_date, time(12, 0)),
+            timezone.get_current_timezone(),
+        )
         member = MemberFactory(
             user=None,
             membership_status=status,
             registration_date=timezone.now() - timedelta(days=10),
-            form_deadline=timezone.now() + timedelta(days=days_from_now),
+            form_deadline=deadline,
         )
         return member
 
@@ -145,13 +152,19 @@ class TestSendLessonReminders:
 
     def _make_scheduled_lesson(self, days_from_now, **overrides):
         """Create a ScheduledLesson scheduled `days_from_now` days in the future."""
+        from datetime import datetime, time
+        target_date = timezone.localdate() + timedelta(days=days_from_now)
+        scheduled = timezone.make_aware(
+            datetime.combine(target_date, time(10, 0)),
+            timezone.get_current_timezone(),
+        )
         course = TrainingCourseFactory()
         lesson = LessonFactory(course=course)
         training = MemberTrainingFactory(course=course)
         defaults = {
             'training': training,
             'lesson': lesson,
-            'scheduled_date': timezone.now() + timedelta(days=days_from_now),
+            'scheduled_date': scheduled,
             'status': LessonStatus.UPCOMING,
             'reminder_3days_sent': False,
             'reminder_1day_sent': False,
@@ -268,14 +281,20 @@ class TestSendInterviewReminders:
 
     def _make_interview(self, days_from_now, status=InterviewStatus.CONFIRMED, **overrides):
         """Create an Interview with confirmed_date `days_from_now` days away."""
+        from datetime import datetime, time
+        target_date = timezone.localdate() + timedelta(days=days_from_now)
+        interview_dt = timezone.make_aware(
+            datetime.combine(target_date, time(14, 0)),
+            timezone.get_current_timezone(),
+        )
         course = TrainingCourseFactory()
         training = MemberTrainingFactory(course=course)
         defaults = {
             'training': training,
             'member': training.member,
             'status': status,
-            'proposed_date': timezone.now() + timedelta(days=days_from_now),
-            'confirmed_date': timezone.now() + timedelta(days=days_from_now),
+            'proposed_date': interview_dt,
+            'confirmed_date': interview_dt,
             'reminder_3days_sent': False,
             'reminder_1day_sent': False,
             'reminder_sameday_sent': False,

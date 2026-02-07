@@ -26,10 +26,10 @@ def send_form_deadline_reminders():
     from apps.members.models import Member
     from apps.core.constants import MembershipStatus
 
-    now = timezone.now()
+    today = timezone.localdate()
 
     for days_before in [7, 3, 1]:
-        target_date = (now + timedelta(days=days_before)).date()
+        target_date = today + timedelta(days=days_before)
         members = Member.objects.filter(
             membership_status__in=[
                 MembershipStatus.REGISTERED,
@@ -56,7 +56,7 @@ def send_lesson_reminders():
     """Run daily: send lesson reminders at J-3, J-1, and same day."""
     from .models import ScheduledLesson
 
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     # 3 days before
     lessons_3d = ScheduledLesson.objects.filter(
@@ -124,7 +124,7 @@ def send_interview_reminders():
     """Run daily: send interview reminders at J-3, J-1, and same day."""
     from .models import Interview
 
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     active_statuses = [InterviewStatus.CONFIRMED, InterviewStatus.ACCEPTED]
 
