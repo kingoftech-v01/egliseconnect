@@ -1,7 +1,7 @@
 """Help Requests forms."""
 from django import forms
 from apps.core.mixins import W3CRMFormMixin
-from .models import HelpRequest, HelpRequestComment
+from .models import HelpRequest, HelpRequestCategory, HelpRequestComment
 
 
 class HelpRequestForm(W3CRMFormMixin, forms.ModelForm):
@@ -57,3 +57,20 @@ class HelpRequestResolveForm(W3CRMFormMixin, forms.Form):
         widget=forms.Textarea(attrs={'rows': 3}),
         label='Notes de résolution'
     )
+
+
+class HelpRequestCategoryForm(W3CRMFormMixin, forms.ModelForm):
+    class Meta:
+        model = HelpRequestCategory
+        fields = ['name', 'name_fr', 'description', 'icon', 'order', 'is_active']
+        labels = {
+            'name': 'Nom (anglais)',
+            'name_fr': 'Nom (français)',
+            'description': 'Description',
+            'icon': 'Icône',
+            "order": "Ordre d'affichage",
+            'is_active': 'Actif',
+        }
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }

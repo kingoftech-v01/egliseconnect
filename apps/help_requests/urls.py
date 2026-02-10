@@ -16,6 +16,10 @@ frontend_urlpatterns = [
     path('<uuid:pk>/', views_frontend.request_detail, name='request_detail'),
     path('<uuid:pk>/update/', views_frontend.request_update, name='request_update'),
     path('<uuid:pk>/comment/', views_frontend.request_comment, name='request_comment'),
+    path('categories/', views_frontend.category_list, name='category_list'),
+    path('categories/create/', views_frontend.category_create, name='category_create'),
+    path('categories/<uuid:pk>/edit/', views_frontend.category_edit, name='category_edit'),
+    path('categories/<uuid:pk>/delete/', views_frontend.category_delete, name='category_delete'),
 ]
 
 app_name = 'help_requests'

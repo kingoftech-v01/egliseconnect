@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block content %}
-<div class="container-fluid">
-    <div class="row page-titles">
-        <div class="col-md-5 align-self-center">
-            <h4 class="text-themecolor">{{ page_title }}</h4>
-        </div>
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/pipeline/">Pipeline</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Statistiques</a></li>
+        </ol>
     </div>
+    <div class="container-fluid">
 
     <!-- KPI Cards -->
     <div class="row">
@@ -31,7 +35,7 @@
         <div class="col-lg-3 col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">{% trans "Taux de réussite" %}</h5>
+                    <h5 class="card-title">{% trans "Taux de reussite" %}</h5>
                     <h2 class="text-info">{{ success_rate }}%</h2>
                     <p class="text-muted mb-0">{% trans "Inscription &rarr; Membre" %}</p>
                 </div>
@@ -40,7 +44,7 @@
         <div class="col-lg-3 col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">{% trans "Durée moyenne" %}</h5>
+                    <h5 class="card-title">{% trans "Duree moyenne" %}</h5>
                     <h2 class="text-warning">{{ avg_days }} {% trans "jours" %}</h2>
                     <p class="text-muted mb-0">{% trans "Pour devenir membre" %}</p>
                 </div>
@@ -48,19 +52,46 @@
         </div>
     </div>
 
-    <!-- Pipeline Breakdown -->
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Pipeline Bar Chart -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Pipeline d'adhesion" %}</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="pipelineChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Registrations Line Chart -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Inscriptions mensuelles" %}</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Breakdown Table -->
     <div class="row">
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Pipeline d'adhésion" %}</h5>
+                    <h5 class="mb-0">{% trans "Details du pipeline" %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>{% trans "Étape" %}</th>
+                                    <th>{% trans "Etape" %}</th>
                                     <th class="text-center">{% trans "Nombre" %}</th>
                                 </tr>
                             </thead>
@@ -74,7 +105,7 @@
                                     <td class="text-center">{{ pipeline.form_submitted }}</td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge bg-warning">{% trans "En révision" %}</span></td>
+                                    <td><span class="badge bg-warning">{% trans "En revision" %}</span></td>
                                     <td class="text-center">{{ pipeline.in_review }}</td>
                                 </tr>
                                 <tr>
@@ -82,7 +113,7 @@
                                     <td class="text-center">{{ pipeline.in_training }}</td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge bg-purple">{% trans "Interview planifiée" %}</span></td>
+                                    <td><span class="badge bg-purple">{% trans "Interview planifiee" %}</span></td>
                                     <td class="text-center">{{ pipeline.interview_scheduled }}</td>
                                 </tr>
                                 <tr class="table-success">
@@ -90,11 +121,11 @@
                                     <td class="text-center"><strong>{{ pipeline.active }}</strong></td>
                                 </tr>
                                 <tr class="table-danger">
-                                    <td><span class="badge bg-danger">{% trans "Refusés" %}</span></td>
+                                    <td><span class="badge bg-danger">{% trans "Refuses" %}</span></td>
                                     <td class="text-center">{{ pipeline.rejected }}</td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge bg-dark">{% trans "Expirés" %}</span></td>
+                                    <td><span class="badge bg-dark">{% trans "Expires" %}</span></td>
                                     <td class="text-center">{{ pipeline.expired }}</td>
                                 </tr>
                             </tbody>
@@ -112,7 +143,7 @@
                 </div>
                 <div class="card-body">
                     <p>{% trans "Total" %}: <strong>{{ training.total }}</strong></p>
-                    <p>{% trans "Complétées" %}: <strong class="text-success">{{ training.completed }}</strong></p>
+                    <p>{% trans "Completees" %}: <strong class="text-success">{{ training.completed }}</strong></p>
                     <p>{% trans "En cours" %}: <strong class="text-primary">{{ training.in_progress }}</strong></p>
                     <p>{% trans "Taux" %}: <strong>{{ training.completion_rate }}%</strong></p>
                 </div>
@@ -125,18 +156,18 @@
                 </div>
                 <div class="card-body">
                     <p>{% trans "Total" %}: <strong>{{ interviews.total }}</strong></p>
-                    <p>{% trans "Réussies" %}: <strong class="text-success">{{ interviews.passed }}</strong></p>
-                    <p>{% trans "Échouées" %}: <strong class="text-danger">{{ interviews.failed }}</strong></p>
+                    <p>{% trans "Reussies" %}: <strong class="text-success">{{ interviews.passed }}</strong></p>
+                    <p>{% trans "Echouees" %}: <strong class="text-danger">{{ interviews.failed }}</strong></p>
                     <p>{% trans "Absents" %}: <strong class="text-warning">{{ interviews.no_show }}</strong></p>
                     <p>{% trans "En attente" %}: <strong class="text-info">{{ interviews.pending }}</strong></p>
-                    <p>{% trans "Taux de réussite" %}: <strong>{{ interviews.pass_rate }}%</strong></p>
+                    <p>{% trans "Taux de reussite" %}: <strong>{{ interviews.pass_rate }}%</strong></p>
                 </div>
             </div>
 
             <!-- Attendance Stats -->
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Présences (30 jours)" %}</h5>
+                    <h5 class="mb-0">{% trans "Presences (30 jours)" %}</h5>
                 </div>
                 <div class="card-body">
                     <p>{% trans "Sessions" %}: <strong>{{ attendance.total_sessions }}</strong></p>
@@ -153,7 +184,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Inscriptions récentes" %}</h5>
+                    <h5 class="mb-0">{% trans "Inscriptions recentes" %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -174,7 +205,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="3" class="text-center">{% trans "Aucune inscription récente." %}</td>
+                                    <td colspan="3" class="text-center">{% trans "Aucune inscription recente." %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -186,7 +217,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Nouveaux membres récents" %}</h5>
+                    <h5 class="mb-0">{% trans "Nouveaux membres recents" %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -205,7 +236,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="2" class="text-center">{% trans "Aucun nouveau membre récent." %}</td>
+                                    <td colspan="2" class="text-center">{% trans "Aucun nouveau membre recent." %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -216,35 +247,81 @@
         </div>
     </div>
 
-    <!-- Monthly Registrations -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">{% trans "Inscriptions mensuelles" %}</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    {% for item in monthly %}
-                                    <th class="text-center">{{ item.month }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    {% for item in monthly %}
-                                    <td class="text-center"><strong>{{ item.count }}</strong></td>
-                                    {% endfor %}
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Pipeline Bar Chart
+var pipelineCtx = document.getElementById('pipelineChart');
+if (pipelineCtx) {
+    new Chart(pipelineCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Inscrits', 'Soumis', 'Revision', 'Formation', 'Interview', 'Actifs', 'Refuses', 'Expires'],
+            datasets: [{
+                label: 'Nombre',
+                data: [
+                    {{ pipeline.registered|default:"0" }},
+                    {{ pipeline.form_submitted|default:"0" }},
+                    {{ pipeline.in_review|default:"0" }},
+                    {{ pipeline.in_training|default:"0" }},
+                    {{ pipeline.interview_scheduled|default:"0" }},
+                    {{ pipeline.active|default:"0" }},
+                    {{ pipeline.rejected|default:"0" }},
+                    {{ pipeline.expired|default:"0" }}
+                ],
+                backgroundColor: [
+                    '#6c757d', '#17a2b8', '#ffc107', '#0d6efd',
+                    '#6f42c1', '#198754', '#dc3545', '#343a40'
+                ],
+                borderWidth: 0,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+// Monthly Registrations Line Chart
+var monthlyCtx = document.getElementById('monthlyChart');
+if (monthlyCtx) {
+    var monthlyLabels = [{% for item in monthly %}'{{ item.month }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+    var monthlyCounts = [{% for item in monthly %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    new Chart(monthlyCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'Inscriptions',
+                data: monthlyCounts,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+</script>
 {% endblock %}

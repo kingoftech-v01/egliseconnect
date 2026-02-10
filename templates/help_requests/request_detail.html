@@ -63,8 +63,48 @@
                 <div class="mt-3">
                     {{ help_request.description|linebreaksbr }}
                 </div>
+
+                {% if can_close %}
+                <hr>
+                <form method="post" action="/help-requests/{{ help_request.pk }}/update/" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="close">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="fa fa-times-circle me-1"></i> Fermer la demande
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
+
+        <!-- Chronologie du statut -->
+        {% if timeline %}
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Chronologie</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-3">
+                    {% for step in timeline %}
+                    <div class="d-flex align-items-center">
+                        {% if step.active %}
+                        <span class="badge badge-success me-2"><i class="fa fa-check"></i></span>
+                        {% else %}
+                        <span class="badge badge-secondary me-2"><i class="fa fa-clock"></i></span>
+                        {% endif %}
+                        <div>
+                            <strong>{{ step.status }}</strong>
+                            {% if step.date %}<br><small class="text-muted">{{ step.date|date:"d/m/Y H:i" }}</small>{% endif %}
+                        </div>
+                    </div>
+                    {% if not forloop.last %}
+                    <div class="d-flex align-items-center"><i class="fa fa-arrow-right text-muted"></i></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Formulaire d'assignation (visible pour les gestionnaires) -->
         {% if can_manage and assign_form %}

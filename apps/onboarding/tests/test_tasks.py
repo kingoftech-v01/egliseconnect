@@ -173,6 +173,17 @@ class TestSendLessonReminders:
         defaults.update(overrides)
         return ScheduledLessonFactory(**defaults)
 
+    def test_5_day_reminder(self):
+        """Notification created and flag set for lesson 5 days away."""
+        sl = self._make_scheduled_lesson(5)
+        send_lesson_reminders()
+
+        sl.refresh_from_db()
+        assert sl.reminder_5days_sent is True
+        notifs = Notification.objects.filter(member=sl.training.member)
+        assert notifs.count() == 1
+        assert '5 jours' in notifs.first().title
+
     def test_3_day_reminder(self):
         """Notification created and flag set for lesson 3 days away."""
         sl = self._make_scheduled_lesson(3)
@@ -205,6 +216,13 @@ class TestSendLessonReminders:
         notifs = Notification.objects.filter(member=sl.training.member)
         assert notifs.count() == 1
         assert "AUJOURD'HUI" in notifs.first().title
+
+    def test_no_duplicate_5day_reminder(self):
+        """If 5-day reminder already sent, skip it."""
+        sl = self._make_scheduled_lesson(5, reminder_5days_sent=True)
+        send_lesson_reminders()
+
+        assert Notification.objects.filter(member=sl.training.member).count() == 0
 
     def test_no_duplicate_3day_reminder(self):
         """If 3-day reminder already sent, skip it."""
@@ -267,9 +285,9 @@ class TestSendLessonReminders:
         assert sl1.reminder_1day_sent is True
         assert sl0.reminder_sameday_sent is True
 
-    def test_lesson_at_5_days_not_reminded(self):
-        """Lessons 5 days away get no reminder."""
-        sl = self._make_scheduled_lesson(5)
+    def test_lesson_at_6_days_not_reminded(self):
+        """Lessons 6 days away get no reminder."""
+        sl = self._make_scheduled_lesson(6)
         send_lesson_reminders()
 
         assert Notification.objects.filter(member=sl.training.member).count() == 0
@@ -301,6 +319,17 @@ class TestSendInterviewReminders:
         }
         defaults.update(overrides)
         return InterviewFactory(**defaults)
+
+    def test_5_day_reminder(self):
+        """Notification created and flag set for interview 5 days away."""
+        iv = self._make_interview(5, InterviewStatus.CONFIRMED)
+        send_interview_reminders()
+
+        iv.refresh_from_db()
+        assert iv.reminder_5days_sent is True
+        notifs = Notification.objects.filter(member=iv.member)
+        assert notifs.count() == 1
+        assert '5 jours' in notifs.first().title
 
     def test_3_day_reminder_confirmed(self):
         """Notification created and flag set for interview 3 days away (CONFIRMED)."""
@@ -343,6 +372,13 @@ class TestSendInterviewReminders:
         notifs = Notification.objects.filter(member=iv.member)
         assert notifs.count() == 1
         assert "AUJOURD'HUI" in notifs.first().title
+
+    def test_no_duplicate_5day_reminder(self):
+        """If 5-day reminder already sent, skip it."""
+        iv = self._make_interview(5, reminder_5days_sent=True)
+        send_interview_reminders()
+
+        assert Notification.objects.filter(member=iv.member).count() == 0
 
     def test_no_duplicate_3day_reminder(self):
         """If 3-day reminder already sent, skip it."""
@@ -427,9 +463,9 @@ class TestSendInterviewReminders:
         assert iv1.reminder_1day_sent is True
         assert iv0.reminder_sameday_sent is True
 
-    def test_interview_at_5_days_not_reminded(self):
-        """Interviews 5 days away get no reminder."""
-        iv = self._make_interview(5, InterviewStatus.CONFIRMED)
+    def test_interview_at_6_days_not_reminded(self):
+        """Interviews 6 days away get no reminder."""
+        iv = self._make_interview(6, InterviewStatus.CONFIRMED)
         send_interview_reminders()
 
         assert Notification.objects.filter(member=iv.member).count() == 0

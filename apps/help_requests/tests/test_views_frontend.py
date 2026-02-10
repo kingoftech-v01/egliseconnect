@@ -641,3 +641,374 @@ class TestRequestCommentView:
         )
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
+
+
+@pytest.mark.django_db
+class TestRequestListSearch:
+    """Tests for search functionality in request_list."""
+
+    def test_search_by_title(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestFactory(title="Need prayer support")
+        HelpRequestFactory(title="Financial assistance needed")
+        response = client.get(
+            reverse("frontend:help_requests:request_list") + "?q=prayer"
+        )
+        assert response.status_code == 200
+        assert len(response.context["requests"]) == 1
+        assert response.context["search_query"] == "prayer"
+
+    def test_search_by_description(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestFactory(title="Request A", description="urgent medical need")
+        HelpRequestFactory(title="Request B", description="something else")
+        response = client.get(
+            reverse("frontend:help_requests:request_list") + "?q=medical"
+        )
+        assert response.status_code == 200
+        assert len(response.context["requests"]) == 1
+
+    def test_empty_search_shows_all(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestFactory.create_batch(3)
+        response = client.get(
+            reverse("frontend:help_requests:request_list") + "?q="
+        )
+        assert response.status_code == 200
+        assert len(response.context["requests"]) == 3
+
+    def test_stats_in_context(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestFactory(status=HelpRequestStatus.NEW)
+        HelpRequestFactory(status=HelpRequestStatus.NEW)
+        HelpRequestFactory(status=HelpRequestStatus.IN_PROGRESS)
+        HelpRequestFactory(status=HelpRequestStatus.RESOLVED)
+        response = client.get(reverse("frontend:help_requests:request_list"))
+        assert response.status_code == 200
+        stats = response.context["stats"]
+        assert stats["open"] == 2
+        assert stats["in_progress"] == 1
+        assert stats["resolved"] == 1
+
+
+@pytest.mark.django_db
+class TestRequestDetailClose:
+    """Tests for close button on request_detail."""
+
+    def test_pastor_sees_can_close(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        hr = HelpRequestFactory(status=HelpRequestStatus.IN_PROGRESS)
+        response = client.get(
+            reverse("frontend:help_requests:request_detail", kwargs={"pk": hr.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["can_close"] is True
+
+    def test_member_cannot_close_new(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        hr = HelpRequestFactory(member=member, status=HelpRequestStatus.NEW)
+        response = client.get(
+            reverse("frontend:help_requests:request_detail", kwargs={"pk": hr.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["can_close"] is False
+
+    def test_member_can_close_resolved(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        hr = HelpRequestFactory(member=member, status=HelpRequestStatus.RESOLVED)
+        response = client.get(
+            reverse("frontend:help_requests:request_detail", kwargs={"pk": hr.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["can_close"] is True
+
+    def test_closed_request_no_close_button(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        hr = HelpRequestFactory(status="closed")
+        response = client.get(
+            reverse("frontend:help_requests:request_detail", kwargs={"pk": hr.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["can_close"] is False
+
+
+@pytest.mark.django_db
+class TestRequestDetailTimeline:
+    """Tests for status timeline on request_detail."""
+
+    def test_new_request_has_timeline(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        hr = HelpRequestFactory(status=HelpRequestStatus.NEW)
+        response = client.get(
+            reverse("frontend:help_requests:request_detail", kwargs={"pk": hr.pk})
+        )
+        assert response.status_code == 200
+        assert "timeline" in response.context
+        assert len(response.context["timeline"]) >= 1
+
+    def test_resolved_request_timeline(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        hr = HelpRequestFactory(status=HelpRequestStatus.RESOLVED)
+        hr.mark_resolved("Done")
+        response = client.get(
+            reverse("frontend:help_requests:request_detail", kwargs={"pk": hr.pk})
+        )
+        assert response.status_code == 200
+        timeline = response.context["timeline"]
+        assert len(timeline) >= 2
+
+
+@pytest.mark.django_db
+class TestMyRequestsPagination:
+    """Tests for pagination in my_requests."""
+
+    def test_pagination(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        HelpRequestFactory.create_batch(25, member=member)
+        response = client.get(reverse("frontend:help_requests:my_requests"))
+        assert response.status_code == 200
+        assert hasattr(response.context["requests"], "paginator")
+        assert response.context["requests"].paginator.num_pages == 2
+
+    def test_pagination_page_2(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        HelpRequestFactory.create_batch(25, member=member)
+        response = client.get(
+            reverse("frontend:help_requests:my_requests") + "?page=2"
+        )
+        assert response.status_code == 200
+        assert len(response.context["requests"].object_list) == 5
+
+
+
+@pytest.mark.django_db
+class TestCategoryListView:
+
+    def test_pastor_can_view(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestCategoryFactory.create_batch(3)
+        response = client.get(reverse("frontend:help_requests:category_list"))
+        assert response.status_code == 200
+        assert len(response.context["categories"]) == 3
+
+    def test_admin_can_view(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        HelpRequestCategoryFactory()
+        response = client.get(reverse("frontend:help_requests:category_list"))
+        assert response.status_code == 200
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        response = client.get(reverse("frontend:help_requests:category_list"))
+        assert response.status_code == 302
+
+    def test_no_profile_denied(self, client, user_no_profile):
+        client.force_login(user_no_profile)
+        response = client.get(reverse("frontend:help_requests:category_list"))
+        assert response.status_code == 302
+
+    def test_shows_inactive_categories(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestCategoryFactory(is_active=True)
+        HelpRequestCategoryFactory(is_active=False)
+        response = client.get(reverse("frontend:help_requests:category_list"))
+        assert response.status_code == 200
+        assert len(response.context["categories"]) == 2
+
+    def test_unauthenticated_redirects(self, client):
+        response = client.get(reverse("frontend:help_requests:category_list"))
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+
+@pytest.mark.django_db
+class TestCategoryCreateView:
+
+    def test_get_form(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        response = client.get(reverse("frontend:help_requests:category_create"))
+        assert response.status_code == 200
+        assert "form" in response.context
+
+    def test_post_valid_form(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        from apps.help_requests.models import HelpRequestCategory
+        data = {
+            "name": "Transport",
+            "name_fr": "Transport",
+            "description": "Help with transportation",
+            "icon": "car",
+            "order": 5,
+            "is_active": True,
+        }
+        response = client.post(
+            reverse("frontend:help_requests:category_create"), data
+        )
+        assert response.status_code == 302
+        assert HelpRequestCategory.objects.filter(name="Transport").exists()
+
+    def test_post_invalid_form(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        data = {"name": ""}
+        response = client.post(
+            reverse("frontend:help_requests:category_create"), data
+        )
+        assert response.status_code == 200
+        assert response.context["form"].errors
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        response = client.get(reverse("frontend:help_requests:category_create"))
+        assert response.status_code == 302
+
+    def test_unauthenticated_redirects(self, client):
+        response = client.get(reverse("frontend:help_requests:category_create"))
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+
+
+@pytest.mark.django_db
+class TestCategoryEditView:
+
+    def test_get_form(self, client, pastor_user, category):
+        user, _ = pastor_user
+        client.force_login(user)
+        response = client.get(
+            reverse("frontend:help_requests:category_edit", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert response.context["category"] == category
+
+    def test_post_valid_form(self, client, pastor_user, category):
+        user, _ = pastor_user
+        client.force_login(user)
+        data = {
+            "name": "Updated Name",
+            "name_fr": "Nom mis a jour",
+            "description": "Updated description",
+            "icon": "star",
+            "order": 10,
+            "is_active": True,
+        }
+        response = client.post(
+            reverse("frontend:help_requests:category_edit", kwargs={"pk": category.pk}),
+            data,
+        )
+        assert response.status_code == 302
+        category.refresh_from_db()
+        assert category.name == "Updated Name"
+
+    def test_member_denied(self, client, member_user, category):
+        user, _ = member_user
+        client.force_login(user)
+        response = client.get(
+            reverse("frontend:help_requests:category_edit", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 302
+
+    def test_not_found(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        response = client.get(
+            reverse("frontend:help_requests:category_edit", kwargs={"pk": uuid.uuid4()})
+        )
+        assert response.status_code == 404
+
+    def test_unauthenticated_redirects(self, client, category):
+        response = client.get(
+            reverse("frontend:help_requests:category_edit", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+    def test_can_edit_inactive_category(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        cat = HelpRequestCategoryFactory(is_active=False)
+        response = client.get(
+            reverse("frontend:help_requests:category_edit", kwargs={"pk": cat.pk})
+        )
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestCategoryDeleteView:
+
+    def test_get_confirmation_page(self, client, pastor_user, category):
+        user, _ = pastor_user
+        client.force_login(user)
+        response = client.get(
+            reverse("frontend:help_requests:category_delete", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["category"] == category
+        assert "request_count" in response.context
+
+    def test_delete_empty_category(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        cat = HelpRequestCategoryFactory()
+        pk = cat.pk
+        response = client.post(
+            reverse("frontend:help_requests:category_delete", kwargs={"pk": pk})
+        )
+        assert response.status_code == 302
+        from apps.help_requests.models import HelpRequestCategory
+        assert not HelpRequestCategory.all_objects.filter(pk=pk).exists()
+
+    def test_deactivate_category_with_requests(self, client, pastor_user, category):
+        user, _ = pastor_user
+        client.force_login(user)
+        HelpRequestFactory(category=category)
+        response = client.post(
+            reverse("frontend:help_requests:category_delete", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 302
+        category.refresh_from_db()
+        assert category.is_active is False
+
+    def test_member_denied(self, client, member_user, category):
+        user, _ = member_user
+        client.force_login(user)
+        response = client.get(
+            reverse("frontend:help_requests:category_delete", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 302
+
+    def test_not_found(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        response = client.get(
+            reverse("frontend:help_requests:category_delete", kwargs={"pk": uuid.uuid4()})
+        )
+        assert response.status_code == 404
+
+    def test_unauthenticated_redirects(self, client, category):
+        response = client.get(
+            reverse("frontend:help_requests:category_delete", kwargs={"pk": category.pk})
+        )
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+

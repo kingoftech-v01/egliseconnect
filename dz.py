@@ -129,6 +129,8 @@ dz_array = {
                     "my_requests": [
                         f"{folder_name}/vendor/datatables/css/jquery.dataTables.min.css",
                     ],
+                    # Attendance app
+                    "scanner": [],
                 },
                 "js": {
                     # Reports app
@@ -261,6 +263,10 @@ dz_array = {
                     "my_requests": [
                         f"{folder_name}/vendor/datatables/js/jquery.dataTables.min.js",
                         f"{folder_name}/js/plugins-init/datatables.init.js",
+                    ],
+                    # Attendance app
+                    "scanner": [
+                        f"{folder_name}/vendor/html5-qrcode/html5-qrcode.min.js",
                     ],
                 },
             },

@@ -30,15 +30,11 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="10">$10</button>
+                                {% for amt in suggested_amounts %}
+                                <div class="col-md-4 mb-2">
+                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="{{ amt }}">${{ amt }}</button>
                                 </div>
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="25">$25</button>
-                                </div>
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-outline-primary w-100 amount-btn" data-amount="50">$50</button>
-                                </div>
+                                {% endfor %}
                             </div>
 
                             <div class="mb-3">
@@ -55,7 +51,7 @@
                                 <select class="form-select" id="campaign" name="campaign_id">
                                     <option value="">-- {% trans "Aucune campagne" %} --</option>
                                     {% for campaign in campaigns %}
-                                    <option value="{{ campaign.pk }}">{{ campaign.name }}</option>
+                                    <option value="{{ campaign.pk }}" {% if selected_campaign == campaign.pk|slugify %}selected{% endif %}>{{ campaign.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -106,6 +102,8 @@
     document.querySelectorAll('.amount-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('amount').value = this.dataset.amount;
+            document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
         });
     });
 
@@ -159,8 +157,29 @@
     document.querySelectorAll('.amount-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('amount').value = this.dataset.amount;
+            document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
         });
     });
 </script>
 {% endif %}
+
+<script>
+// Pre-select campaign from URL query param
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var campaignId = params.get('campaign');
+    if (campaignId) {
+        var select = document.getElementById('campaign');
+        if (select) {
+            for (var i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === campaignId) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+})();
+</script>
 {% endblock %}

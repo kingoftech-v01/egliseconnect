@@ -11,6 +11,25 @@
         </ol>
     </div>
     <div class="container-fluid">
+        <!-- Search Bar -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-3">
+                            <label class="form-label mb-0" for="pipeline-search">Rechercher :</label>
+                            <input type="text" name="q" id="pipeline-search" class="form-control" style="max-width:300px;"
+                                   placeholder="Nom ou prenom du membre..." value="{{ search_query|default:'' }}">
+                            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                            {% if search_query %}
+                            <a href="/onboarding/admin/pipeline/" class="btn btn-outline-secondary btn-sm">Effacer</a>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Stats Cards -->
         <div class="row mb-4">
             <div class="col-xl-3 col-sm-6">

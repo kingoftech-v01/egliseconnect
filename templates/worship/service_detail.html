@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Détail</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Service Info Card -->
+        <div class="row">
+            <div class="col-xl-4 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Informations</h4>
+                        <div class="d-flex gap-1">
+                            {% if is_staff %}
+                            <a href="/worship/services/{{ service.pk }}/edit/" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit me-1"></i> Modifier
+                            </a>
+                            <a href="/worship/services/{{ service.pk }}/duplicate/" class="btn btn-info btn-sm">
+                                <i class="fas fa-copy me-1"></i> Dupliquer
+                            </a>
+                            <a href="/worship/services/{{ service.pk }}/delete/" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash me-1"></i> Supprimer
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Date</span>
+                                <span>{{ service.date|date:"d/m/Y" }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Heure</span>
+                                <span>{{ service.start_time|time:"H:i" }}{% if service.end_time %} - {{ service.end_time|time:"H:i" }}{% endif %}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Durée</span>
+                                <span>{{ service.duration_minutes }} min</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Statut</span>
+                                <span>
+                                    {% if service.status == 'draft' %}
+                                    <span class="badge badge-secondary">Brouillon</span>
+                                    {% elif service.status == 'planned' %}
+                                    <span class="badge badge-info">Planifié</span>
+                                    {% elif service.status == 'confirmed' %}
+                                    <span class="badge badge-success">Confirmé</span>
+                                    {% elif service.status == 'completed' %}
+                                    <span class="badge badge-primary">Terminé</span>
+                                    {% elif service.status == 'cancelled' %}
+                                    <span class="badge badge-danger">Annulé</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Thème</span>
+                                <span>{{ service.theme|default:"—" }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Validation</span>
+                                <span>{{ service.validation_deadline|date:"d/m/Y"|default:"—" }}</span>
+                            </li>
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-bold">Confirmation</span>
+                                    <span>{{ service.confirmation_rate }}% ({{ service.confirmed_assignments }}/{{ service.total_assignments }})</span>
+                                </div>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar {% if service.confirmation_rate == 100 %}bg-success{% elif service.confirmation_rate >= 50 %}bg-info{% elif service.confirmation_rate > 0 %}bg-warning{% else %}bg-secondary{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ service.confirmation_rate }}%"
+                                         aria-valuenow="{{ service.confirmation_rate }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+                            </li>
+                        </ul>
+                        {% if service.notes %}
+                        <div class="mt-3">
+                            <strong>Notes:</strong>
+                            <p class="mb-0">{{ service.notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Actions: Print + Publish -->
+                        <div class="mt-3 d-flex gap-2 flex-wrap">
+                            <a href="/worship/services/{{ service.pk }}/print/" class="btn btn-outline-secondary btn-sm" target="_blank">
+                                <i class="fas fa-print me-1"></i> Imprimer
+                            </a>
+                            {% if is_staff %}
+                            {% if service.status == 'draft' %}
+                            <form method="post" action="/worship/services/{{ service.pk }}/publish/" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="planned">
+                                <button type="submit" class="btn btn-info btn-sm">
+                                    <i class="fas fa-paper-plane me-1"></i> Publier
+                                </button>
+                            </form>
+                            {% elif service.status == 'planned' %}
+                            <form method="post" action="/worship/services/{{ service.pk }}/publish/" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="confirmed">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check me-1"></i> Confirmer
+                                </button>
+                            </form>
+                            {% elif service.status == 'confirmed' %}
+                            <form method="post" action="/worship/services/{{ service.pk }}/publish/" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-flag-checkered me-1"></i> Terminer
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if service.status != 'cancelled' and service.status != 'completed' %}
+                            <form method="post" action="/worship/services/{{ service.pk }}/publish/" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-ban me-1"></i> Annuler
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sections -->
+            <div class="col-xl-8 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Sections du culte</h4>
+                        {% if is_staff %}
+                        <a href="/worship/services/{{ service.pk }}/sections/" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Ajouter une section
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-0" id="sections-container">
+                        {% for section in sections %}
+                        <div class="border-bottom p-3" data-section-id="{{ section.pk }}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">
+                                    <span class="badge badge-light me-2">{{ section.order }}</span>
+                                    {{ section.name }}
+                                    <small class="text-muted">({{ section.get_section_type_display }} - {{ section.duration_minutes }}min)</small>
+                                </h5>
+                                {% if is_staff %}
+                                <div class="d-flex gap-1">
+                                    <a href="/worship/sections/{{ section.pk }}/assign/" class="btn btn-outline-primary btn-xs">
+                                        <i class="fas fa-user-plus me-1"></i> Assigner
+                                    </a>
+                                    <a href="/worship/sections/{{ section.pk }}/edit/" class="btn btn-outline-warning btn-xs">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="/worship/sections/{{ section.pk }}/delete/" class="btn btn-outline-danger btn-xs">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if section.department %}
+                            <small class="text-muted">Département: {{ section.department.name }}</small>
+                            {% endif %}
+                            {% if section.notes %}
+                            <p class="small text-muted mb-1">{{ section.notes }}</p>
+                            {% endif %}
+
+                            <!-- Assignments for this section -->
+                            {% if section.assignments.all %}
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Membre</th>
+                                            <th>Tâche</th>
+                                            <th>Statut</th>
+                                            {% if is_staff %}<th>Actions</th>{% endif %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for assignment in section.assignments.all %}
+                                        <tr>
+                                            <td>{{ assignment.member.full_name }}</td>
+                                            <td>{{ assignment.task_type.name|default:"—" }}</td>
+                                            <td>
+                                                {% if assignment.status == 'assigned' %}
+                                                <span class="badge badge-warning">En attente</span>
+                                                {% elif assignment.status == 'confirmed' %}
+                                                <span class="badge badge-success">Confirmé</span>
+                                                {% elif assignment.status == 'declined' %}
+                                                <span class="badge badge-danger">Décliné</span>
+                                                {% endif %}
+                                            </td>
+                                            {% if is_staff %}
+                                            <td>
+                                                <a href="/worship/assignments/{{ assignment.pk }}/remove/" class="btn btn-outline-danger btn-xs" title="Retirer">
+                                                    <i class="fas fa-user-minus"></i>
+                                                </a>
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="small text-muted mb-0 mt-1">Aucun membre assigné.</p>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="p-4 text-center text-muted">
+                            Aucune section définie.
+                            {% if is_staff %}
+                            <a href="/worship/services/{{ service.pk }}/sections/">Ajouter une section</a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Utiliser un code d'invitation{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Code d'invitation</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Invitation</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Entrez votre code d'invitation</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-4">
+                            Si vous avez recu un code d'invitation, entrez-le ci-dessous pour activer votre compte et recevoir le role correspondant.
+                        </p>
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-4">
+                                <label class="form-label" for="code">Code d'invitation <span class="text-danger">*</span></label>
+                                <input type="text" name="code" id="code"
+                                       class="form-control form-control-lg text-uppercase text-center {% if form.code.errors %}is-invalid{% endif %}"
+                                       value="{{ form.code.value|default:'' }}"
+                                       placeholder="AB12CD34"
+                                       maxlength="32"
+                                       style="letter-spacing: 0.3em; font-family: monospace; font-size: 1.5rem;"
+                                       required>
+                                {% if form.code.errors %}
+                                <div class="invalid-feedback">{{ form.code.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-check me-2"></i>Valider le code
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ class Roles:
     MEMBER = 'member'
     VOLUNTEER = 'volunteer'
     GROUP_LEADER = 'group_leader'
+    DEACON = 'deacon'
     PASTOR = 'pastor'
     TREASURER = 'treasurer'
     ADMIN = 'admin'
@@ -16,15 +17,20 @@ class Roles:
         (MEMBER, _('Membre')),
         (VOLUNTEER, _('Volontaire')),
         (GROUP_LEADER, _('Leader de groupe')),
+        (DEACON, _('Diacre')),
         (PASTOR, _('Pasteur')),
         (TREASURER, _('Trésorier')),
         (ADMIN, _('Administrateur')),
     ]
 
     # Permission groups for access control
-    STAFF_ROLES = [PASTOR, ADMIN]
-    VIEW_ALL_ROLES = [PASTOR, TREASURER, ADMIN]
-    FINANCE_ROLES = [TREASURER, ADMIN]
+    STAFF_ROLES = [DEACON, PASTOR, ADMIN]
+    VIEW_ALL_ROLES = [DEACON, PASTOR, TREASURER, ADMIN]
+    FINANCE_ROLES = [TREASURER, PASTOR, ADMIN]
+    LEADERSHIP_ROLES = [DEACON, PASTOR, ADMIN]
+
+    # Role hierarchy (index = power level)
+    HIERARCHY = [MEMBER, VOLUNTEER, GROUP_LEADER, DEACON, TREASURER, PASTOR, ADMIN]
 
 
 class FamilyStatus:
@@ -296,6 +302,7 @@ class MembershipStatus:
     IN_TRAINING = 'in_training'
     INTERVIEW_SCHEDULED = 'interview_scheduled'
     ACTIVE = 'active'
+    INACTIVE = 'inactive'
     SUSPENDED = 'suspended'
     REJECTED = 'rejected'
     EXPIRED = 'expired'
@@ -309,6 +316,7 @@ class MembershipStatus:
         (IN_TRAINING, _('En formation')),
         (INTERVIEW_SCHEDULED, _('Interview planifiée')),
         (ACTIVE, _('Membre actif')),
+        (INACTIVE, _('Inactif')),
         (SUSPENDED, _('Suspendu')),
         (REJECTED, _('Refusé')),
         (EXPIRED, _('Expiré')),
@@ -422,4 +430,111 @@ class Province:
         (QC, _('Québec')),
         (SK, _('Saskatchewan')),
         (YT, _('Yukon')),
+    ]
+
+
+class WorshipServiceStatus:
+    """Worship service lifecycle states."""
+    DRAFT = 'draft'
+    PLANNED = 'planned'
+    CONFIRMED = 'confirmed'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (DRAFT, _('Brouillon')),
+        (PLANNED, _('Planifié')),
+        (CONFIRMED, _('Confirmé')),
+        (COMPLETED, _('Terminé')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class ServiceSectionType:
+    """Types of sections within a worship service."""
+    PRELUDE = 'prelude'
+    ANNONCES = 'annonces'
+    LOUANGE = 'louange'
+    OFFRANDE = 'offrande'
+    PREDICATION = 'predication'
+    COMMUNION = 'communion'
+    PRIERE = 'priere'
+    BENEDICTION = 'benediction'
+    OTHER = 'other'
+
+    CHOICES = [
+        (PRELUDE, _('Prélude')),
+        (ANNONCES, _('Annonces')),
+        (LOUANGE, _('Louange')),
+        (OFFRANDE, _('Offrande')),
+        (PREDICATION, _('Prédication')),
+        (COMMUNION, _('Sainte Cène')),
+        (PRIERE, _('Prière')),
+        (BENEDICTION, _('Bénédiction')),
+        (OTHER, _('Autre')),
+    ]
+
+
+class AssignmentStatus:
+    """Status of a member's assignment to a service section."""
+    ASSIGNED = 'assigned'
+    CONFIRMED = 'confirmed'
+    DECLINED = 'declined'
+
+    CHOICES = [
+        (ASSIGNED, _('Assigné')),
+        (CONFIRMED, _('Confirmé')),
+        (DECLINED, _('Non disponible')),
+    ]
+
+
+class DepartmentRole:
+    """Role within a department."""
+    MEMBER = 'member'
+    LEADER = 'leader'
+    ASSISTANT = 'assistant'
+
+    CHOICES = [
+        (MEMBER, _('Membre')),
+        (LEADER, _('Leader')),
+        (ASSISTANT, _('Assistant')),
+    ]
+
+
+class DisciplinaryType:
+    """Types of disciplinary actions."""
+    PUNISHMENT = 'punishment'
+    EXEMPTION = 'exemption'
+    SUSPENSION = 'suspension'
+
+    CHOICES = [
+        (PUNISHMENT, _('Punition')),
+        (EXEMPTION, _('Exemption')),
+        (SUSPENSION, _('Suspension')),
+    ]
+
+
+class ApprovalStatus:
+    """Approval workflow states."""
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (APPROVED, _('Approuvé')),
+        (REJECTED, _('Rejeté')),
+    ]
+
+
+class ModificationRequestStatus:
+    """Profile modification request states."""
+    PENDING = 'pending'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (COMPLETED, _('Complété')),
+        (CANCELLED, _('Annulé')),
     ]

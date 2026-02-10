@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/planned-absences/">Absences prévues</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{% if editing %}Modifier{% else %}Déclarer{% endif %}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{% if editing %}Modifier une absence prévue{% else %}Déclarer une absence prévue{% endif %}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="start_date">Date de début <span class="text-danger">*</span></label>
+                                    <input type="date" name="start_date" id="start_date" class="form-control" required
+                                        value="{% if absence %}{{ absence.start_date|date:'Y-m-d' }}{% endif %}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="end_date">Date de fin <span class="text-danger">*</span></label>
+                                    <input type="date" name="end_date" id="end_date" class="form-control" required
+                                        value="{% if absence %}{{ absence.end_date|date:'Y-m-d' }}{% endif %}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="reason">Raison</label>
+                                <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Indiquez la raison de votre absence (optionnel)...">{% if absence %}{{ absence.reason }}{% endif %}</textarea>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/volunteers/planned-absences/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    {% if editing %}
+                                    <i class="fas fa-save me-2"></i>Enregistrer
+                                    {% else %}
+                                    <i class="fas fa-check me-2"></i>Enregistrer
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

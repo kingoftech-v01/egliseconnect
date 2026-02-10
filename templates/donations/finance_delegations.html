@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Grant Access Form -->
+            <div class="col-xl-4 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Accorder un accès</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/donations/delegations/grant/">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label">Membre</label>
+                                <select name="member" class="form-select" required>
+                                    <option value="">Sélectionner un membre...</option>
+                                    {% for m in eligible_members %}
+                                    <option value="{{ m.pk }}">{{ m.full_name }} ({{ m.get_role_display }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Motif (optionnel)</label>
+                                <textarea name="reason" class="form-control" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-key me-1"></i> Accorder l'accès
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Delegations -->
+            <div class="col-xl-8 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Accès actifs</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Accordé par</th>
+                                        <th>Date</th>
+                                        <th>Motif</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in active_delegations %}
+                                    <tr>
+                                        <td>{{ d.delegated_to.full_name }}</td>
+                                        <td>{{ d.delegated_by.full_name }}</td>
+                                        <td>{{ d.granted_at|date:"d/m/Y" }}</td>
+                                        <td>{{ d.reason|truncatechars:40|default:"—" }}</td>
+                                        <td>
+                                            <form method="post" action="/donations/delegations/{{ d.pk }}/revoke/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('Révoquer cet accès?')">
+                                                    <i class="fas fa-times"></i> Révoquer
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-3 text-muted">Aucune délégation active.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revoked Delegations -->
+                {% if revoked_delegations %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Historique des révocations</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Accordé le</th>
+                                        <th>Révoqué le</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in revoked_delegations %}
+                                    <tr>
+                                        <td>{{ d.delegated_to.full_name }}</td>
+                                        <td>{{ d.granted_at|date:"d/m/Y" }}</td>
+                                        <td>{{ d.revoked_at|date:"d/m/Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

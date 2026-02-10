@@ -1,0 +1,49 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Entrez le code de connexion{% endblock %}
+
+{% block auth_title %}Entrez le code de connexion{% endblock %}
+{% block auth_subtitle %}
+    Un code a ete envoye a
+    {% if email %}<strong>{{ email }}</strong>{% endif %}
+    {% if phone %}<strong>{{ phone }}</strong>{% endif %}
+{% endblock %}
+
+{% block auth_form %}
+<form method="post" action="{% url 'account_confirm_login_code' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    {% if verify_form %}
+    {% for field in verify_form %}
+    <div class="mb-4">
+        <label class="mb-1 text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_class:"form-control" }}
+        {% for error in field.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    {% endif %}
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-block">Confirmer</button>
+    </div>
+</form>
+{% if can_resend %}
+<form id="resend" method="post" action="{% url 'account_confirm_login_code' %}">
+    <input type="hidden" name="action" value="resend">
+    {{ redirect_field }}
+    {% csrf_token %}
+    <div class="text-center mb-3">
+        <button type="submit" class="btn btn-outline-primary btn-block">Renvoyer le code</button>
+    </div>
+</form>
+{% endif %}
+<form id="logout-from-stage" method="post" action="{% url 'account_logout' %}">
+    <input type="hidden" name="next" value="{% url 'account_login' %}">
+    {% csrf_token %}
+    <div class="text-center">
+        <button type="submit" class="btn-link text-primary border-0 bg-transparent">Annuler</button>
+    </div>
+</form>
+{% endblock %}

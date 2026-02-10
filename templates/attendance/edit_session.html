@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Modifier la session{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Modifier la session</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/sessions/">Sessions</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Modifier</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Modifier : {{ session.name }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label" for="session-name">Nom de la session</label>
+                                <input type="text" name="name" id="session-name" class="form-control" value="{{ session.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="session-type">Type de session</label>
+                                <select name="session_type" id="session-type" class="form-select" required>
+                                    {% for value, label in session_types %}
+                                    <option value="{{ value }}" {% if session.session_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="session-date">Date</label>
+                                    <input type="date" name="date" id="session-date" class="form-control" value="{{ session.date|date:'Y-m-d' }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="session-start-time">Heure de debut</label>
+                                    <input type="time" name="start_time" id="session-start-time" class="form-control" value="{{ session.start_time|date:'H:i' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="session-end-time">Heure de fin</label>
+                                    <input type="time" name="end_time" id="session-end-time" class="form-control" value="{{ session.end_time|date:'H:i' }}">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="session-duration">Duree (minutes)</label>
+                                <input type="number" name="duration_minutes" id="session-duration" class="form-control" value="{{ session.duration_minutes|default:'' }}" min="1">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle me-2"></i>Enregistrer
+                                </button>
+                                <a href="/attendance/sessions/{{ session.pk }}/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

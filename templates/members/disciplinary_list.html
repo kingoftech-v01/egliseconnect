@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Action Bar -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="/members/disciplinary/" class="btn btn-outline-secondary btn-sm">Toutes</a>
+                                <a href="?status=pending" class="btn btn-outline-warning btn-sm">En attente</a>
+                                <a href="?status=approved" class="btn btn-outline-success btn-sm">Approuvées</a>
+                                <a href="?status=rejected" class="btn btn-outline-danger btn-sm">Rejetées</a>
+                            </div>
+                            {% if is_pastor_or_admin %}
+                            <a href="/members/disciplinary/create/" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i> Nouvelle action
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Actions disciplinaires</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Type</th>
+                                        <th>Motif</th>
+                                        <th>Date début</th>
+                                        <th>Date fin</th>
+                                        <th>Créé par</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for action in actions %}
+                                    <tr>
+                                        <td>{{ action.member.full_name }}</td>
+                                        <td>
+                                            {% if action.action_type == 'punishment' %}
+                                            <span class="badge badge-warning">Punition</span>
+                                            {% elif action.action_type == 'exemption' %}
+                                            <span class="badge badge-info">Exemption</span>
+                                            {% elif action.action_type == 'suspension' %}
+                                            <span class="badge badge-danger">Suspension</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ action.reason|truncatechars:60 }}</td>
+                                        <td>{{ action.start_date|date:"d/m/Y" }}</td>
+                                        <td>{{ action.end_date|date:"d/m/Y"|default:"—" }}</td>
+                                        <td>{{ action.created_by.full_name }}</td>
+                                        <td>
+                                            {% if action.approval_status == 'pending' %}
+                                            <span class="badge badge-warning">En attente</span>
+                                            {% elif action.approval_status == 'approved' %}
+                                            <span class="badge badge-success">Approuvée</span>
+                                            {% elif action.approval_status == 'rejected' %}
+                                            <span class="badge badge-danger">Rejetée</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/members/disciplinary/{{ action.pk }}/" class="btn btn-primary btn-xs">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">Aucune action disciplinaire.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

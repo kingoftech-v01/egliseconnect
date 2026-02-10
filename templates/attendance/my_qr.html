@@ -33,8 +33,17 @@
                         <p class="text-muted mb-3">Numero de membre : {{ member.member_number }}</p>
                         {% endif %}
 
+                        <!-- Code QR en texte -->
+                        <div class="input-group mt-3">
+                            <input type="text" class="form-control" value="{{ qr.code }}" id="qr-code-text" readonly title="Code QR">
+                            <button class="btn btn-outline-primary" type="button" onclick="copyQRCode()">
+                                <i class="bi bi-clipboard me-1"></i>Copier
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-2">Si le scanner ne fonctionne pas, donnez ce code a la personne au check-in.</small>
+
                         <!-- Expiry Info -->
-                        <div class="alert alert-info mb-3">
+                        <div class="alert alert-info mb-3 mt-3">
                             <i class="bi bi-clock me-2"></i>
                             Valide jusqu'au {{ qr.expires_at }}
                         </div>
@@ -62,4 +71,22 @@
         </div>
     </div>
 </div>
+
+<script>
+function copyQRCode() {
+    var code = document.getElementById('qr-code-text').value;
+    navigator.clipboard.writeText(code).then(function() {
+        var btn = event.target.closest('button');
+        var original = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check me-1"></i>Copie!';
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-success');
+        setTimeout(function() {
+            btn.innerHTML = original;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2000);
+    });
+}
+</script>
 {% endblock %}

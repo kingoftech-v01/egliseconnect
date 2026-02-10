@@ -9,6 +9,9 @@
             <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
             <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport des volontaires</a></li>
         </ol>
+        <a href="/reports/export/volunteers/?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Exporter CSV
+        </a>
     </div>
     <div class="container-fluid">
         <!-- Date Filter -->
@@ -19,11 +22,11 @@
                         <form method="get" class="row g-3 align-items-end">
                             <div class="col-auto">
                                 <label class="form-label" for="start_date">Date de debut</label>
-                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ report.start_date }}">
+                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}">
                             </div>
                             <div class="col-auto">
                                 <label class="form-label" for="end_date">Date de fin</label>
-                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ report.end_date }}">
+                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}">
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-primary">Filtrer</button>
@@ -165,7 +168,7 @@
                     <div class="card-body p-0">
                         <div class="table-responsive active-projects style-1">
                             <div class="tbl-caption">
-                                <h4 class="heading mb-0">Quarts par position ({{ report.start_date }} au {{ report.end_date }})</h4>
+                                <h4 class="heading mb-0">Quarts par position ({{ start_date }} au {{ end_date }})</h4>
                             </div>
                             <table id="shifts-by-position-table" class="table">
                                 <thead>

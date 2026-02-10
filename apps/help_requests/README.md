@@ -469,3 +469,9 @@ pytest apps/help_requests/tests/test_views_frontend.py -v
 | `apps.members.Member` | FK vers le membre demandeur et le personnel assigne |
 | `apps.members.GroupMembership` | Pour le filtrage des demandes par groupe |
 | `django-filter` | Filtrage des endpoints API |
+
+---
+
+## Recent Additions
+
+No major model or view additions since initial README. The help requests app remains stable with the existing HelpRequestCategory, HelpRequest, and HelpRequestComment models.

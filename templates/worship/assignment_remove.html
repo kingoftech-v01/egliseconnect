@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/{{ service.pk }}/">{{ service }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Retirer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header bg-danger-light">
+                        <h4 class="heading mb-0 text-danger">Confirmer le retrait</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Êtes-vous sûr de vouloir retirer {{ assignment.member.full_name }} de la section "{{ assignment.section.name }}"?
+                        </div>
+                        <ul class="list-group list-group-flush mb-3">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Membre</span>
+                                <span>{{ assignment.member.full_name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Section</span>
+                                <span>{{ assignment.section.name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Statut</span>
+                                <span>{{ assignment.get_status_display }}</span>
+                            </li>
+                        </ul>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-user-minus me-1"></i> Retirer
+                                </button>
+                                <a href="/worship/services/{{ service.pk }}/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

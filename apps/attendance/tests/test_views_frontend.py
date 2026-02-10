@@ -191,7 +191,7 @@ class TestScannerView:
         client.force_login(user)
         resp = client.get(self.url)
         assert resp.status_code == 200
-        assert 'sessions' in resp.context
+        assert 'active_sessions' in resp.context
 
     def test_pastor_can_access(self, client, pastor_user):
         user, _ = pastor_user
@@ -218,7 +218,7 @@ class TestScannerView:
         )
         client.force_login(user)
         resp = client.get(self.url)
-        sessions = list(resp.context['sessions'])
+        sessions = list(resp.context['active_sessions'])
         assert today_open in sessions
         assert today_closed not in sessions
         assert yesterday_open not in sessions
@@ -598,7 +598,7 @@ class TestSessionDetailView:
         url = reverse('frontend:attendance:session_detail', args=[session.pk])
         client.force_login(user)
         resp = client.get(url)
-        assert record in list(resp.context['records'])
+        assert record in list(resp.context['attendance_records'])
 
     def test_nonexistent_session_404(self, client, admin_user):
         import uuid
@@ -637,7 +637,7 @@ class TestMyHistoryView:
         client.force_login(user)
         resp = client.get(self.url)
         assert resp.status_code == 200
-        assert record in list(resp.context['records'])
+        assert record in list(resp.context['attendance_records'])
         assert resp.context['member'] == member
 
     def test_does_not_show_other_members_records(self, client, member_user):
@@ -651,14 +651,14 @@ class TestMyHistoryView:
         )
         client.force_login(user)
         resp = client.get(self.url)
-        assert other_record not in list(resp.context['records'])
+        assert other_record not in list(resp.context['attendance_records'])
 
     def test_empty_history(self, client, member_user):
         user, _ = member_user
         client.force_login(user)
         resp = client.get(self.url)
         assert resp.status_code == 200
-        assert len(resp.context['records']) == 0
+        assert len(resp.context['attendance_records']) == 0
 
     def test_admin_sees_own_history(self, client, admin_user):
         user, member = admin_user

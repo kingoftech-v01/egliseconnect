@@ -15,6 +15,16 @@ class EventForm(W3CRMFormMixin, forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 3}),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        start = cleaned_data.get('start_datetime')
+        end = cleaned_data.get('end_datetime')
+        if start and end and end <= start:
+            raise forms.ValidationError(
+                _('La date de fin doit être après la date de début.')
+            )
+        return cleaned_data
+
 
 class RSVPForm(W3CRMFormMixin, forms.ModelForm):
     class Meta:

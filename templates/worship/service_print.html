@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px;
+            color: #333;
+        }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        .header h1 { margin: 0 0 5px; font-size: 24px; }
+        .header .meta { font-size: 14px; color: #666; }
+        .section { margin-bottom: 20px; page-break-inside: avoid; }
+        .section-header {
+            background: #f5f5f5; padding: 8px 12px;
+            border-left: 4px solid #007bff; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .section-header h3 { margin: 0; font-size: 16px; }
+        .section-header .meta { font-size: 12px; color: #666; }
+        .assignments { padding: 0 12px; }
+        .assignment { padding: 4px 0; font-size: 14px; }
+        .assignment .name { font-weight: bold; }
+        .assignment .task { color: #666; }
+        .notes { font-style: italic; color: #888; font-size: 13px; padding: 4px 12px; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }
+        .no-print { margin-bottom: 20px; text-align: center; }
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="padding: 8px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+            Imprimer
+        </button>
+        <a href="/worship/services/{{ service.pk }}/" style="padding: 8px 20px; color: #666; text-decoration: none; margin-left: 10px;">
+            Retour
+        </a>
+    </div>
+
+    <div class="header">
+        <h1>Programme du culte</h1>
+        <div class="meta">
+            {{ service.date|date:"l d F Y" }} &mdash; {{ service.start_time|time:"H:i" }}{% if service.end_time %} - {{ service.end_time|time:"H:i" }}{% endif %}
+        </div>
+        {% if service.theme %}
+        <div class="meta" style="font-size: 16px; margin-top: 5px; font-weight: bold;">
+            {{ service.theme }}
+        </div>
+        {% endif %}
+    </div>
+
+    {% for section in sections %}
+    <div class="section">
+        <div class="section-header">
+            <h3>{{ section.order }}. {{ section.name }}</h3>
+            <span class="meta">{{ section.get_section_type_display }} &mdash; {{ section.duration_minutes }} min</span>
+        </div>
+        {% if section.notes %}
+        <div class="notes">{{ section.notes }}</div>
+        {% endif %}
+        <div class="assignments">
+            {% for assignment in section.assignments.all %}
+            <div class="assignment">
+                <span class="name">{{ assignment.member.full_name }}</span>
+                {% if assignment.task_type %}
+                <span class="task">&mdash; {{ assignment.task_type.name }}</span>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="assignment" style="color: #999;">Aucun membre assigné</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <p style="text-align: center; color: #999;">Aucune section définie.</p>
+    {% endfor %}
+
+    {% if service.notes %}
+    <div class="section">
+        <div class="section-header">
+            <h3>Notes</h3>
+        </div>
+        <div class="notes">{{ service.notes }}</div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        ÉgliseConnect &mdash; Programme généré le {% now "d/m/Y à H:i" %}
+    </div>
+</body>
+</html>

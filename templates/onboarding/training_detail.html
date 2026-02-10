@@ -1,40 +1,69 @@
 {% extends 'base.html' %}
 {% load static custom_tags %}
-{% block title %}{{ lesson.title }} - Formation{% endblock %}
+{% block title %}{{ course.name }} - Formation{% endblock %}
 {% block content %}
 <div class="content-body">
     <div class="page-titles">
         <ol class="breadcrumb">
-            <li><h5 class="bc-title">{{ lesson.title }}</h5></li>
+            <li><h5 class="bc-title">Ma formation</h5></li>
             <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
             <li class="breadcrumb-item"><a href="/onboarding/status/">Onboarding</a></li>
-            <li class="breadcrumb-item active"><a href="javascript:void(0)">Lecon {{ lesson.order }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Formation</a></li>
         </ol>
     </div>
     <div class="container-fluid">
         <div class="row">
             <div class="col-xl-8 col-lg-8">
-                <!-- Lesson Info -->
+                <!-- Course Overview -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="heading mb-0">Lecon {{ lesson.order }} : {{ lesson.title }}</h4>
-                        {% if lesson.status == 'completed' %}
+                        <h4 class="heading mb-0">{{ course.name }}</h4>
+                        {% if progress_percent == 100 %}
                             <span class="badge bg-success fs-6">Completee</span>
-                        {% elif lesson.status == 'absent' %}
-                            <span class="badge bg-danger fs-6">Absent</span>
                         {% else %}
-                            <span class="badge bg-secondary fs-6">A venir</span>
+                            <span class="badge bg-primary fs-6">En cours</span>
                         {% endif %}
                     </div>
                     <div class="card-body">
-                        <div class="row mb-4">
+                        {% if course.description %}
+                        <p class="text-muted mb-4">{{ course.description }}</p>
+                        {% endif %}
+
+                        <!-- Progress Bar -->
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">{{ completed_lessons }} / {{ total_lessons }} lecon{{ total_lessons|pluralize }}</span>
+                            <strong>{{ progress_percent }}%</strong>
+                        </div>
+                        <div class="progress mb-4" style="height: 12px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress_percent }}%;" aria-valuenow="{{ progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lessons List -->
+                {% for sl in scheduled_lessons %}
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="heading mb-0">
+                            Lecon {{ sl.lesson.order }} : {{ sl.lesson.title }}
+                        </h5>
+                        {% if sl.status == 'completed' %}
+                            <span class="badge bg-success">Completee</span>
+                        {% elif sl.status == 'absent' %}
+                            <span class="badge bg-danger">Absent</span>
+                        {% else %}
+                            <span class="badge bg-secondary">A venir</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-4">
-                                <div class="p-3 bg-light rounded">
+                                <div class="p-2 bg-light rounded">
                                     <i class="fas fa-calendar-alt text-primary me-2"></i>
                                     <strong>Date</strong>
                                     <p class="mb-0 mt-1">
-                                        {% if lesson.scheduled_date %}
-                                            {{ lesson.scheduled_date|date:"d F Y a H:i" }}
+                                        {% if sl.scheduled_date %}
+                                            {{ sl.scheduled_date|date:"d F Y a H:i" }}
                                         {% else %}
                                             <span class="text-muted">Non planifiee</span>
                                         {% endif %}
@@ -42,114 +71,67 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="p-3 bg-light rounded">
+                                <div class="p-2 bg-light rounded">
                                     <i class="fas fa-map-marker-alt text-primary me-2"></i>
                                     <strong>Lieu</strong>
-                                    <p class="mb-0 mt-1">{{ lesson.location|default:"A confirmer" }}</p>
+                                    <p class="mb-0 mt-1">{{ sl.location|default:"A confirmer" }}</p>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="p-3 bg-light rounded">
-                                    <i class="fas fa-user text-primary me-2"></i>
-                                    <strong>Formateur</strong>
-                                    <p class="mb-0 mt-1">{{ lesson.instructor|default:"A confirmer" }}</p>
+                                <div class="p-2 bg-light rounded">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <strong>Duree</strong>
+                                    <p class="mb-0 mt-1">{{ sl.lesson.duration_minutes }} minutes</p>
                                 </div>
                             </div>
                         </div>
 
-                        {% if lesson.description %}
-                        <div class="mb-4">
-                            <h5>Description</h5>
-                            <p class="text-muted">{{ lesson.description }}</p>
-                        </div>
+                        {% if sl.lesson.description %}
+                        <p class="text-muted">{{ sl.lesson.description }}</p>
                         {% endif %}
 
-                        {% if lesson.content %}
-                        <div class="mb-4">
-                            <h5>Contenu de la lecon</h5>
-                            <div class="border rounded p-3">
-                                {{ lesson.content|linebreaks }}
+                        <!-- Materials -->
+                        {% if sl.lesson.materials_pdf or sl.lesson.materials_notes %}
+                        <div class="border-top pt-3 mt-3">
+                            <h6><i class="fas fa-file-alt me-2"></i>Documents et supports</h6>
+                            {% if sl.lesson.materials_pdf %}
+                            <a href="{{ sl.lesson.materials_pdf.url }}" class="btn btn-outline-primary btn-sm me-2" target="_blank">
+                                <i class="fas fa-file-pdf me-1"></i>Telecharger le PDF
+                            </a>
+                            {% endif %}
+                            {% if sl.lesson.materials_notes %}
+                            <div class="mt-2 p-3 bg-light rounded">
+                                <strong>Notes de cours :</strong>
+                                <p class="mb-0 mt-1">{{ sl.lesson.materials_notes|linebreaks }}</p>
                             </div>
+                            {% endif %}
                         </div>
                         {% endif %}
-                    </div>
-                </div>
 
-                <!-- Materials -->
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="heading mb-0">Documents et supports</h4>
-                    </div>
-                    <div class="card-body">
-                        {% if lesson.material_pdf or lesson.notes_file or materials %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Document</th>
-                                        <th>Type</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if lesson.material_pdf %}
-                                    <tr>
-                                        <td>
-                                            <i class="fas fa-file-pdf text-danger me-2"></i>
-                                            Support de cours (PDF)
-                                        </td>
-                                        <td><span class="badge bg-light text-dark">PDF</span></td>
-                                        <td>
-                                            <a href="{{ lesson.material_pdf.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
-                                                <i class="fas fa-download me-1"></i>Telecharger
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                    {% if lesson.notes_file %}
-                                    <tr>
-                                        <td>
-                                            <i class="fas fa-file-alt text-info me-2"></i>
-                                            Notes de cours
-                                        </td>
-                                        <td><span class="badge bg-light text-dark">Document</span></td>
-                                        <td>
-                                            <a href="{{ lesson.notes_file.url }}" class="btn btn-outline-info btn-sm" target="_blank">
-                                                <i class="fas fa-download me-1"></i>Telecharger
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                    {% for material in materials %}
-                                    <tr>
-                                        <td>
-                                            <i class="fas fa-file text-secondary me-2"></i>
-                                            {{ material.title }}
-                                        </td>
-                                        <td><span class="badge bg-light text-dark">{{ material.file_type|upper }}</span></td>
-                                        <td>
-                                            <a href="{{ material.file.url }}" class="btn btn-outline-secondary btn-sm" target="_blank">
-                                                <i class="fas fa-download me-1"></i>Telecharger
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                        {% if sl.notes %}
+                        <div class="border-top pt-3 mt-3">
+                            <h6><i class="fas fa-sticky-note me-2"></i>Notes</h6>
+                            <p class="mb-0 text-muted">{{ sl.notes }}</p>
                         </div>
-                        {% else %}
-                        <p class="text-muted text-center mb-0">Aucun document disponible pour cette lecon.</p>
                         {% endif %}
                     </div>
                 </div>
+                {% empty %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-calendar-times text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3">Aucune lecon planifiee pour le moment.</p>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
 
             <!-- Sidebar -->
             <div class="col-xl-4 col-lg-4">
-                <!-- Progress -->
+                <!-- Progress Summary -->
                 <div class="card">
                     <div class="card-header">
-                        <h4 class="heading mb-0">Progression globale</h4>
+                        <h4 class="heading mb-0">Progression</h4>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-1">
@@ -160,26 +142,24 @@
                             <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress_percent }}%;" aria-valuenow="{{ progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                         <a href="/onboarding/status/" class="btn btn-outline-primary btn-sm w-100">
-                            <i class="fas fa-arrow-left me-2"></i>Retour a la formation
+                            <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
                         </a>
                     </div>
                 </div>
 
-                <!-- All Lessons -->
+                <!-- Quick Lesson Nav -->
                 <div class="card">
                     <div class="card-header">
                         <h4 class="heading mb-0">Toutes les lecons</h4>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
-                            {% for l in all_lessons %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center {% if l.pk == lesson.pk %}bg-light{% endif %}">
-                                <a href="/onboarding/training/{{ l.pk }}/" class="{% if l.pk == lesson.pk %}fw-bold{% endif %}">
-                                    {{ l.order }}. {{ l.title }}
-                                </a>
-                                {% if l.status == 'completed' %}
+                            {% for sl in scheduled_lessons %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ sl.lesson.order }}. {{ sl.lesson.title }}</span>
+                                {% if sl.status == 'completed' %}
                                     <span class="badge bg-success">Completee</span>
-                                {% elif l.status == 'absent' %}
+                                {% elif sl.status == 'absent' %}
                                     <span class="badge bg-danger">Absent</span>
                                 {% else %}
                                     <span class="badge bg-secondary">A venir</span>

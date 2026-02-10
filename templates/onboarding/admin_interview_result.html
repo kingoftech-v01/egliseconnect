@@ -26,7 +26,7 @@
                         {% endif %}
                         <div>
                             <h5 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
-                            <span class="text-muted">Entretien du {{ interview.scheduled_date|date:"d/m/Y a H:i" }}</span>
+                            <span class="text-muted">Entretien du {{ interview.final_date|date:"d/m/Y a H:i" }}</span>
                         </div>
                     </div>
                 </div>
@@ -41,7 +41,7 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <p class="text-muted mb-1">Date</p>
-                                <strong>{{ interview.scheduled_date|date:"d F Y - H:i" }}</strong>
+                                <strong>{{ interview.final_date|date:"d F Y - H:i" }}</strong>
                             </div>
                             <div class="col-md-4">
                                 <p class="text-muted mb-1">Lieu</p>
@@ -85,7 +85,7 @@
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <div class="form-check card border p-3">
-                                            <input class="form-check-input" type="radio" name="result" id="result_passed" value="passed" required>
+                                            <input class="form-check-input" type="radio" name="passed" id="result_passed" value="true">
                                             <label class="form-check-label d-block text-center" for="result_passed">
                                                 <i class="fas fa-check-circle text-success d-block mb-2" style="font-size:2rem;"></i>
                                                 <strong class="text-success">Reussi</strong>
@@ -95,7 +95,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-check card border p-3">
-                                            <input class="form-check-input" type="radio" name="result" id="result_failed" value="failed" required>
+                                            <input class="form-check-input" type="radio" name="passed" id="result_failed" value="false">
                                             <label class="form-check-label d-block text-center" for="result_failed">
                                                 <i class="fas fa-times-circle text-danger d-block mb-2" style="font-size:2rem;"></i>
                                                 <strong class="text-danger">Non retenu</strong>
@@ -105,7 +105,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-check card border p-3">
-                                            <input class="form-check-input" type="radio" name="result" id="result_absent" value="absent" required>
+                                            <input class="form-check-input" type="radio" name="passed" id="result_absent" value="false">
                                             <label class="form-check-label d-block text-center" for="result_absent">
                                                 <i class="fas fa-user-slash text-warning d-block mb-2" style="font-size:2rem;"></i>
                                                 <strong class="text-warning">Absent</strong>
@@ -117,14 +117,10 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="interviewer_notes">Notes de l'intervieweur</label>
-                                <textarea name="interviewer_notes" id="interviewer_notes" class="form-control" rows="4" placeholder="Impressions, observations, points importants discutes...">{{ form.interviewer_notes.value|default:'' }}</textarea>
+                                <label class="form-label" for="result_notes">Notes de l'intervieweur</label>
+                                <textarea name="result_notes" id="result_notes" class="form-control" rows="4" placeholder="Impressions, observations, points importants discutes...">{{ form.result_notes.value|default:'' }}</textarea>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label" for="rejection_reason">Motif de refus (si applicable)</label>
-                                <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3" placeholder="Ce motif sera communique au candidat en cas de refus...">{{ form.rejection_reason.value|default:'' }}</textarea>
-                            </div>
 
                             <hr class="my-4">
 

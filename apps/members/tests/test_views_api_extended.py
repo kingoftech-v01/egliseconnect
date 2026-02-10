@@ -50,7 +50,7 @@ class TestMemberViewSetExtended:
         assert response.data['count'] == 5
 
     def test_superuser_sees_all_members(self, api_client):
-        """Superuser sees all members."""
+        """Superuser sees all members (including their own auto-created profile)."""
         user = UserFactory(is_superuser=True)
         api_client.force_authenticate(user=user)
         MemberFactory.create_batch(4)
@@ -59,7 +59,8 @@ class TestMemberViewSetExtended:
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['count'] == 4
+        # 4 batch + 1 auto-created for the superuser
+        assert response.data['count'] == 5
 
     def test_group_leader_sees_own_group_members(self, api_client):
         """Group leader sees themselves plus their group members only."""

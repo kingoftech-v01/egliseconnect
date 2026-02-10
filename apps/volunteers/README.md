@@ -414,3 +414,52 @@ Les tests couvrent les scenarios suivants :
 | `apps.members.Member` | FK vers le membre benevole |
 | `apps.events.Event` | FK optionnelle vers l'evenement lie |
 | `django-filter` | Filtrage des endpoints API |
+
+---
+
+## Recent Additions
+
+### PlannedAbsence Model
+
+Allows members to declare planned absences from volunteer duties.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `member` | ForeignKey → Member | Member declaring absence |
+| `start_date` | DateField | Absence start |
+| `end_date` | DateField | Absence end |
+| `reason` | TextField | Reason (optional) |
+| `approved_by` | ForeignKey → Member | Approver (nullable) |
+
+Ordering: `['-start_date']`.
+
+### New Forms
+- `VolunteerPositionForm` — Fields: `name`, `role_type`, `description`, `min_volunteers`, `max_volunteers`, `skills_required`
+- `VolunteerScheduleForm` — Fields: `member`, `position`, `event`, `date`, `status`, `notes` (DateInput widget)
+
+### New Frontend Views (8 views)
+
+**Position CRUD:**
+- `position_create` — `/volunteers/positions/create/` — Create position (admin/pastor)
+- `position_update` — `/volunteers/positions/<pk>/edit/` — Edit position (admin/pastor)
+- `position_delete` — `/volunteers/positions/<pk>/delete/` — Delete position (admin/pastor)
+
+**Schedule CRUD:**
+- `schedule_create` — `/volunteers/schedule/create/` — Create schedule (admin/pastor)
+- `schedule_update` — `/volunteers/schedule/<pk>/edit/` — Edit schedule (admin/pastor)
+- `schedule_delete` — `/volunteers/schedule/<pk>/delete/` — Delete schedule (admin/pastor)
+
+**Planned Absences:**
+- `planned_absence_list` — `/volunteers/planned-absences/` — List absences
+- `planned_absence_create` — `/volunteers/planned-absences/create/` — Create absence
+
+### New Templates
+- `position_form.html` — Create/update position form
+- `position_delete.html` — Delete position confirmation
+- `schedule_form.html` — Create/update schedule form
+- `schedule_delete.html` — Delete schedule confirmation
+- `planned_absence_form.html` — Create planned absence form
+- `planned_absence_list.html` — List member's absences
+
+### Celery Tasks
+- `send_volunteer_schedule_reminders()` — Sends 5d/3d/1d/same-day reminders for volunteer schedules using per-schedule tracking flags

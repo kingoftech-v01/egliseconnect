@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Modifier la lecon - {{ lesson.title }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Modifier la lecon</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/courses/">Cours</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/courses/{{ course.pk }}/">{{ course.name }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Modifier lecon</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Modifier : {{ lesson.title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label" for="order">Ordre <span class="text-danger">*</span></label>
+                                    <input type="number" name="order" id="order" class="form-control" min="1"
+                                           value="{{ form.order.value|default:'' }}" required>
+                                </div>
+                                <div class="col-md-10">
+                                    <label class="form-label" for="title">Titre <span class="text-danger">*</span></label>
+                                    <input type="text" name="title" id="title" class="form-control" required
+                                           value="{{ form.title.value|default:'' }}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="description">Description</label>
+                                    <textarea name="description" id="description" class="form-control" rows="3">{{ form.description.value|default:'' }}</textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="duration_minutes">Duree (minutes)</label>
+                                    <input type="number" name="duration_minutes" id="duration_minutes" class="form-control" min="1"
+                                           value="{{ form.duration_minutes.value|default:'90' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="materials_pdf">Support PDF</label>
+                                    <input type="file" name="materials_pdf" id="materials_pdf" class="form-control" accept=".pdf">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="materials_notes">Notes de cours</label>
+                                    <textarea name="materials_notes" id="materials_notes" class="form-control" rows="4">{{ form.materials_notes.value|default:'' }}</textarea>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/courses/{{ course.pk }}/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Enregistrer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

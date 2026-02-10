@@ -692,4 +692,147 @@ templates/members/
     member_form.html
     member_list.html
     privacy_settings.html
+    my_profile.html
+    request_modification.html
+    disciplinary_list.html
+    disciplinary_form.html
+    disciplinary_detail.html
+
+templates/departments/
+    department_list.html
+    department_detail.html
+    department_form.html
+    department_add_member.html
+    department_task_types.html
 ```
+
+---
+
+## Recent Additions
+
+The following features were added after the initial README was written.
+
+### New Models
+
+#### MemberRole
+Allows members to hold multiple roles simultaneously (in addition to their primary `role` field).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `member` | ForeignKey → Member | The member |
+| `role` | CharField (Roles.CHOICES) | Additional role |
+
+Constraints: `unique_together = ['member', 'role']`. Related name: `additional_roles`.
+
+#### Department
+Organizational departments (e.g., Louange, Accueil, Technique).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | CharField(200) | Department name |
+| `description` | TextField | Description (optional) |
+| `leader` | ForeignKey → Member | Department leader (nullable) |
+| `parent_department` | ForeignKey → self | Hierarchical parent (nullable) |
+| `meeting_day` | CharField(20) | Meeting day (optional) |
+| `meeting_time` | TimeField | Meeting time (nullable) |
+| `meeting_location` | CharField(200) | Meeting location (optional) |
+
+Property: `member_count` → count of active members.
+
+#### DepartmentMembership
+Links members to departments with a role.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `member` | ForeignKey → Member | The member |
+| `department` | ForeignKey → Department | The department |
+| `role` | CharField | `member`, `leader`, or `assistant` |
+| `joined_date` | DateField | Auto-set on creation |
+
+Constraints: `unique_together = ['member', 'department']`.
+
+#### DepartmentTaskType
+Types of tasks within a department (used by worship app for section assignments).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `department` | ForeignKey → Department | Parent department |
+| `name` | CharField(100) | Task name |
+| `description` | TextField | Description (optional) |
+| `max_assignees` | PositiveIntegerField | Max people per task (default: 1) |
+
+Constraints: `unique_together = ['department', 'name']`.
+
+#### DisciplinaryAction
+Tracks disciplinary measures against members with approval workflow.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `member` | ForeignKey → Member | Target member |
+| `action_type` | CharField | `punishment`, `exemption`, `suspension` |
+| `reason` | TextField | Reason for action |
+| `start_date` | DateField | Start date |
+| `end_date` | DateField | End date (nullable, for temporary actions) |
+| `created_by` | ForeignKey → Member | Initiator |
+| `approved_by` | ForeignKey → Member | Approver (nullable) |
+| `approval_status` | CharField | `pending`, `approved`, `rejected` |
+| `auto_suspend_membership` | BooleanField | Auto-suspend member account (default: True) |
+| `notes` | TextField | Internal notes (optional) |
+
+Property: `is_current` → whether action is currently in effect.
+
+#### ProfileModificationRequest
+Staff requests a member to update their profile.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `target_member` | ForeignKey → Member | Member asked to update |
+| `requested_by` | ForeignKey → Member | Staff member requesting |
+| `message` | TextField | What needs to be modified |
+| `status` | CharField | `pending`, `completed`, `cancelled` |
+| `completed_at` | DateTimeField | When completed (nullable) |
+
+### New Member Properties
+- `all_roles` → `set`: Union of primary role and all additional MemberRole entries
+- `has_role(role)` → `bool`: Checks primary + additional roles
+- `is_staff_member` → `bool`: Whether member has any staff role
+
+### New Forms
+- `DepartmentForm` — Create/edit departments (with leader filtered to staff)
+- `DepartmentTaskTypeForm` — Create/edit task types
+- `DepartmentMembershipForm` — Add member to department (excludes already-enrolled)
+- `DisciplinaryActionForm` — Create disciplinary action (with date widgets)
+- `ProfileModificationRequestForm` — Request profile modification (message field)
+
+### New Frontend Views (13 views)
+
+**Department views:**
+- `department_list` — `/members/departments/` — List all departments
+- `department_detail` — `/members/departments/<pk>/` — Department details with members and tasks
+- `department_create` — `/members/departments/create/` — Create department (admin/pastor)
+- `department_edit` — `/members/departments/<pk>/edit/` — Edit department (admin/pastor)
+- `department_add_member` — `/members/departments/<pk>/add-member/` — Add member to department
+- `department_task_types` — `/members/departments/<pk>/task-types/` — Manage task types
+
+**Disciplinary views:**
+- `disciplinary_list` — `/members/disciplinary/` — List actions with status/type filters
+- `disciplinary_create` — `/members/disciplinary/create/` — Create action (staff only)
+- `disciplinary_detail` — `/members/disciplinary/<pk>/` — Action details with approval options
+- `disciplinary_approve` — `/members/disciplinary/<pk>/approve/` — POST: approve/reject/lift
+
+**Profile views:**
+- `my_profile` — `/members/my-profile/` — Self-service profile page
+- `request_modification` — `/members/<pk>/request-modification/` — Staff requests update
+- `complete_modification_request` — `/members/modification-requests/<pk>/complete/` — Member marks complete
+
+### New Service: DisciplinaryService
+Located in `apps/members/services.py`. Manages disciplinary action lifecycle:
+- `can_discipline(actor, target)` — Role hierarchy check
+- `can_approve(approver, action)` — Approval authorization check
+- `create_action(...)` — Create pending action, notify pastors/admins
+- `approve_action(approver, action)` — Approve + auto-suspend if applicable
+- `reject_action(approver, action)` — Reject action
+- `lift_suspension(actor, action)` — Lift suspension, reactivate member
+
+### New Signal
+`create_member_for_superuser` — Auto-creates active admin Member profile for new superusers.

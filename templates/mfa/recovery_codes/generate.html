@@ -1,0 +1,39 @@
+{% extends "account/base_manage_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Generer de nouveaux codes{% endblock %}
+
+{% block page_title %}Generer de nouveaux codes{% endblock %}
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Securite 2FA</a></li>
+    <li class="breadcrumb-item active"><a href="javascript:void(0)">Generer des codes</a></li>
+{% endblock %}
+
+{% block content %}
+<h4 class="heading mb-4">Generer de nouveaux codes de recuperation</h4>
+
+{% if unused_code_count %}
+<div class="alert alert-warning mb-4">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Vous etes sur le point de generer un nouveau jeu de codes de recuperation.
+    Cette action invalidera vos codes existants. Etes-vous sur ?
+</div>
+{% else %}
+<p class="mb-4">
+    Vous allez generer un nouveau jeu de codes de recuperation pour votre compte.
+</p>
+{% endif %}
+
+<form method="post" action="{% url 'mfa_generate_recovery_codes' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <a href="{% url 'mfa_index' %}" class="btn btn-light">Annuler</a>
+        {% if unused_code_count %}
+        <button type="submit" class="btn btn-danger">Generer</button>
+        {% else %}
+        <button type="submit" class="btn btn-primary">Generer</button>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}

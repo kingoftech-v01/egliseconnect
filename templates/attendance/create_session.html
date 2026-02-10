@@ -37,6 +37,24 @@
                                     {% endfor %}
                                 </select>
                             </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="session-date">Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="date" id="session-date" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="session-start-time">Heure de debut</label>
+                                    <input type="time" name="start_time" id="session-start-time" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="session-end-time">Heure de fin</label>
+                                    <input type="time" name="end_time" id="session-end-time" class="form-control">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="session-duration">Duree (minutes)</label>
+                                <input type="number" name="duration_minutes" id="session-duration" class="form-control" placeholder="Ex: 90, 120..." min="1">
+                            </div>
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-plus-circle me-2"></i>Creer la session

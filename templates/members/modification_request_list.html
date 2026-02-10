@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Status Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="?status=pending" class="btn btn-outline-warning btn-sm {% if status_filter == 'pending' %}active{% endif %}">En attente</a>
+                            <a href="?status=completed" class="btn btn-outline-success btn-sm {% if status_filter == 'completed' %}active{% endif %}">Compl\u00e9t\u00e9es</a>
+                            <a href="?status=cancelled" class="btn btn-outline-secondary btn-sm {% if status_filter == 'cancelled' %}active{% endif %}">Annul\u00e9es</a>
+                            <a href="?status=" class="btn btn-outline-primary btn-sm {% if not status_filter %}active{% endif %}">Toutes</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Demandes de modification de profil</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre cible</th>
+                                        <th>Demand\u00e9 par</th>
+                                        <th>Message</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for req in requests %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/{{ req.target_member.pk }}/">{{ req.target_member.full_name }}</a>
+                                        </td>
+                                        <td>{{ req.requested_by.full_name|default:"-" }}</td>
+                                        <td>{{ req.message|truncatechars:80 }}</td>
+                                        <td>{{ req.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            {% if req.status == 'pending' %}
+                                            <span class="badge badge-warning">En attente</span>
+                                            {% elif req.status == 'completed' %}
+                                            <span class="badge badge-success">Compl\u00e9t\u00e9e</span>
+                                            {% elif req.status == 'cancelled' %}
+                                            <span class="badge badge-secondary">Annul\u00e9e</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/members/{{ req.target_member.pk }}/" class="btn btn-primary btn-xs">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">Aucune demande de modification.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% if requests.has_other_pages %}
+                    <div class="card-footer">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if requests.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?status={{ status_filter }}&page={{ requests.previous_page_number }}">Pr\u00e9c\u00e9dent</a>
+                                </li>
+                                {% endif %}
+                                {% for num in requests.paginator.page_range %}
+                                <li class="page-item {% if requests.number == num %}active{% endif %}">
+                                    <a class="page-link" href="?status={{ status_filter }}&page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endfor %}
+                                {% if requests.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?status={{ status_filter }}&page={{ requests.next_page_number }}">Suivant</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

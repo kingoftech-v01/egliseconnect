@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+        <a href="/members/families/create/" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i> Nouvelle famille
+        </a>
+    </div>
+    <div class="container-fluid">
+        <!-- Search -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-3">
+                            <input type="text" name="search" class="form-control w-auto"
+                                   value="{{ search }}" placeholder="Rechercher par nom ou ville...">
+                            <button type="submit" class="btn btn-primary btn-sm">Rechercher</button>
+                            {% if search %}
+                            <a href="/members/families/" class="btn btn-outline-secondary btn-sm">R\u00e9initialiser</a>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Families Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">{{ page_title }}</h4>
+                            </div>
+                            <table id="families-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom de famille</th>
+                                        <th>Ville</th>
+                                        <th>Province</th>
+                                        <th>Nombre de membres</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for family in families %}
+                                    <tr>
+                                        <td>
+                                            <a href="/members/families/{{ family.pk }}/">{{ family.name }}</a>
+                                        </td>
+                                        <td>{{ family.city|default:"-" }}</td>
+                                        <td>{{ family.get_province_display|default:"-" }}</td>
+                                        <td>{{ family.member_count }}</td>
+                                        <td>
+                                            <a href="/members/families/{{ family.pk }}/edit/" class="btn btn-outline-primary btn-xs me-1">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="/members/families/{{ family.pk }}/delete/" class="btn btn-outline-danger btn-xs">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Aucune famille trouv\u00e9e.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

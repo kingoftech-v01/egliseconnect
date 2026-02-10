@@ -58,41 +58,36 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for lesson in lessons %}
+                                    {% for sl in scheduled_lessons %}
                                     <tr>
-                                        <td><strong>{{ lesson.order }}</strong></td>
+                                        <td><strong>{{ sl.lesson.order }}</strong></td>
                                         <td>
-                                            <a href="/onboarding/training/{{ lesson.pk }}/">{{ lesson.title }}</a>
+                                            <a href="/onboarding/training/{{ sl.pk }}/">{{ sl.lesson.title }}</a>
                                         </td>
                                         <td>
-                                            {% if lesson.scheduled_date %}
-                                                {{ lesson.scheduled_date|date:"d/m/Y H:i" }}
+                                            {% if sl.scheduled_date %}
+                                                {{ sl.scheduled_date|date:"d/m/Y H:i" }}
                                             {% else %}
                                                 <span class="text-muted">Non planifiee</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ lesson.location|default:"-" }}</td>
+                                        <td>{{ sl.location|default:"-" }}</td>
                                         <td>
-                                            {% if lesson.status == 'completed' %}
+                                            {% if sl.status == 'completed' %}
                                                 <span class="badge bg-success">Completee</span>
-                                            {% elif lesson.status == 'absent' %}
+                                            {% elif sl.status == 'absent' %}
                                                 <span class="badge bg-danger">Absent</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">A venir</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if lesson.material_pdf %}
-                                                <a href="{{ lesson.material_pdf.url }}" class="btn btn-outline-primary btn-xs" target="_blank" title="Telecharger le PDF">
+                                            {% if sl.lesson.materials_pdf %}
+                                                <a href="{{ sl.lesson.materials_pdf.url }}" class="btn btn-outline-primary btn-xs" target="_blank" title="Telecharger le PDF">
                                                     <i class="fas fa-file-pdf"></i>
                                                 </a>
                                             {% endif %}
-                                            {% if lesson.notes_file %}
-                                                <a href="{{ lesson.notes_file.url }}" class="btn btn-outline-info btn-xs" target="_blank" title="Telecharger les notes">
-                                                    <i class="fas fa-file-alt"></i>
-                                                </a>
-                                            {% endif %}
-                                            {% if not lesson.material_pdf and not lesson.notes_file %}
+                                            {% if not sl.lesson.materials_pdf %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
@@ -134,8 +129,7 @@
                     <div class="card-body">
                         <div class="alert alert-info mb-0" role="alert">
                             <p class="mb-2"><strong>Cours :</strong> {{ course.name|default:"Formation" }}</p>
-                            <p class="mb-2"><strong>Duree :</strong> {{ total_lessons }} lecon{{ total_lessons|pluralize }}</p>
-                            <p class="mb-0"><strong>Formateur :</strong> {{ course.instructor|default:"A confirmer" }}</p>
+                            <p class="mb-0"><strong>Duree :</strong> {{ total_lessons }} lecon{{ total_lessons|pluralize }}</p>
                         </div>
                     </div>
                 </div>

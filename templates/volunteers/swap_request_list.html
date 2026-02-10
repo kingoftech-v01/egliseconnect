@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/positions/">Volontaires</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        <a href="/volunteers/swap-requests/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouvelle demande
+                        </a>
+                    </div>
+                    <table id="swap-requests-table" class="table">
+                        <thead>
+                            <tr>
+                                <th>Demandeur</th>
+                                <th>Horaire</th>
+                                <th>Date</th>
+                                <th>Poste</th>
+                                <th>Cible</th>
+                                <th>Statut</th>
+                                <th>Raison</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in swap_requests %}
+                            <tr>
+                                <td>{{ req.requested_by.full_name }}</td>
+                                <td>{{ req.original_schedule }}</td>
+                                <td>{{ req.original_schedule.date|date:"d/m/Y" }}</td>
+                                <td>{{ req.original_schedule.position.name }}</td>
+                                <td>{{ req.swap_with.full_name|default:"-" }}</td>
+                                <td>
+                                    {% if req.status == 'pending' %}
+                                        <span class="badge badge-warning">En attente</span>
+                                    {% elif req.status == 'approved' %}
+                                        <span class="badge badge-success">Approuvé</span>
+                                    {% elif req.status == 'declined' %}
+                                        <span class="badge badge-danger">Refusé</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ req.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ req.reason|truncatewords:15|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">Aucune demande d'échange enregistrée.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

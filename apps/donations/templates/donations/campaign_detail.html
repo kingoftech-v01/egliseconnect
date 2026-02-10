@@ -16,12 +16,24 @@
             <!-- Campaign Info -->
             <div class="col-xl-8 col-lg-8">
                 <div class="card h-auto">
-                    <div class="card-header">
-                        <h4 class="heading mb-0">{{ campaign.name }}</h4>
-                        {% if campaign.is_ongoing %}
-                        <span class="badge badge-success light">En cours</span>
-                        {% else %}
-                        <span class="badge badge-secondary light">Terminée</span>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="heading mb-0">{{ campaign.name }}</h4>
+                            {% if campaign.is_ongoing %}
+                            <span class="badge badge-success light">En cours</span>
+                            {% else %}
+                            <span class="badge badge-secondary light">Terminée</span>
+                            {% endif %}
+                        </div>
+                        {% if request.user.member_profile.role == 'treasurer' or request.user.member_profile.role == 'pastor' or request.user.member_profile.role == 'admin' %}
+                        <div>
+                            <a href="/donations/campaigns/{{ campaign.pk }}/edit/" class="btn btn-sm btn-warning me-1">
+                                <i class="fas fa-edit me-1"></i>Modifier
+                            </a>
+                            <a href="/donations/campaigns/{{ campaign.pk }}/delete/" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash me-1"></i>Supprimer
+                            </a>
+                        </div>
                         {% endif %}
                     </div>
                     <div class="card-body">
@@ -78,7 +90,7 @@
                             {{ campaign.current_amount }} $ collectés sur {{ campaign.goal_amount }} $
                         </p>
                         {% if campaign.is_ongoing %}
-                        <a href="{% url 'frontend:donations:donation_create' %}" class="btn btn-primary">
+                        <a href="/payments/donate/?campaign={{ campaign.pk }}" class="btn btn-primary">
                             <i class="fas fa-hand-holding-heart me-1"></i> Faire un don
                         </a>
                         {% endif %}

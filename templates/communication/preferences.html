@@ -30,40 +30,40 @@
                     </div>
                     <div class="mb-3">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" name="email_event_reminder"
-                                   id="email_event_reminder"
-                                   {% if prefs.email_event_reminder %}checked{% endif %}>
-                            <label class="form-check-label" for="email_event_reminder">
+                            <input class="form-check-input" type="checkbox" name="email_events"
+                                   id="email_events"
+                                   {% if prefs.email_events %}checked{% endif %}>
+                            <label class="form-check-label" for="email_events">
                                 Recevoir les rappels d'événements par e-mail
                             </label>
                         </div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" name="email_volunteer_schedule"
-                                   id="email_volunteer_schedule"
-                                   {% if prefs.email_volunteer_schedule %}checked{% endif %}>
-                            <label class="form-check-label" for="email_volunteer_schedule">
-                                Recevoir les notifications de planning de bénévolat par e-mail
+                            <input class="form-check-input" type="checkbox" name="email_birthdays"
+                                   id="email_birthdays"
+                                   {% if prefs.email_birthdays %}checked{% endif %}>
+                            <label class="form-check-label" for="email_birthdays">
+                                Recevoir les notifications d'anniversaires par e-mail
                             </label>
                         </div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" name="email_help_request"
-                                   id="email_help_request"
-                                   {% if prefs.email_help_request %}checked{% endif %}>
-                            <label class="form-check-label" for="email_help_request">
-                                Recevoir les notifications de demandes d'aide par e-mail
+                            <input class="form-check-input" type="checkbox" name="push_enabled"
+                                   id="push_enabled"
+                                   {% if prefs.push_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="push_enabled">
+                                Activer les notifications push
                             </label>
                         </div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" name="sms_notifications"
-                                   id="sms_notifications"
-                                   {% if prefs.sms_notifications %}checked{% endif %}>
-                            <label class="form-check-label" for="sms_notifications">
+                            <input class="form-check-input" type="checkbox" name="sms_enabled"
+                                   id="sms_enabled"
+                                   {% if prefs.sms_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="sms_enabled">
                                 Recevoir les notifications par SMS
                             </label>
                         </div>

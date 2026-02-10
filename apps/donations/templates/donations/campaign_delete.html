@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Supprimer la campagne{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Supprimer la campagne</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/campaigns/">Campagnes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Supprimer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Confirmer la suppression</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-danger" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Attention
+                            </h5>
+                            <p class="mb-0">
+                                Vous etes sur le point de supprimer la campagne
+                                <strong>{{ campaign.name }}</strong>.
+                            </p>
+                            <p class="mb-0 mt-2">
+                                Debut : {{ campaign.start_date|date:"d/m/Y" }}
+                                {% if campaign.end_date %}| Fin : {{ campaign.end_date|date:"d/m/Y" }}{% endif %}
+                                | Objectif : {{ campaign.goal_amount }} $
+                            </p>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="/donations/campaigns/{{ campaign.pk }}/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash me-2"></i>Supprimer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

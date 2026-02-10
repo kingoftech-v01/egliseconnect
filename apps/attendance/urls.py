@@ -17,6 +17,11 @@ frontend_urlpatterns = [
     path('scanner/checkin/', views_frontend.process_checkin, name='process_checkin'),
     path('sessions/', views_frontend.session_list, name='session_list'),
     path('sessions/create/', views_frontend.create_session, name='create_session'),
+    path('sessions/<uuid:pk>/edit/', views_frontend.edit_session, name='edit_session'),
+    path('sessions/<uuid:pk>/toggle/', views_frontend.toggle_session, name='toggle_session'),
+    path('sessions/<uuid:pk>/delete/', views_frontend.delete_session, name='delete_session'),
+    path('sessions/<uuid:pk>/add-record/', views_frontend.add_manual_record, name='add_manual_record'),
+    path('records/<uuid:pk>/delete/', views_frontend.delete_record, name='delete_record'),
     path('sessions/<uuid:pk>/', views_frontend.session_detail, name='session_detail'),
     path('my-history/', views_frontend.my_history, name='my_history'),
 ]

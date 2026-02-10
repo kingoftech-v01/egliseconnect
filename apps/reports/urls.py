@@ -20,6 +20,11 @@ frontend_urlpatterns = [
     path('attendance/', views_frontend.attendance_report, name='attendance_report'),
     path('volunteers/', views_frontend.volunteer_report, name='volunteer_report'),
     path('birthdays/', views_frontend.birthday_report, name='birthday_report'),
+    # CSV Export
+    path('export/members/', views_frontend.export_members_csv, name='export_members_csv'),
+    path('export/donations/', views_frontend.export_donations_csv, name='export_donations_csv'),
+    path('export/attendance/', views_frontend.export_attendance_csv, name='export_attendance_csv'),
+    path('export/volunteers/', views_frontend.export_volunteers_csv, name='export_volunteers_csv'),
 ]
 
 app_name = 'reports'

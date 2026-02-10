@@ -64,11 +64,67 @@
     <script src="{% static jsurl %}"></script>
     {% endfor %}
     {% block additional_js %}{% endblock %}
-    <!-- PWA Service Worker -->
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:9999; background:#1a73e8; color:#fff; padding:12px 20px; box-shadow:0 -2px 10px rgba(0,0,0,0.2);">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-download" style="font-size:1.3rem;"></i>
+                <span>Installez EgliseConnect pour un acces rapide hors ligne</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" id="pwa-install-btn" class="btn btn-light btn-sm">Installer</button>
+                <button type="button" id="pwa-dismiss-btn" class="btn btn-outline-light btn-sm">Plus tard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Service Worker + Install Prompt -->
     <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
+
+    // PWA Install prompt
+    var deferredPrompt = null;
+    var installBanner = document.getElementById('pwa-install-banner');
+    var installBtn = document.getElementById('pwa-install-btn');
+    var dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Check if user previously dismissed
+        if (localStorage.getItem('pwa-install-dismissed') !== 'true') {
+            installBanner.style.display = 'block';
+        }
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(choiceResult) {
+                    if (choiceResult.outcome === 'accepted') {
+                        installBanner.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+    }
+
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', function() {
+            installBanner.style.display = 'none';
+            localStorage.setItem('pwa-install-dismissed', 'true');
+        });
+    }
+
+    // Hide banner if app is already installed
+    window.addEventListener('appinstalled', function() {
+        installBanner.style.display = 'none';
+        deferredPrompt = null;
+    });
     </script>
 
 </body>

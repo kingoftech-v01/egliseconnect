@@ -20,3 +20,11 @@ def getdata(json_data, args):
 
 
 register.filter('getdata', getdata)
+
+
+@register.filter(name='add_class')
+def add_class(field, css_class):
+    """Add CSS class to a form field widget."""
+    if hasattr(field, 'as_widget'):
+        return field.as_widget(attrs={'class': css_class})
+    return field

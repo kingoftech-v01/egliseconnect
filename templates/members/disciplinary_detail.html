@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/disciplinary/">Actions disciplinaires</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Détail</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ action }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush mb-3">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Membre</span>
+                                <span>{{ action.member.full_name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Type</span>
+                                <span>
+                                    {% if action.action_type == 'punishment' %}
+                                    <span class="badge badge-warning">Punition</span>
+                                    {% elif action.action_type == 'exemption' %}
+                                    <span class="badge badge-info">Exemption</span>
+                                    {% elif action.action_type == 'suspension' %}
+                                    <span class="badge badge-danger">Suspension</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Statut</span>
+                                <span>
+                                    {% if action.approval_status == 'pending' %}
+                                    <span class="badge badge-warning">En attente d'approbation</span>
+                                    {% elif action.approval_status == 'approved' %}
+                                    <span class="badge badge-success">Approuvée</span>
+                                    {% elif action.approval_status == 'rejected' %}
+                                    <span class="badge badge-danger">Rejetée</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Date de début</span>
+                                <span>{{ action.start_date|date:"d/m/Y" }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Date de fin</span>
+                                <span>{{ action.end_date|date:"d/m/Y"|default:"Indéterminée" }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Créé par</span>
+                                <span>{{ action.created_by.full_name }}</span>
+                            </li>
+                            {% if action.approved_by %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Approuvé/Rejeté par</span>
+                                <span>{{ action.approved_by.full_name }}</span>
+                            </li>
+                            {% endif %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">En cours?</span>
+                                <span>
+                                    {% if action.is_current %}
+                                    <span class="badge badge-warning">Oui</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">Non</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+                        </ul>
+
+                        <div class="mb-3">
+                            <strong>Motif:</strong>
+                            <p>{{ action.reason }}</p>
+                        </div>
+
+                        {% if action.notes %}
+                        <div class="mb-3">
+                            <strong>Notes:</strong>
+                            <p>{{ action.notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Approval actions -->
+                        {% if can_approve %}
+                        <hr>
+                        <h5>Décision</h5>
+                        <div class="d-flex gap-2">
+                            <form method="post" action="/members/disciplinary/{{ action.pk }}/approve/">
+                                {% csrf_token %}
+                                <input type="hidden" name="decision" value="approve">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-1"></i> Approuver
+                                </button>
+                            </form>
+                            <form method="post" action="/members/disciplinary/{{ action.pk }}/approve/">
+                                {% csrf_token %}
+                                <input type="hidden" name="decision" value="reject">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-times me-1"></i> Rejeter
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+
+                        <!-- Lift suspension -->
+                        {% if action.action_type == 'suspension' and action.approval_status == 'approved' and action.is_current %}
+                        <hr>
+                        <form method="post" action="/members/disciplinary/{{ action.pk }}/approve/">
+                            {% csrf_token %}
+                            <input type="hidden" name="decision" value="lift">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-unlock me-1"></i> Lever la suspension
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

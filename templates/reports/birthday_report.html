@@ -10,6 +10,8 @@
             <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport des anniversaires</a></li>
         </ol>
     </div>
+    <div class="d-flex gap-2 mb-2">
+    </div>
     <div class="container-fluid">
         <!-- Days Filter -->
         <div class="row mb-3">
@@ -47,6 +49,7 @@
                                         <th>Nom</th>
                                         <th>Date de naissance</th>
                                         <th>Age</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -55,10 +58,19 @@
                                         <td>{{ bd.member_name }}</td>
                                         <td>{{ bd.birthday }}</td>
                                         <td>{% if bd.age %}{{ bd.age }} ans{% else %}-{% endif %}</td>
+                                        <td>
+                                            {% if bd.email %}
+                                            <a href="mailto:{{ bd.email }}?subject=Joyeux anniversaire {{ bd.member_name }}!&body=Cher(e) {{ bd.member_name }},%0A%0ANous vous souhaitons un tres joyeux anniversaire!%0A%0AQue Dieu vous benisse en cette journee speciale.%0A%0ACordialement,%0AVotre eglise" class="btn btn-sm btn-outline-primary send-wishes-btn" title="Envoyer des voeux">
+                                                <i class="bi bi-envelope-heart me-1"></i>Envoyer voeux
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted small">Pas d'email</span>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted">Aucun anniversaire dans les {{ days }} prochains jours.</td>
+                                        <td colspan="4" class="text-center text-muted">Aucun anniversaire dans les {{ days }} prochains jours.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

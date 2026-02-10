@@ -3,9 +3,9 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.mixins import W3CRMFormMixin
-from apps.core.constants import FamilyStatus, Province
+from apps.core.constants import FamilyStatus, Province, Roles
 from apps.members.models import Member
-from .models import TrainingCourse, Lesson, ScheduledLesson, Interview
+from .models import TrainingCourse, Lesson, ScheduledLesson, Interview, InvitationCode
 
 
 class OnboardingProfileForm(W3CRMFormMixin, forms.ModelForm):
@@ -128,3 +128,83 @@ class AdminReviewForm(W3CRMFormMixin, forms.Form):
         label=_('Raison / Message'),
         help_text=_('Requis si vous refusez ou demandez des compléments'),
     )
+
+
+class InvitationCreateForm(W3CRMFormMixin, forms.Form):
+    """Admin form for creating an invitation code."""
+
+    ROLE_CHOICES = [(r[0], r[1]) for r in Roles.CHOICES]
+
+    role = forms.ChoiceField(
+        choices=ROLE_CHOICES,
+        initial=Roles.MEMBER,
+        label=_('Rôle assigné'),
+    )
+
+    expires_in_days = forms.IntegerField(
+        initial=30,
+        min_value=1,
+        max_value=365,
+        label=_('Expire dans (jours)'),
+    )
+
+    max_uses = forms.IntegerField(
+        initial=1,
+        min_value=1,
+        max_value=100,
+        label=_('Utilisations max'),
+    )
+
+    skip_onboarding = forms.BooleanField(
+        required=False,
+        initial=False,
+        label=_('Passer le parcours'),
+        help_text=_('Le membre devient actif immédiatement (pour membres pré-existants)'),
+    )
+
+    note = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 2}),
+        required=False,
+        label=_('Note'),
+    )
+
+
+class InvitationEditForm(W3CRMFormMixin, forms.ModelForm):
+    """Admin form for editing an existing invitation code."""
+
+    class Meta:
+        model = InvitationCode
+        fields = ['role', 'expires_at', 'max_uses', 'skip_onboarding', 'note', 'is_active']
+        widgets = {
+            'expires_at': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M',
+            ),
+            'note': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+class InvitationAcceptForm(W3CRMFormMixin, forms.Form):
+    """Form for a member to accept an invitation code."""
+
+    code = forms.CharField(
+        max_length=32,
+        label=_('Code d\'invitation'),
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Ex: AB12CD34',
+            'class': 'form-control text-uppercase',
+        }),
+    )
+
+    def clean_code(self):
+        code = self.cleaned_data['code'].upper().strip()
+        try:
+            invitation = InvitationCode.objects.get(code=code)
+        except InvitationCode.DoesNotExist:
+            raise forms.ValidationError(_('Code d\'invitation invalide.'))
+
+        if not invitation.is_usable:
+            raise forms.ValidationError(_('Ce code d\'invitation a expiré ou a été utilisé.'))
+
+        self.invitation = invitation
+        return code

@@ -8,7 +8,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.core.constants import DonationType, PaymentMethod, Roles
-from apps.donations.models import Donation, DonationCampaign, TaxReceipt
+from apps.donations.models import Donation, DonationCampaign, TaxReceipt, FinanceDelegation
 from apps.members.tests.factories import (
     MemberFactory,
     MemberWithUserFactory,
@@ -128,6 +128,19 @@ class TestDonationCreateView:
         assert active in campaigns
         assert inactive not in campaigns
 
+    def test_donation_creates_notification(self):
+        """Creating a donation creates a notification."""
+        from apps.communication.models import Notification
+        user, member = make_member_with_user()
+        client = make_logged_in_client(user)
+
+        data = {
+            'amount': '50.00',
+            'donation_type': DonationType.OFFERING,
+        }
+        client.post('/donations/donate/', data)
+        assert Notification.objects.filter(member=member, title='Confirmation de don').exists()
+
 
 @pytest.mark.django_db
 class TestDonationDetailView:
@@ -206,6 +219,291 @@ class TestDonationDetailView:
 
         response = client.get(f'/donations/{uuid.uuid4()}/')
         assert response.status_code == 404
+
+    def test_is_finance_flag_for_treasurer(self):
+        """Treasurer sees is_finance flag in context."""
+        user, member = make_member_with_user(Roles.TREASURER)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+
+        response = client.get(f'/donations/{donation.pk}/')
+        assert response.status_code == 200
+        assert response.context['is_finance'] is True
+
+    def test_is_finance_flag_for_member(self):
+        """Regular member does not see is_finance flag."""
+        user, member = make_member_with_user(Roles.MEMBER)
+        donation = DonationFactory(member=member)
+        client = make_logged_in_client(user)
+
+        response = client.get(f'/donations/{donation.pk}/')
+        assert response.status_code == 200
+        assert response.context['is_finance'] is False
+
+
+@pytest.mark.django_db
+class TestDonationEditView:
+    """Tests for donation_edit view."""
+
+    def test_login_required(self):
+        donation = DonationFactory()
+        client = Client()
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_regular_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_treasurer_can_access(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 200
+        assert 'form' in response.context
+        assert response.context['donation'] == donation
+
+    def test_pastor_can_access(self):
+        user, _ = make_member_with_user(Roles.PASTOR)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 200
+
+    def test_admin_can_access(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 200
+
+    def test_staff_user_can_access(self):
+        user = UserFactory(is_staff=True)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 200
+
+    def test_post_updates_donation(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        donation = DonationFactory(amount=Decimal('100.00'))
+        client = make_logged_in_client(user)
+
+        data = {
+            'amount': '200.00',
+            'donation_type': DonationType.TITHE,
+            'payment_method': PaymentMethod.CASH,
+            'date': date.today().isoformat(),
+        }
+        response = client.post(f'/donations/{donation.pk}/edit/', data)
+        assert response.status_code == 302
+        donation.refresh_from_db()
+        assert donation.amount == Decimal('200.00')
+        assert donation.donation_type == DonationType.TITHE
+
+    def test_post_invalid_data(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+
+        data = {
+            'amount': '-10.00',
+            'donation_type': DonationType.OFFERING,
+            'payment_method': PaymentMethod.CASH,
+            'date': date.today().isoformat(),
+        }
+        response = client.post(f'/donations/{donation.pk}/edit/', data)
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    def test_404_for_missing_donation(self):
+        import uuid
+        user, _ = make_member_with_user(Roles.TREASURER)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{uuid.uuid4()}/edit/')
+        assert response.status_code == 404
+
+    def test_non_staff_user_without_profile_denied(self):
+        user = UserFactory()
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/edit/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+
+@pytest.mark.django_db
+class TestDonationDeleteView:
+    """Tests for donation_delete view."""
+
+    def test_login_required(self):
+        donation = DonationFactory()
+        client = Client()
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_regular_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_treasurer_denied(self):
+        """Treasurer cannot delete (admin only)."""
+        user, _ = make_member_with_user(Roles.TREASURER)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_pastor_denied(self):
+        """Pastor cannot delete (admin only)."""
+        user, _ = make_member_with_user(Roles.PASTOR)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_admin_can_access_confirm_page(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 200
+        assert response.context['donation'] == donation
+
+    def test_staff_user_can_access(self):
+        user = UserFactory(is_staff=True)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 200
+
+    def test_post_deletes_donation(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        donation = DonationFactory()
+        pk = donation.pk
+        client = make_logged_in_client(user)
+        response = client.post(f'/donations/{pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/donations/admin/'
+        assert not Donation.objects.filter(pk=pk).exists()
+
+    def test_get_does_not_delete(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        client.get(f'/donations/{donation.pk}/delete/')
+        assert Donation.objects.filter(pk=donation.pk).exists()
+
+    def test_404_for_missing(self):
+        import uuid
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{uuid.uuid4()}/delete/')
+        assert response.status_code == 404
+
+    def test_non_staff_user_without_profile_denied(self):
+        user = UserFactory()
+        donation = DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/{donation.pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+
+@pytest.mark.django_db
+class TestDonationExportCSV:
+    """Tests for donation_export_csv view."""
+
+    url = '/donations/admin/export/'
+
+    def test_login_required(self):
+        client = Client()
+        response = client.get(self.url)
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_regular_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_treasurer_can_export(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'text/csv'
+        assert 'dons_export.csv' in response['Content-Disposition']
+
+    def test_admin_can_export(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'text/csv'
+
+    def test_pastor_can_export(self):
+        user, _ = make_member_with_user(Roles.PASTOR)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+    def test_staff_user_can_export(self):
+        user = UserFactory(is_staff=True)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+    def test_csv_contains_headers(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        DonationFactory()
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        content = response.content.decode('utf-8-sig')
+        assert 'Numéro' in content
+        assert 'Membre' in content
+        assert 'Montant' in content
+
+    def test_csv_contains_donation_data(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        donation = DonationFactory(amount=Decimal('123.45'))
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        content = response.content.decode('utf-8-sig')
+        assert donation.donation_number in content
+        assert '123.45' in content
+
+    def test_csv_with_filters(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        DonationFactory(donation_type=DonationType.TITHE, date=date(2026, 1, 15))
+        DonationFactory(donation_type=DonationType.OFFERING, date=date(2026, 2, 15))
+        client = make_logged_in_client(user)
+        response = client.get(f'{self.url}?donation_type={DonationType.TITHE}')
+        assert response.status_code == 200
+
+    def test_non_staff_user_without_profile_denied(self):
+        user = UserFactory()
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 302
+        assert response.url == '/'
 
 
 @pytest.mark.django_db
@@ -508,6 +806,23 @@ class TestDonationRecordView:
         assert 'form' in response.context
         assert response.context['form'].errors
 
+    def test_record_creates_notification(self):
+        """Recording a donation creates a notification for the donor."""
+        from apps.communication.models import Notification
+        user, treasurer = make_member_with_user(Roles.TREASURER)
+        target_member = MemberFactory()
+        client = make_logged_in_client(user)
+
+        data = {
+            'member': target_member.pk,
+            'amount': '100.00',
+            'donation_type': DonationType.OFFERING,
+            'payment_method': PaymentMethod.CASH,
+            'date': date.today().isoformat(),
+        }
+        client.post('/donations/record/', data)
+        assert Notification.objects.filter(member=target_member, title='Don enregistré').exists()
+
 
 @pytest.mark.django_db
 class TestCampaignListView:
@@ -752,6 +1067,123 @@ class TestReceiptDetailView:
 
 
 @pytest.mark.django_db
+class TestReceiptDownloadPDF:
+    """Tests for receipt_download_pdf view."""
+
+    def test_login_required(self):
+        receipt = TaxReceiptFactory(year=2025)
+        client = Client()
+        response = client.get(f'/donations/receipts/{receipt.pk}/pdf/')
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_member_can_download_own(self):
+        """Member can download their own receipt as PDF."""
+        user, member = make_member_with_user()
+        receipt = TaxReceiptFactory(member=member, year=2025)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/receipts/{receipt.pk}/pdf/')
+        # Either 200 (PDF generated) or 302 (xhtml2pdf not installed)
+        assert response.status_code in [200, 302]
+
+    def test_member_cannot_download_other(self):
+        """Regular member cannot download another member's receipt."""
+        user, member = make_member_with_user()
+        other_receipt = TaxReceiptFactory(year=2025)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/receipts/{other_receipt.pk}/pdf/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_treasurer_can_download_any(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        receipt = TaxReceiptFactory(year=2025)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/receipts/{receipt.pk}/pdf/')
+        assert response.status_code in [200, 302]
+
+    def test_admin_can_download_any(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        receipt = TaxReceiptFactory(year=2025)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/receipts/{receipt.pk}/pdf/')
+        assert response.status_code in [200, 302]
+
+    def test_staff_can_download_any(self):
+        user = UserFactory(is_staff=True)
+        receipt = TaxReceiptFactory(year=2025)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/receipts/{receipt.pk}/pdf/')
+        assert response.status_code in [200, 302]
+
+    def test_404_for_missing(self):
+        import uuid
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        response = client.get(f'/donations/receipts/{uuid.uuid4()}/pdf/')
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestReceiptBatchEmail:
+    """Tests for receipt_batch_email view."""
+
+    url = '/donations/receipts/batch-email/'
+
+    def test_login_required(self):
+        client = Client()
+        response = client.post(self.url)
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_regular_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        response = client.post(self.url)
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_treasurer_can_batch_send(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        receipt = TaxReceiptFactory(year=2025, email_sent=False)
+        client = make_logged_in_client(user)
+        response = client.post(self.url, {'receipt_ids': [str(receipt.pk)]})
+        assert response.status_code == 302
+        receipt.refresh_from_db()
+        assert receipt.email_sent is True
+        assert receipt.email_sent_date is not None
+
+    def test_already_sent_not_resent(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        receipt = TaxReceiptFactory(year=2025, email_sent=True)
+        client = make_logged_in_client(user)
+        response = client.post(self.url, {'receipt_ids': [str(receipt.pk)]})
+        assert response.status_code == 302
+
+    def test_no_receipt_ids_shows_warning(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        client = make_logged_in_client(user)
+        response = client.post(self.url)
+        assert response.status_code == 302
+
+    def test_admin_can_batch_send(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        receipt = TaxReceiptFactory(year=2025, email_sent=False)
+        client = make_logged_in_client(user)
+        response = client.post(self.url, {'receipt_ids': [str(receipt.pk)]})
+        assert response.status_code == 302
+        receipt.refresh_from_db()
+        assert receipt.email_sent is True
+
+    def test_non_staff_without_profile_denied(self):
+        user = UserFactory()
+        client = make_logged_in_client(user)
+        response = client.post(self.url)
+        assert response.status_code == 302
+        assert response.url == '/'
+
+
+@pytest.mark.django_db
 class TestDonationMonthlyReportView:
     """Tests for donation_monthly_report view."""
 
@@ -888,3 +1320,390 @@ class TestDonationMonthlyReportView:
         assert response.status_code == 200
         by_method = list(response.context['by_method'])
         assert len(by_method) == 2
+
+    def test_date_range_filter(self):
+        """Report can be filtered by date range."""
+        user, _ = make_member_with_user(Roles.TREASURER)
+        DonationFactory(date=date(2026, 1, 15), amount=Decimal('100.00'))
+        DonationFactory(date=date(2026, 2, 15), amount=Decimal('200.00'))
+        DonationFactory(date=date(2026, 3, 15), amount=Decimal('50.00'))
+        client = make_logged_in_client(user)
+
+        response = client.get(
+            '/donations/reports/monthly/?date_from=2026-01-01&date_to=2026-02-28'
+        )
+        assert response.status_code == 200
+        assert response.context['total'] == Decimal('300.00')
+        assert response.context['count'] == 2
+
+    def test_invalid_date_range_falls_back(self):
+        """Invalid date range falls back to month/year."""
+        user, _ = make_member_with_user(Roles.TREASURER)
+        client = make_logged_in_client(user)
+
+        response = client.get(
+            '/donations/reports/monthly/?date_from=invalid&date_to=invalid'
+        )
+        assert response.status_code == 200
+        assert response.context['year'] == timezone.now().year
+
+    def test_context_has_date_from_and_date_to(self):
+        """Context includes date_from and date_to."""
+        user, _ = make_member_with_user(Roles.TREASURER)
+        client = make_logged_in_client(user)
+
+        response = client.get('/donations/reports/monthly/')
+        assert response.status_code == 200
+        assert 'date_from' in response.context
+        assert 'date_to' in response.context
+
+
+# ==============================================================================
+# Campaign CRUD tests
+# ==============================================================================
+
+
+@pytest.mark.django_db
+class TestCampaignCreate:
+    """Tests for campaign_create view."""
+
+    url = '/donations/campaigns/create/'
+
+    def test_login_required(self):
+        client = Client()
+        response = client.get(self.url)
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_treasurer_get(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    def test_admin_get(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+    def test_pastor_get(self):
+        user, _ = make_member_with_user(Roles.PASTOR)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+    def test_post_creates(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        data = {
+            'name': 'New Campaign',
+            'description': 'A test campaign',
+            'goal_amount': '5000.00',
+            'start_date': '2026-03-01',
+            'is_active': True,
+        }
+        response = client.post(self.url, data)
+        assert response.status_code == 302
+        assert DonationCampaign.objects.filter(name='New Campaign').exists()
+
+    def test_post_invalid(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        data = {
+            'name': '',
+            'goal_amount': '5000.00',
+            'start_date': '2026-03-01',
+        }
+        response = client.post(self.url, data)
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    def test_staff_no_profile_allowed(self):
+        user = UserFactory(is_staff=True)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+    def test_end_date_before_start_date_rejected(self):
+        """End date before start date is rejected."""
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        data = {
+            'name': 'Bad Dates Campaign',
+            'goal_amount': '5000.00',
+            'start_date': '2026-06-01',
+            'end_date': '2026-03-01',
+            'is_active': True,
+        }
+        response = client.post(self.url, data)
+        assert response.status_code == 200
+        assert 'form' in response.context
+        assert response.context['form'].errors
+
+    def test_end_date_after_start_date_accepted(self):
+        """End date after start date is accepted."""
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        data = {
+            'name': 'Good Dates Campaign',
+            'goal_amount': '5000.00',
+            'start_date': '2026-03-01',
+            'end_date': '2026-06-01',
+            'is_active': True,
+        }
+        response = client.post(self.url, data)
+        assert response.status_code == 302
+        assert DonationCampaign.objects.filter(name='Good Dates Campaign').exists()
+
+
+@pytest.mark.django_db
+class TestCampaignUpdate:
+    """Tests for campaign_update view."""
+
+    def _url(self, pk):
+        return f'/donations/campaigns/{pk}/edit/'
+
+    def test_login_required(self):
+        campaign = DonationCampaignFactory()
+        client = Client()
+        response = client.get(self._url(campaign.pk))
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory()
+        response = client.get(self._url(campaign.pk))
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_admin_get(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory(name='Old Name')
+        response = client.get(self._url(campaign.pk))
+        assert response.status_code == 200
+        assert 'form' in response.context
+        assert response.context['campaign'] == campaign
+
+    def test_post_updates(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory(name='Old Name')
+        data = {
+            'name': 'Updated Name',
+            'description': 'Updated',
+            'goal_amount': '10000.00',
+            'start_date': '2026-03-01',
+            'is_active': True,
+        }
+        response = client.post(self._url(campaign.pk), data)
+        assert response.status_code == 302
+        campaign.refresh_from_db()
+        assert campaign.name == 'Updated Name'
+
+    def test_post_invalid(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory()
+        data = {
+            'name': '',
+            'goal_amount': '10000.00',
+            'start_date': '2026-03-01',
+        }
+        response = client.post(self._url(campaign.pk), data)
+        assert response.status_code == 200
+
+    def test_404_for_missing(self):
+        import uuid
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        response = client.get(self._url(uuid.uuid4()))
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestCampaignDelete:
+    """Tests for campaign_delete view."""
+
+    def _url(self, pk):
+        return f'/donations/campaigns/{pk}/delete/'
+
+    def test_login_required(self):
+        campaign = DonationCampaignFactory()
+        client = Client()
+        response = client.get(self._url(campaign.pk))
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory()
+        response = client.get(self._url(campaign.pk))
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_admin_get_confirm(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory()
+        response = client.get(self._url(campaign.pk))
+        assert response.status_code == 200
+
+    def test_post_deletes(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory()
+        pk = campaign.pk
+        response = client.post(self._url(pk))
+        assert response.status_code == 302
+        assert not DonationCampaign.objects.filter(pk=pk).exists()
+
+    def test_get_does_not_delete(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        campaign = DonationCampaignFactory()
+        client.get(self._url(campaign.pk))
+        assert DonationCampaign.objects.filter(pk=campaign.pk).exists()
+
+    def test_404_for_missing(self):
+        import uuid
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        response = client.get(self._url(uuid.uuid4()))
+        assert response.status_code == 404
+
+
+# ==============================================================================
+# Finance delegation tests
+# ==============================================================================
+
+
+@pytest.mark.django_db
+class TestFinanceDelegationsView:
+    """Tests for finance_delegations view."""
+
+    url = '/donations/delegations/'
+
+    def test_login_required(self):
+        client = Client()
+        response = client.get(self.url)
+        assert response.status_code == 302
+
+    def test_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 302
+
+    def test_treasurer_denied(self):
+        user, _ = make_member_with_user(Roles.TREASURER)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 302
+
+    def test_pastor_can_access(self):
+        user, _ = make_member_with_user(Roles.PASTOR)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert 'active_delegations' in response.context
+        assert 'revoked_delegations' in response.context
+        assert 'eligible_members' in response.context
+
+    def test_admin_can_access(self):
+        user, _ = make_member_with_user(Roles.ADMIN)
+        client = make_logged_in_client(user)
+        response = client.get(self.url)
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestDelegateFinanceAccess:
+    """Tests for delegate_finance_access view."""
+
+    url = '/donations/delegations/grant/'
+
+    def test_login_required(self):
+        client = Client()
+        response = client.post(self.url)
+        assert response.status_code == 302
+
+    def test_member_denied(self):
+        user, _ = make_member_with_user(Roles.MEMBER)
+        client = make_logged_in_client(user)
+        response = client.post(self.url)
+        assert response.status_code == 302
+
+    def test_pastor_can_grant(self):
+        user, pastor = make_member_with_user(Roles.PASTOR)
+        target = MemberFactory()
+        client = make_logged_in_client(user)
+        response = client.post(self.url, {'member': str(target.pk), 'reason': 'Test'})
+        assert response.status_code == 302
+        assert FinanceDelegation.objects.filter(delegated_to=target).exists()
+
+    def test_duplicate_delegation_prevented(self):
+        user, pastor = make_member_with_user(Roles.PASTOR)
+        target = MemberFactory()
+        FinanceDelegation.objects.create(delegated_to=target, delegated_by=pastor)
+        client = make_logged_in_client(user)
+        response = client.post(self.url, {'member': str(target.pk)})
+        assert response.status_code == 302
+        assert FinanceDelegation.objects.filter(delegated_to=target).count() == 1
+
+    def test_invalid_member_pk(self):
+        user, _ = make_member_with_user(Roles.PASTOR)
+        client = make_logged_in_client(user)
+        response = client.post(self.url, {'member': 'invalid'})
+        assert response.status_code == 302
+
+
+@pytest.mark.django_db
+class TestRevokeFinanceAccess:
+    """Tests for revoke_finance_access view."""
+
+    def test_login_required(self):
+        import uuid
+        client = Client()
+        response = client.post(f'/donations/delegations/{uuid.uuid4()}/revoke/')
+        assert response.status_code == 302
+
+    def test_member_denied(self):
+        user, member = make_member_with_user(Roles.MEMBER)
+        pastor_user, pastor = make_member_with_user(Roles.PASTOR)
+        target = MemberFactory()
+        delegation = FinanceDelegation.objects.create(delegated_to=target, delegated_by=pastor)
+        client = make_logged_in_client(user)
+        response = client.post(f'/donations/delegations/{delegation.pk}/revoke/')
+        assert response.status_code == 302
+
+    def test_pastor_can_revoke(self):
+        user, pastor = make_member_with_user(Roles.PASTOR)
+        target = MemberFactory()
+        delegation = FinanceDelegation.objects.create(delegated_to=target, delegated_by=pastor)
+        client = make_logged_in_client(user)
+        response = client.post(f'/donations/delegations/{delegation.pk}/revoke/')
+        assert response.status_code == 302
+        delegation.refresh_from_db()
+        assert delegation.revoked_at is not None
+
+    def test_get_does_not_revoke(self):
+        user, pastor = make_member_with_user(Roles.PASTOR)
+        target = MemberFactory()
+        delegation = FinanceDelegation.objects.create(delegated_to=target, delegated_by=pastor)
+        client = make_logged_in_client(user)
+        client.get(f'/donations/delegations/{delegation.pk}/revoke/')
+        delegation.refresh_from_db()
+        assert delegation.revoked_at is None

@@ -65,35 +65,20 @@
 
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="instructor">Formateur principal</label>
-                                    {% if instructors %}
-                                    <select name="instructor" id="instructor" class="form-select">
-                                        <option value="">-- Choisir un formateur --</option>
-                                        {% for inst in instructors %}
-                                        <option value="{{ inst.pk }}" {% if form.instructor.value == inst.pk|stringformat:"s" %}selected{% endif %}>
-                                            {{ inst.first_name }} {{ inst.last_name }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                    {% else %}
-                                    <input type="text" name="instructor_name" id="instructor" class="form-control"
-                                           value="{{ form.instructor_name.value|default:'' }}" placeholder="Nom du formateur">
+                                    <label class="form-label" for="total_lessons">Nombre de lecons <span class="text-danger">*</span></label>
+                                    <input type="number" name="total_lessons" id="total_lessons" class="form-control {% if form.total_lessons.errors %}is-invalid{% endif %}"
+                                           value="{{ form.total_lessons.value|default:'5' }}" min="1" required>
+                                    {% if form.total_lessons.errors %}
+                                    <div class="invalid-feedback">{{ form.total_lessons.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="is_active">Statut</label>
-                                    <select name="is_active" id="is_active" class="form-select">
-                                        <option value="true" {% if form.is_active.value == True or form.is_active.value == 'true' or not course %}selected{% endif %}>Actif</option>
-                                        <option value="false" {% if form.is_active.value == False or form.is_active.value == 'false' %}selected{% endif %}>Inactif</option>
-                                    </select>
-                                    <div class="form-text">Un cours inactif ne sera pas propose aux nouveaux membres.</div>
+                                    <label class="form-label" for="is_default">Cours par defaut</label>
+                                    <div class="form-check mt-2">
+                                        <input type="checkbox" name="is_default" class="form-check-input" id="is_default" {% if form.is_default.value %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_default">Assigner automatiquement aux nouveaux membres</label>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="notes">Notes internes (facultatif)</label>
-                                <textarea name="notes" id="notes" class="form-control" rows="3"
-                                          placeholder="Notes visibles uniquement par les administrateurs...">{{ form.notes.value|default:'' }}</textarea>
                             </div>
 
                             <hr class="my-4">

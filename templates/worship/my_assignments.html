@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mes assignations</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Upcoming Assignments -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Assignations à venir</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date du culte</th>
+                                        <th>Heure</th>
+                                        <th>Section</th>
+                                        <th>Tâche</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in assignments %}
+                                    <tr>
+                                        <td>{{ assignment.section.service.date|date:"d/m/Y" }}</td>
+                                        <td>{{ assignment.section.service.start_time|time:"H:i" }}</td>
+                                        <td>{{ assignment.section.name }}</td>
+                                        <td>{{ assignment.task_type.name|default:"—" }}</td>
+                                        <td>
+                                            {% if assignment.status == 'assigned' %}
+                                            <span class="badge badge-warning">En attente</span>
+                                            {% elif assignment.status == 'confirmed' %}
+                                            <span class="badge badge-success">Confirmé</span>
+                                            {% elif assignment.status == 'declined' %}
+                                            <span class="badge badge-danger">Décliné</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if assignment.status == 'assigned' %}
+                                            <form method="post" action="/worship/assignments/{{ assignment.pk }}/respond/" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="confirm">
+                                                <button type="submit" class="btn btn-success btn-xs">
+                                                    <i class="fas fa-check"></i> Confirmer
+                                                </button>
+                                            </form>
+                                            <form method="post" action="/worship/assignments/{{ assignment.pk }}/respond/" class="d-inline ms-1">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="decline">
+                                                <button type="submit" class="btn btn-danger btn-xs">
+                                                    <i class="fas fa-times"></i> Décliner
+                                                </button>
+                                            </form>
+                                            {% elif assignment.status == 'confirmed' %}
+                                            <span class="text-success"><i class="fas fa-check-circle"></i></span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">Aucune assignation à venir.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Past Assignments -->
+        {% if past_assignments %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Historique récent</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Section</th>
+                                        <th>Tâche</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in past_assignments %}
+                                    <tr>
+                                        <td>{{ assignment.section.service.date|date:"d/m/Y" }}</td>
+                                        <td>{{ assignment.section.name }}</td>
+                                        <td>{{ assignment.task_type.name|default:"—" }}</td>
+                                        <td>
+                                            {% if assignment.status == 'confirmed' %}
+                                            <span class="badge badge-success">Confirmé</span>
+                                            {% elif assignment.status == 'declined' %}
+                                            <span class="badge badge-danger">Décliné</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary">{{ assignment.get_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

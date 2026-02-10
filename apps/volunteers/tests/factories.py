@@ -7,7 +7,8 @@ from apps.core.constants import VolunteerRole, ScheduleStatus, VolunteerFrequenc
 from apps.members.tests.factories import MemberFactory
 
 from apps.volunteers.models import (
-    VolunteerPosition, VolunteerAvailability, VolunteerSchedule, SwapRequest
+    VolunteerPosition, VolunteerAvailability, VolunteerSchedule, SwapRequest,
+    PlannedAbsence,
 )
 
 
@@ -45,6 +46,18 @@ class VolunteerScheduleFactory(DjangoModelFactory):
     position = factory.SubFactory(VolunteerPositionFactory)
     date = factory.LazyFunction(lambda: timezone.now().date() + timezone.timedelta(days=7))
     status = ScheduleStatus.SCHEDULED
+
+
+class PlannedAbsenceFactory(DjangoModelFactory):
+    """Creates test planned absence records."""
+
+    class Meta:
+        model = PlannedAbsence
+
+    member = factory.SubFactory(MemberFactory)
+    start_date = factory.LazyFunction(lambda: timezone.now().date() + timezone.timedelta(days=7))
+    end_date = factory.LazyFunction(lambda: timezone.now().date() + timezone.timedelta(days=14))
+    reason = factory.Faker('sentence')
 
 
 class SwapRequestFactory(DjangoModelFactory):

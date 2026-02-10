@@ -253,3 +253,202 @@ class TestEventCalendar:
         response = client.get('/events/calendar/')
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
+
+
+@pytest.fixture
+def admin_user():
+    member = MemberWithUserFactory(role=Roles.ADMIN)
+    return member.user
+
+
+@pytest.fixture
+def pastor_user():
+    member = MemberWithUserFactory(role=Roles.PASTOR)
+    return member.user
+
+
+class TestEventCreate:
+
+    def test_login_required(self, client):
+        response = client.get('/events/create/')
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_no_member_profile_redirects(self, client, user_no_profile):
+        client.force_login(user_no_profile)
+        response = client.get('/events/create/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_regular_member_denied(self, client, member_user):
+        client.force_login(member_user)
+        response = client.get('/events/create/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_admin_get_shows_form(self, client, admin_user):
+        client.force_login(admin_user)
+        response = client.get('/events/create/')
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    def test_pastor_get_shows_form(self, client, pastor_user):
+        client.force_login(pastor_user)
+        response = client.get('/events/create/')
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    def test_post_creates_event(self, client, admin_user):
+        client.force_login(admin_user)
+        now = timezone.now()
+        response = client.post('/events/create/', {
+            'title': 'Culte du dimanche',
+            'event_type': EventType.WORSHIP,
+            'start_datetime': (now + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M'),
+            'end_datetime': (now + timedelta(days=7, hours=2)).strftime('%Y-%m-%dT%H:%M'),
+        })
+        assert response.status_code == 302
+        assert response.url == '/events/'
+        from apps.events.models import Event
+        assert Event.objects.filter(title='Culte du dimanche').exists()
+
+    def test_post_invalid_shows_form(self, client, admin_user):
+        client.force_login(admin_user)
+        response = client.post('/events/create/', {
+            'title': '',
+            'event_type': EventType.WORSHIP,
+        })
+        assert response.status_code == 200
+        assert 'form' in response.context
+        assert response.context['form'].errors
+
+    def test_context_has_page_title(self, client, admin_user):
+        client.force_login(admin_user)
+        response = client.get('/events/create/')
+        assert 'page_title' in response.context
+
+
+class TestEventUpdate:
+
+    def test_login_required(self, client):
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/edit/')
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_no_member_profile_redirects(self, client, user_no_profile):
+        client.force_login(user_no_profile)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/edit/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_regular_member_denied(self, client, member_user):
+        client.force_login(member_user)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/edit/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_admin_get_shows_form_with_instance(self, client, admin_user):
+        client.force_login(admin_user)
+        event = EventFactory(title='Original Title')
+        response = client.get(f'/events/{event.pk}/edit/')
+        assert response.status_code == 200
+        assert 'form' in response.context
+        assert response.context['event'] == event
+
+    def test_pastor_get_shows_form(self, client, pastor_user):
+        client.force_login(pastor_user)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/edit/')
+        assert response.status_code == 200
+
+    def test_post_updates_event(self, client, admin_user):
+        client.force_login(admin_user)
+        event = EventFactory(title='Old Title')
+        response = client.post(f'/events/{event.pk}/edit/', {
+            'title': 'New Title',
+            'event_type': event.event_type,
+            'start_datetime': event.start_datetime.strftime('%Y-%m-%dT%H:%M'),
+            'end_datetime': event.end_datetime.strftime('%Y-%m-%dT%H:%M'),
+        })
+        assert response.status_code == 302
+        assert f'/events/{event.pk}/' in response.url
+        event.refresh_from_db()
+        assert event.title == 'New Title'
+
+    def test_post_invalid_shows_form(self, client, admin_user):
+        client.force_login(admin_user)
+        event = EventFactory()
+        response = client.post(f'/events/{event.pk}/edit/', {
+            'title': '',
+            'event_type': event.event_type,
+        })
+        assert response.status_code == 200
+        assert response.context['form'].errors
+
+    def test_404_for_nonexistent_event(self, client, admin_user):
+        import uuid
+        client.force_login(admin_user)
+        response = client.get(f'/events/{uuid.uuid4()}/edit/')
+        assert response.status_code == 404
+
+
+class TestEventDelete:
+
+    def test_login_required(self, client):
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/delete/')
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_no_member_profile_redirects(self, client, user_no_profile):
+        client.force_login(user_no_profile)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_regular_member_denied(self, client, member_user):
+        client.force_login(member_user)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/'
+
+    def test_admin_get_shows_confirmation(self, client, admin_user):
+        client.force_login(admin_user)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/delete/')
+        assert response.status_code == 200
+        assert response.context['event'] == event
+
+    def test_pastor_get_shows_confirmation(self, client, pastor_user):
+        client.force_login(pastor_user)
+        event = EventFactory()
+        response = client.get(f'/events/{event.pk}/delete/')
+        assert response.status_code == 200
+
+    def test_post_deletes_event(self, client, admin_user):
+        client.force_login(admin_user)
+        event = EventFactory()
+        event_pk = event.pk
+        response = client.post(f'/events/{event_pk}/delete/')
+        assert response.status_code == 302
+        assert response.url == '/events/'
+        from apps.events.models import Event
+        assert not Event.all_objects.filter(pk=event_pk).exists()
+
+    def test_get_does_not_delete(self, client, admin_user):
+        client.force_login(admin_user)
+        event = EventFactory()
+        client.get(f'/events/{event.pk}/delete/')
+        from apps.events.models import Event
+        assert Event.objects.filter(pk=event.pk).exists()
+
+    def test_404_for_nonexistent_event(self, client, admin_user):
+        import uuid
+        client.force_login(admin_user)
+        response = client.get(f'/events/{uuid.uuid4()}/delete/')
+        assert response.status_code == 404

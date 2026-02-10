@@ -40,10 +40,10 @@
                                     <i class="fas fa-calendar-alt text-primary me-2"></i>
                                     <strong>Date et heure</strong>
                                     <p class="mb-0 mt-2 fs-5">
-                                        {% if interview.scheduled_date %}
-                                            {{ interview.scheduled_date|date:"l d F Y" }}
+                                        {% if interview.final_date %}
+                                            {{ interview.final_date|date:"l d F Y" }}
                                             <br>
-                                            <span class="text-primary">{{ interview.scheduled_date|date:"H:i" }}</span>
+                                            <span class="text-primary">{{ interview.final_date|date:"H:i" }}</span>
                                         {% else %}
                                             <span class="text-muted">Non definie</span>
                                         {% endif %}
@@ -68,16 +68,16 @@
                                 <div class="p-3 bg-light rounded h-100">
                                     <i class="fas fa-clock text-primary me-2"></i>
                                     <strong>Duree estimee</strong>
-                                    <p class="mb-0 mt-2 fs-5">{{ interview.duration|default:"30 minutes" }}</p>
+                                    <p class="mb-0 mt-2 fs-5">30-45 minutes</p>
                                 </div>
                             </div>
                         </div>
 
-                        {% if interview.notes %}
+                        {% if interview.result_notes %}
                         <div class="mb-4">
                             <h5>Notes supplementaires</h5>
                             <div class="border rounded p-3 bg-light">
-                                {{ interview.notes|linebreaks }}
+                                {{ interview.result_notes|linebreaks }}
                             </div>
                         </div>
                         {% endif %}
@@ -95,9 +95,9 @@
                         <p class="text-muted">
                             Si cette date et ce creneau vous conviennent, confirmez votre presence en cliquant ci-dessous.
                         </p>
-                        <form method="post" action="/onboarding/interview/accept/">
+                        <form method="post" action="/onboarding/interview/">
                             {% csrf_token %}
-                            <input type="hidden" name="interview_id" value="{{ interview.pk }}">
+                            <input type="hidden" name="action" value="accept">
                             <button type="submit" class="btn btn-success btn-lg">
                                 <i class="fas fa-check me-2"></i>Je confirme ma presence
                             </button>
@@ -115,21 +115,13 @@
                             Si la date proposee ne vous convient pas, vous pouvez suggerer une alternative.
                             Attention : cette possibilite n'est offerte qu'une seule fois.
                         </p>
-                        <form method="post" action="/onboarding/interview/counter-propose/">
+                        <form method="post" action="/onboarding/interview/">
                             {% csrf_token %}
-                            <input type="hidden" name="interview_id" value="{{ interview.pk }}">
+                            <input type="hidden" name="action" value="counter">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="proposed_date">Date et heure souhaitees <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" name="proposed_date" id="proposed_date" class="form-control" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="proposed_location">Lieu souhaite (facultatif)</label>
-                                    <input type="text" name="proposed_location" id="proposed_location" class="form-control" placeholder="Laisser vide pour garder le meme lieu">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label" for="reason">Motif de la contre-proposition <span class="text-danger">*</span></label>
-                                    <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Expliquez pourquoi la date proposee ne vous convient pas..." required></textarea>
+                                    <label class="form-label" for="counter_proposed_date">Date et heure souhaitees <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="counter_proposed_date" id="counter_proposed_date" class="form-control" required>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-info">

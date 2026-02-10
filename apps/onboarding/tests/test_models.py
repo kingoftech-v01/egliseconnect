@@ -75,6 +75,26 @@ class TestTrainingCourseModel:
         assert course.created_by == member
         assert course in member.created_courses.all()
 
+    def test_lessons_count_alias(self):
+        """lessons_count returns same value as lesson_count."""
+        course = TrainingCourseFactory()
+        LessonFactory(course=course, order=1)
+        LessonFactory(course=course, order=2)
+        assert course.lessons_count == 2
+        assert course.lessons_count == course.lesson_count
+
+    def test_participants_count_zero(self):
+        """participants_count returns 0 when no enrollments."""
+        course = TrainingCourseFactory()
+        assert course.participants_count == 0
+
+    def test_participants_count_with_enrollment(self):
+        """participants_count returns count of active enrollments."""
+        course = TrainingCourseFactory()
+        member = MemberFactory(user=None)
+        MemberTrainingFactory(member=member, course=course)
+        assert course.participants_count == 1
+
 
 @pytest.mark.django_db
 class TestLessonModel:

@@ -1,0 +1,21 @@
+{% extends "account/base_auth.html" %}
+{% load i18n %}
+
+{% block head_title %}Verifiez votre e-mail{% endblock %}
+
+{% block auth_title %}Verifiez votre e-mail{% endblock %}
+{% block auth_subtitle %}Un e-mail de verification vous a ete envoye{% endblock %}
+
+{% block auth_form %}
+<div class="text-center">
+    <div class="mb-4">
+        <i class="fas fa-envelope fa-3x text-primary mb-3"></i>
+    </div>
+    <p class="mb-4">
+        Nous vous avons envoye un e-mail de verification. Suivez le lien dans l'e-mail pour
+        finaliser votre inscription. Si vous ne voyez pas l'e-mail, verifiez votre dossier
+        de courriers indesirables.
+    </p>
+    <a href="{% url 'account_login' %}" class="btn btn-outline-primary">Retour a la connexion</a>
+</div>
+{% endblock %}

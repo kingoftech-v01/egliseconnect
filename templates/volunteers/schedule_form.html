@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}{% if schedule %}Modifier l'horaire{% else %}Nouvel horaire{% endif %}{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{% if schedule %}Modifier l'horaire{% else %}Nouvel horaire{% endif %}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/schedule/">Horaires</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{% if schedule %}Modifier{% else %}Créer{% endif %}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">
+                            {% if schedule %}Modifier l'horaire{% else %}Créer un nouvel horaire{% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Veuillez corriger les erreurs ci-dessous :</strong>
+                            <ul class="mb-0 mt-2">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                    <li>{{ field.label }} : {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                {% if field.field.widget.input_type == 'checkbox' %}
+                                <div class="form-check">
+                                    {{ field }}
+                                    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                </div>
+                                {% else %}
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                <div class="invalid-feedback d-block">{{ field.errors.0 }}</div>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="/volunteers/schedule/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    {% if schedule %}<i class="fas fa-save me-2"></i>Enregistrer{% else %}<i class="fas fa-plus me-2"></i>Créer{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Simple search filter for select elements with data-search attribute
+document.addEventListener('DOMContentLoaded', function() {
+    var selects = document.querySelectorAll('select[data-search="true"]');
+    selects.forEach(function(select) {
+        // Create a search input above the select
+        var wrapper = document.createElement('div');
+        wrapper.className = 'position-relative';
+        select.parentNode.insertBefore(wrapper, select);
+        
+        var searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'form-control mb-1';
+        searchInput.placeholder = 'Rechercher un membre...';
+        searchInput.setAttribute('data-search-for', select.id);
+        wrapper.appendChild(searchInput);
+        wrapper.appendChild(select);
+        
+        // Store original options
+        var options = Array.from(select.options);
+        
+        searchInput.addEventListener('input', function() {
+            var filter = this.value.toLowerCase();
+            select.innerHTML = '';
+            options.forEach(function(opt) {
+                if (!filter || opt.text.toLowerCase().indexOf(filter) !== -1 || opt.value === '') {
+                    select.appendChild(opt.cloneNode(true));
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

@@ -69,6 +69,27 @@
                 </div>
             </div>
         </div>
+        {% if payments.has_other_pages %}
+        <nav aria-label="Pagination des paiements">
+            <ul class="pagination justify-content-center">
+                {% if payments.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ payments.previous_page_number }}">{% trans "Précédent" %}</a>
+                </li>
+                {% endif %}
+                {% for num in payments.paginator.page_range %}
+                <li class="page-item {% if payments.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+                {% if payments.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ payments.next_page_number }}">{% trans "Suivant" %}</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

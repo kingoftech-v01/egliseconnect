@@ -8,6 +8,12 @@
             {% with mp=request.user.member_profile %}
             {% if mp %}
 
+            {# Mon profil - always visible #}
+            <li><a href="/members/my-profile/" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="7" r="4" stroke="#888888"/><path d="M3 18c0-3.87 3.13-7 7-7s7 3.13 7 7" stroke="#888888" stroke-linecap="round"/></svg></div>
+                <span class="nav-text">Mon profil</span>
+            </a></li>
+
             {# QR Code - always visible #}
             <li><a href="/attendance/my-qr/" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="7" height="7" rx="1" stroke="#888888"/><rect x="11" y="2" width="7" height="7" rx="1" stroke="#888888"/><rect x="2" y="11" width="7" height="7" rx="1" stroke="#888888"/><rect x="11" y="11" width="7" height="7" rx="1" stroke="#888888"/></svg></div>
@@ -68,6 +74,7 @@
                     <li><a href="/members/directory/">Annuaire</a></li>
                     <li><a href="/members/groups/">Groupes</a></li>
                     <li><a href="/members/birthdays/">Anniversaires</a></li>
+                    <li><a href="/members/departments/">Départements</a></li>
                 </ul>
             </li>
 
@@ -76,11 +83,16 @@
                 <span class="nav-text">Dons</span>
             </a>
                 <ul aria-expanded="false">
-                    <li><a href="/donations/donate/">Faire un don</a></li>
-                    <li><a href="/donations/history/">Historique</a></li>
+                    <li><a href="/payments/donate/">Faire un don</a></li>
+                    <li><a href="/donations/history/">Historique dons</a></li>
+                    <li><a href="/payments/history/">Historique paiements</a></li>
+                    <li><a href="/payments/recurring/">Dons récurrents</a></li>
                     <li><a href="/donations/admin/">Administration</a></li>
                     <li><a href="/donations/campaigns/">Campagnes</a></li>
                     <li><a href="/donations/receipts/">Reçus fiscaux</a></li>
+                    {% if mp.role == 'admin' or mp.role == 'pastor' %}
+                    <li><a href="/donations/delegations/">Délégations finance</a></li>
+                    {% endif %}
                 </ul>
             </li>
 
@@ -95,6 +107,20 @@
             </li>
 
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18.5l-4-4M15 18.5l4-4M10 2.5v3M4.93 4.93l2.12 2.12M15.07 4.93l-2.12 2.12M3.5 10.5h3M13.5 10.5h3M10 7.5a3 3 0 100 6 3 3 0 000-6z" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="nav-text">Cultes</span>
+            </a>
+                <ul aria-expanded="false">
+                    <li><a href="/worship/services/">Services</a></li>
+                    <li><a href="/worship/my-assignments/">Mes assignations</a></li>
+                    {% if mp.role == 'admin' or mp.role == 'pastor' or mp.role == 'deacon' %}
+                    <li><a href="/worship/services/create/">Créer un culte</a></li>
+                    <li><a href="/worship/eligible/">Listes d'éligibilité</a></li>
+                    {% endif %}
+                </ul>
+            </li>
+
+            <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.75" y="3.67" width="14.5" height="16.5" rx="1.83" stroke="#888888"/><path d="M8.25 10.08l2.75 2.75 8.25-8.25" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                 <span class="nav-text">Volontaires</span>
             </a>
@@ -103,6 +129,8 @@
                     <li><a href="/volunteers/schedule/">Horaires</a></li>
                     <li><a href="/volunteers/my-schedule/">Mon planning</a></li>
                     <li><a href="/volunteers/availability/">Disponibilités</a></li>
+                    <li><a href="/volunteers/planned-absences/">Absences prévues</a></li>
+                    <li><a href="/volunteers/swap-requests/">Échanges</a></li>
                 </ul>
             </li>
 
@@ -143,7 +171,7 @@
             {% endif %}
 
             {# === ADMIN SECTION === #}
-            {% if mp.role == 'admin' or mp.role == 'pastor' %}
+            {% if mp.role == 'admin' or mp.role == 'pastor' or mp.role == 'deacon' %}
             <li class="menu-title">ADMINISTRATION</li>
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.67 10H13.33L11.67 17.5 8.33 2.5 6.67 10H3.33" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -155,6 +183,8 @@
                     <li><a href="/onboarding/admin/stats/">Statistiques</a></li>
                     <li><a href="/attendance/scanner/">Scanner QR</a></li>
                     <li><a href="/attendance/sessions/">Sessions</a></li>
+                    <li><a href="/onboarding/admin/invitations/">Codes d'invitation</a></li>
+                    <li><a href="/members/disciplinary/">Actions disciplinaires</a></li>
                 </ul>
             </li>
             {% endif %}
@@ -165,3 +195,74 @@
         </ul>
     </div>
 </div>
+
+<script>
+// Active page highlighting
+(function() {
+    var path = window.location.pathname;
+    var links = document.querySelectorAll('#menu a[href]');
+    var bestMatch = null;
+    var bestLen = 0;
+    links.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href && href !== '/' && href !== 'javascript:void(0);' && path.indexOf(href) === 0) {
+            if (href.length > bestLen) {
+                bestLen = href.length;
+                bestMatch = link;
+            }
+        }
+    });
+    if (bestMatch) {
+        bestMatch.classList.add('mm-active');
+        var parentLi = bestMatch.closest('li');
+        if (parentLi) parentLi.classList.add('mm-active');
+        var parentUl = parentLi ? parentLi.closest('ul') : null;
+        if (parentUl && parentUl.id !== 'menu') {
+            parentUl.classList.add('mm-show');
+            var parentParentLi = parentUl.closest('li');
+            if (parentParentLi) parentParentLi.classList.add('mm-active');
+        }
+    }
+})();
+
+// Sidebar collapse memory (localStorage)
+(function() {
+    var STORAGE_KEY = 'sidebar_collapse_state';
+    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    var menuItems = document.querySelectorAll('#menu > li > a.has-arrow');
+
+    menuItems.forEach(function(arrow, idx) {
+        var key = 'section_' + idx;
+        var subUl = arrow.nextElementSibling;
+        if (!subUl) return;
+
+        // Restore state
+        if (saved[key] === 'open') {
+            subUl.classList.add('mm-show');
+            arrow.closest('li').classList.add('mm-active');
+        }
+    });
+
+    // Listen for MetisMenu events
+    var menu = document.getElementById('menu');
+    if (menu) {
+        menu.addEventListener('shown.metisMenu', function(e) {
+            saveState();
+        });
+        menu.addEventListener('hidden.metisMenu', function(e) {
+            saveState();
+        });
+    }
+
+    function saveState() {
+        var state = {};
+        menuItems.forEach(function(arrow, idx) {
+            var subUl = arrow.nextElementSibling;
+            if (subUl && subUl.classList.contains('mm-show')) {
+                state['section_' + idx] = 'open';
+            }
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+})();
+</script>

@@ -26,8 +26,10 @@ from apps.onboarding.models import (
     ScheduledLesson,
     TrainingCourse,
 )
+from apps.onboarding.models import InvitationCode
 from apps.onboarding.tests.factories import (
     InterviewFactory,
+    InvitationCodeFactory,
     LessonFactory,
     MemberTrainingFactory,
     ScheduledLessonFactory,
@@ -61,7 +63,13 @@ def _setup_templates(settings, tmp_path):
         'admin_courses.html',
         'admin_course_form.html',
         'admin_course_detail.html',
+        'admin_lesson_form.html',
         'admin_stats.html',
+        'admin_invitations.html',
+        'admin_invitation_form.html',
+        'admin_invitation_edit.html',
+        'admin_invitation_delete.html',
+        'accept_invitation.html',
     ]
     for name in template_names:
         (onboarding_dir / name).write_text('{{ page_title|default:"test" }}')
@@ -558,6 +566,45 @@ class TestAdminPipelineView:
         response = client.get(self.url)
         assert response.status_code == 302
 
+    def test_pipeline_with_populated_columns(self, client, admin_user):
+        """Pipeline shows members in all Kanban columns with annotations."""
+        user, _ = admin_user
+        client.force_login(user)
+
+        # Create members in each status
+        reg_member = MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        sub_member = MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.FORM_SUBMITTED,
+            registration_date=timezone.now() - timedelta(days=10),
+        )
+        train_member = MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.IN_TRAINING,
+            registration_date=timezone.now() - timedelta(days=20),
+        )
+        course = TrainingCourseFactory()
+        training = MemberTrainingFactory(member=train_member, course=course)
+
+        iv_member = MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.INTERVIEW_SCHEDULED,
+            registration_date=timezone.now() - timedelta(days=30),
+        )
+        InterviewFactory(member=iv_member, training=MemberTrainingFactory(member=iv_member, course=course))
+
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert len(response.context['registered_list']) >= 1
+        assert len(response.context['submitted_list']) >= 1
+        assert len(response.context['training_list']) >= 1
+        assert len(response.context['interview_list']) >= 1
+
 
 # ---------------------------------------------------------------------------
 # Admin review view
@@ -672,6 +719,26 @@ class TestAdminReviewView:
         client.force_login(user)
         response = client.get(self._url(uuid.uuid4()))
         assert response.status_code == 404
+
+    def test_review_with_training_progress(self, client, admin_user):
+        """Review page includes training_progress when member has active training."""
+        user, _ = admin_user
+        client.force_login(user)
+
+        member = MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.IN_TRAINING,
+            registration_date=timezone.now() - timedelta(days=20),
+        )
+        course = TrainingCourseFactory()
+        training = MemberTrainingFactory(member=member, course=course)
+        lesson = LessonFactory(course=course, order=1)
+        ScheduledLessonFactory(training=training, lesson=lesson)
+
+        response = client.get(self._url(member.pk))
+        assert response.status_code == 200
+        assert response.context['training_progress'] is not None
+        assert response.context['training_progress']['total'] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -1182,3 +1249,482 @@ class TestAdminStatsView:
         client.force_login(user)
         response = client.get(self.url)
         assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# Admin course edit view
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestAdminCourseEditView:
+    """Tests for admin_course_edit view."""
+
+    def _url(self, pk):
+        return f'/onboarding/admin/courses/{pk}/edit/'
+
+    def test_login_required(self, client):
+        course = TrainingCourseFactory()
+        response = client.get(self._url(course.pk))
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_regular_member_denied(self, client, member_user):
+        user, _ = member_user
+        course = TrainingCourseFactory()
+        client.force_login(user)
+        response = client.get(self._url(course.pk))
+        assert response.status_code == 302
+
+    def test_admin_get_renders(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        client.force_login(user)
+        response = client.get(self._url(course.pk))
+        assert response.status_code == 200
+
+    def test_admin_post_updates(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory(name='Old Name')
+        client.force_login(user)
+        response = client.post(self._url(course.pk), {
+            'name': 'New Name',
+            'description': 'Updated',
+            'total_lessons': 10,
+        })
+        assert response.status_code == 302
+        course.refresh_from_db()
+        assert course.name == 'New Name'
+
+    def test_post_invalid_re_renders(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        client.force_login(user)
+        response = client.post(self._url(course.pk), {'name': '', 'total_lessons': ''})
+        assert response.status_code == 200
+
+    def test_user_without_profile_redirects(self, client):
+        user = UserFactory()
+        course = TrainingCourseFactory()
+        client.force_login(user)
+        response = client.get(self._url(course.pk))
+        assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# Admin lesson edit view
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestAdminLessonEditView:
+    """Tests for admin_lesson_edit view."""
+
+    def _url(self, course_pk, lesson_pk):
+        return f'/onboarding/admin/courses/{course_pk}/lessons/{lesson_pk}/edit/'
+
+    def test_login_required(self, client):
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        response = client.get(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+
+    def test_regular_member_denied(self, client, member_user):
+        user, _ = member_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.get(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+
+    def test_admin_get_renders(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.get(self._url(course.pk, lesson.pk))
+        assert response.status_code == 200
+
+    def test_admin_post_updates(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1, title='Old Title')
+        client.force_login(user)
+        response = client.post(self._url(course.pk, lesson.pk), {
+            'order': 1,
+            'title': 'New Title',
+            'duration_minutes': 60,
+        })
+        assert response.status_code == 302
+        lesson.refresh_from_db()
+        assert lesson.title == 'New Title'
+
+    def test_post_invalid_re_renders(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.post(self._url(course.pk, lesson.pk), {'order': '', 'title': ''})
+        assert response.status_code == 200
+
+    def test_user_without_profile_redirects(self, client):
+        user = UserFactory()
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.get(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# Admin lesson delete view
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestAdminLessonDeleteView:
+    """Tests for admin_lesson_delete view."""
+
+    def _url(self, course_pk, lesson_pk):
+        return f'/onboarding/admin/courses/{course_pk}/lessons/{lesson_pk}/delete/'
+
+    def test_login_required(self, client):
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        response = client.post(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_regular_member_denied(self, client, member_user):
+        user, _ = member_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.post(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+
+    def test_admin_post_soft_deletes(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.post(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+        lesson.refresh_from_db()
+        assert lesson.is_active is False
+
+    def test_get_redirects_without_deleting(self, client, admin_user):
+        user, _ = admin_user
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.get(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+        lesson.refresh_from_db()
+        assert lesson.is_active is True
+
+    def test_user_without_profile_redirects(self, client):
+        user = UserFactory()
+        course = TrainingCourseFactory()
+        lesson = LessonFactory(course=course, order=1)
+        client.force_login(user)
+        response = client.post(self._url(course.pk, lesson.pk))
+        assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# Invitation Edit
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestInvitationEdit:
+    """Tests for admin_invitation_edit view."""
+
+    def _url(self, pk):
+        return f'/onboarding/admin/invitations/{pk}/edit/'
+
+    def test_login_required(self, client):
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_no_profile_redirects(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 302
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 302
+
+    def test_admin_get(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 200
+
+    def test_pastor_get(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 200
+
+    def test_post_updates(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        inv = InvitationCodeFactory(max_uses=1, note='')
+        data = {
+            'role': Roles.VOLUNTEER,
+            'expires_at': (timezone.now() + timedelta(days=60)).strftime('%Y-%m-%dT%H:%M'),
+            'max_uses': 5,
+            'note': 'Updated note',
+            'is_active': True,
+        }
+        response = client.post(self._url(inv.pk), data)
+        assert response.status_code == 302
+        inv.refresh_from_db()
+        assert inv.max_uses == 5
+        assert inv.note == 'Updated note'
+        assert inv.role == Roles.VOLUNTEER
+
+    def test_post_invalid(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        data = {
+            'role': Roles.MEMBER,
+            'expires_at': '',
+            'max_uses': 1,
+        }
+        response = client.post(self._url(inv.pk), data)
+        assert response.status_code == 200  # re-renders form
+
+    def test_404_for_missing(self, client, admin_user):
+        import uuid
+        user, _ = admin_user
+        client.force_login(user)
+        response = client.get(self._url(uuid.uuid4()))
+        assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Invitation Delete
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestInvitationDelete:
+    """Tests for admin_invitation_delete view."""
+
+    def _url(self, pk):
+        return f'/onboarding/admin/invitations/{pk}/delete/'
+
+    def test_login_required(self, client):
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+
+    def test_no_profile_redirects(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 302
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 302
+
+    def test_admin_get_confirm(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        response = client.get(self._url(inv.pk))
+        assert response.status_code == 200
+
+    def test_post_deactivates(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        assert inv.is_active is True
+        response = client.post(self._url(inv.pk))
+        assert response.status_code == 302
+        inv.refresh_from_db()
+        assert inv.is_active is False
+
+    def test_get_does_not_deactivate(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        inv = InvitationCodeFactory()
+        client.get(self._url(inv.pk))
+        inv.refresh_from_db()
+        assert inv.is_active is True
+
+    def test_404_for_missing(self, client, admin_user):
+        import uuid
+        user, _ = admin_user
+        client.force_login(user)
+        response = client.get(self._url(uuid.uuid4()))
+        assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Sprint 8: Pipeline search/filter tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestAdminPipelineSearch:
+    """Tests for Sprint 8 pipeline search by member name."""
+
+    url = '/onboarding/admin/pipeline/'
+
+    def test_search_by_first_name(self, client, admin_user):
+        """Searching by first name filters registered column."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            first_name='Zacharie',
+            last_name='Dupont',
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        MemberFactory(
+            user=None,
+            first_name='Paul',
+            last_name='Martin',
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        response = client.get(self.url, {'q': 'Zacharie'})
+        assert response.status_code == 200
+        registered = response.context['registered_list']
+        names = [m.first_name for m in registered]
+        assert 'Zacharie' in names
+        assert 'Paul' not in names
+
+    def test_search_by_last_name(self, client, admin_user):
+        """Searching by last name filters results."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            first_name='Jean',
+            last_name='Tremblay',
+            membership_status=MembershipStatus.FORM_SUBMITTED,
+            registration_date=timezone.now() - timedelta(days=10),
+        )
+        MemberFactory(
+            user=None,
+            first_name='Marc',
+            last_name='Lavoie',
+            membership_status=MembershipStatus.FORM_SUBMITTED,
+            registration_date=timezone.now() - timedelta(days=10),
+        )
+        response = client.get(self.url, {'q': 'Tremblay'})
+        assert response.status_code == 200
+        submitted = response.context['submitted_list']
+        names = [m.last_name for m in submitted]
+        assert 'Tremblay' in names
+        assert 'Lavoie' not in names
+
+    def test_search_case_insensitive(self, client, admin_user):
+        """Search is case-insensitive."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            first_name='Marie',
+            last_name='Gagnon',
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        response = client.get(self.url, {'q': 'marie'})
+        assert response.status_code == 200
+        registered = response.context['registered_list']
+        names = [m.first_name for m in registered]
+        assert 'Marie' in names
+
+    def test_empty_search_returns_all(self, client, admin_user):
+        """Empty search query returns all members."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        response = client.get(self.url, {'q': ''})
+        assert response.status_code == 200
+        assert len(response.context['registered_list']) >= 1
+
+    def test_no_search_param_returns_all(self, client, admin_user):
+        """No 'q' param returns all members."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        response = client.get(self.url)
+        assert response.status_code == 200
+        assert len(response.context['registered_list']) >= 1
+
+    def test_search_query_in_context(self, client, admin_user):
+        """search_query is available in context for template rendering."""
+        user, _ = admin_user
+        client.force_login(user)
+        response = client.get(self.url, {'q': 'TestSearch'})
+        assert response.status_code == 200
+        assert response.context['search_query'] == 'TestSearch'
+
+    def test_search_no_results(self, client, admin_user):
+        """Search query that matches nothing returns empty lists."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            first_name='Jean',
+            last_name='Tremblay',
+            membership_status=MembershipStatus.REGISTERED,
+            registration_date=timezone.now() - timedelta(days=5),
+            form_deadline=timezone.now() + timedelta(days=25),
+        )
+        response = client.get(self.url, {'q': 'ZZZZNONEXISTENT'})
+        assert response.status_code == 200
+        assert len(response.context['registered_list']) == 0
+
+    def test_search_filters_all_columns(self, client, admin_user):
+        """Search filters across all pipeline columns."""
+        user, _ = admin_user
+        client.force_login(user)
+        MemberFactory(
+            user=None,
+            first_name='UniqueFirst',
+            last_name='UniqueLast',
+            membership_status=MembershipStatus.IN_TRAINING,
+            registration_date=timezone.now() - timedelta(days=20),
+        )
+        # Search should NOT find this member in registered column
+        response = client.get(self.url, {'q': 'UniqueFirst'})
+        assert response.status_code == 200
+        registered = response.context['registered_list']
+        training = response.context['training_list']
+        reg_names = [m.first_name for m in registered]
+        train_names = [m.first_name for m in training]
+        assert 'UniqueFirst' not in reg_names
+        assert 'UniqueFirst' in train_names

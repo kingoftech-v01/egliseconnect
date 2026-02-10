@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Codes d'invitation - Administration{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Codes d'invitation</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/pipeline/">Pipeline</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Invitations</a></li>
+        </ol>
+        <a href="/onboarding/admin/invitations/create/" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nouvelle invitation
+        </a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Tous les codes d'invitation</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if invitations %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Role</th>
+                                        <th>Cree par</th>
+                                        <th>Expire le</th>
+                                        <th>Utilisations</th>
+                                        <th>Statut</th>
+                                        <th>Utilise par</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inv in invitations %}
+                                    <tr>
+                                        <td>
+                                            <code class="fw-bold">{{ inv.code }}</code>
+                                            <button type="button" class="btn btn-outline-secondary btn-xs ms-1 copy-code-btn" data-code="{{ inv.code }}" title="Copier le code">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </td>
+                                        <td><span class="badge bg-info">{{ inv.get_role_display }}</span></td>
+                                        <td>{{ inv.created_by.full_name }}</td>
+                                        <td>{{ inv.expires_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ inv.use_count }} / {{ inv.max_uses }}</td>
+                                        <td>
+                                            {% if inv.is_usable %}
+                                            <span class="badge bg-success">Actif</span>
+                                            {% elif inv.is_expired %}
+                                            <span class="badge bg-secondary">Expire</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Utilise</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if inv.used_by %}
+                                            {{ inv.used_by.full_name }}
+                                            <small class="text-muted d-block">{{ inv.used_at|date:"d/m/Y" }}</small>
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/onboarding/admin/invitations/{{ inv.pk }}/edit/" class="btn btn-sm btn-warning me-1"><i class="fas fa-edit"></i></a>
+                                            <a href="/onboarding/admin/invitations/{{ inv.pk }}/delete/" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-envelope-open-text text-muted mb-3" style="font-size:3rem;"></i>
+                            <p class="text-muted">Aucun code d'invitation pour le moment.</p>
+                            <a href="/onboarding/admin/invitations/create/" class="btn btn-primary mt-2">
+                                <i class="fas fa-plus me-2"></i>Creer le premier code
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+document.querySelectorAll('.copy-code-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var code = this.getAttribute('data-code');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(function() {
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(function() {
+                    btn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+            });
+        } else {
+            var textarea = document.createElement('textarea');
+            textarea.value = code;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(function() {
+                btn.innerHTML = '<i class="fas fa-copy"></i>';
+            }, 2000);
+        }
+    });
+});
+</script>
+{% endblock %}

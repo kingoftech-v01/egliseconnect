@@ -3,7 +3,11 @@ import pytest
 from datetime import date, timedelta
 
 from apps.core.constants import Roles
-from apps.members.models import Member, Family, Group, GroupMembership, DirectoryPrivacy
+from apps.members.models import (
+    Member, Family, Group, GroupMembership, DirectoryPrivacy,
+    MemberRole, Department, DepartmentMembership, DepartmentTaskType,
+    DisciplinaryAction,
+)
 
 from .factories import (
     MemberFactory,
@@ -12,6 +16,12 @@ from .factories import (
     GroupFactory,
     GroupMembershipFactory,
     PastorFactory,
+    DeaconFactory,
+    MemberRoleFactory,
+    DepartmentFactory,
+    DepartmentMembershipFactory,
+    DepartmentTaskTypeFactory,
+    DisciplinaryActionFactory,
 )
 
 
@@ -355,3 +365,239 @@ class TestMemberAdminMethods:
         GroupMembershipFactory(group=group)
         admin_obj = GroupAdmin(Group, admin.site)
         assert admin_obj.member_count(group) == 2
+
+
+# ==============================================================================
+# Phase 2: Multi-role, DEACON, Department, DisciplinaryAction tests
+# ==============================================================================
+
+
+@pytest.mark.django_db
+class TestMemberAllRoles:
+    """Tests for Member.all_roles property and has_role method."""
+
+    def test_all_roles_primary_only(self):
+        """all_roles returns primary role when no additional roles."""
+        member = MemberFactory(role=Roles.MEMBER)
+        assert member.all_roles == {Roles.MEMBER}
+
+    def test_all_roles_with_additional(self):
+        """all_roles includes additional roles."""
+        member = MemberFactory(role=Roles.MEMBER)
+        MemberRole.objects.create(member=member, role=Roles.VOLUNTEER)
+        assert member.all_roles == {Roles.MEMBER, Roles.VOLUNTEER}
+
+    def test_all_roles_multiple_additional(self):
+        """all_roles with several additional roles."""
+        member = MemberFactory(role=Roles.VOLUNTEER)
+        MemberRole.objects.create(member=member, role=Roles.GROUP_LEADER)
+        MemberRole.objects.create(member=member, role=Roles.TREASURER)
+        assert member.all_roles == {Roles.VOLUNTEER, Roles.GROUP_LEADER, Roles.TREASURER}
+
+    def test_has_role_primary(self):
+        """has_role returns True for primary role."""
+        member = MemberFactory(role=Roles.PASTOR)
+        assert member.has_role(Roles.PASTOR) is True
+
+    def test_has_role_additional(self):
+        """has_role returns True for additional role."""
+        member = MemberFactory(role=Roles.MEMBER)
+        MemberRole.objects.create(member=member, role=Roles.DEACON)
+        assert member.has_role(Roles.DEACON) is True
+
+    def test_has_role_missing(self):
+        """has_role returns False for role not held."""
+        member = MemberFactory(role=Roles.MEMBER)
+        assert member.has_role(Roles.ADMIN) is False
+
+    def test_deacon_is_staff_member(self):
+        """Deacon role grants staff access."""
+        deacon = DeaconFactory()
+        assert deacon.is_staff_member is True
+
+    def test_member_with_additional_deacon_is_staff(self):
+        """Member with additional deacon role is considered staff."""
+        member = MemberFactory(role=Roles.MEMBER)
+        MemberRole.objects.create(member=member, role=Roles.DEACON)
+        assert member.is_staff_member is True
+
+    def test_pastor_can_manage_finances(self):
+        """Pastor role grants finance access."""
+        pastor = PastorFactory()
+        assert pastor.can_manage_finances is True
+
+    def test_member_with_additional_treasurer_can_manage_finances(self):
+        """Member with additional treasurer role can manage finances."""
+        member = MemberFactory(role=Roles.MEMBER)
+        MemberRole.objects.create(member=member, role=Roles.TREASURER)
+        assert member.can_manage_finances is True
+
+
+@pytest.mark.django_db
+class TestMemberRoleModel:
+    """Tests for MemberRole model."""
+
+    def test_create_member_role(self):
+        """MemberRole creation works."""
+        role = MemberRoleFactory()
+        assert role.id is not None
+        assert role.role == Roles.VOLUNTEER
+
+    def test_unique_together(self):
+        """Same member-role pair cannot be duplicated."""
+        role = MemberRoleFactory(role=Roles.VOLUNTEER)
+        with pytest.raises(Exception):
+            MemberRoleFactory(member=role.member, role=Roles.VOLUNTEER)
+
+    def test_different_roles_allowed(self):
+        """Same member can have different additional roles."""
+        member = MemberFactory()
+        MemberRoleFactory(member=member, role=Roles.VOLUNTEER)
+        MemberRoleFactory(member=member, role=Roles.GROUP_LEADER)
+        assert member.additional_roles.count() == 2
+
+    def test_str(self):
+        """MemberRole str representation."""
+        member = MemberFactory(first_name='Jean', last_name='Dupont')
+        role = MemberRoleFactory(member=member, role=Roles.DEACON)
+        result = str(role)
+        assert 'Jean Dupont' in result or 'deacon' in result.lower()
+
+
+@pytest.mark.django_db
+class TestDepartmentModel:
+    """Tests for Department model."""
+
+    def test_create_department(self):
+        """Department creation works."""
+        dept = DepartmentFactory()
+        assert dept.id is not None
+        assert dept.name is not None
+
+    def test_department_with_leader(self):
+        """Department can have a leader."""
+        leader = PastorFactory()
+        dept = DepartmentFactory(leader=leader)
+        assert dept.leader == leader
+
+    def test_department_str(self):
+        """Department str returns name."""
+        dept = DepartmentFactory(name='Louange')
+        assert str(dept) == 'Louange'
+
+    def test_department_ordering(self):
+        """Departments ordered by name."""
+        DepartmentFactory(name='Zèle')
+        DepartmentFactory(name='Accueil')
+        depts = list(Department.objects.values_list('name', flat=True))
+        assert depts[0] == 'Accueil'
+
+    def test_parent_department(self):
+        """Department can have a parent department."""
+        parent = DepartmentFactory(name='Ministères')
+        child = DepartmentFactory(name='Louange', parent_department=parent)
+        assert child.parent_department == parent
+        assert parent.sub_departments.count() == 1
+
+
+@pytest.mark.django_db
+class TestDepartmentMembershipModel:
+    """Tests for DepartmentMembership model."""
+
+    def test_create_membership(self):
+        """DepartmentMembership creation works."""
+        membership = DepartmentMembershipFactory()
+        assert membership.id is not None
+
+    def test_unique_together(self):
+        """Same member-department pair cannot be duplicated."""
+        membership = DepartmentMembershipFactory()
+        with pytest.raises(Exception):
+            DepartmentMembershipFactory(
+                member=membership.member,
+                department=membership.department,
+            )
+
+    def test_different_departments_allowed(self):
+        """Member can belong to different departments."""
+        member = MemberFactory()
+        dept1 = DepartmentFactory(name='Louange')
+        dept2 = DepartmentFactory(name='Accueil')
+        DepartmentMembershipFactory(member=member, department=dept1)
+        DepartmentMembershipFactory(member=member, department=dept2)
+        assert member.department_memberships.count() == 2
+
+
+@pytest.mark.django_db
+class TestDepartmentTaskTypeModel:
+    """Tests for DepartmentTaskType model."""
+
+    def test_create_task_type(self):
+        """DepartmentTaskType creation works."""
+        task = DepartmentTaskTypeFactory()
+        assert task.id is not None
+        assert task.max_assignees == 1
+
+    def test_unique_together(self):
+        """Same department-name pair cannot be duplicated."""
+        task = DepartmentTaskTypeFactory(name='Caméra 1')
+        with pytest.raises(Exception):
+            DepartmentTaskTypeFactory(
+                department=task.department,
+                name='Caméra 1',
+            )
+
+    def test_different_names_allowed(self):
+        """Same department can have different task types."""
+        dept = DepartmentFactory()
+        DepartmentTaskTypeFactory(department=dept, name='Caméra 1')
+        DepartmentTaskTypeFactory(department=dept, name='Caméra 2')
+        assert dept.task_types.count() == 2
+
+
+@pytest.mark.django_db
+class TestDisciplinaryActionModel:
+    """Tests for DisciplinaryAction model."""
+
+    def test_create_action(self):
+        """DisciplinaryAction creation works."""
+        action = DisciplinaryActionFactory()
+        assert action.id is not None
+        assert action.action_type == 'suspension'
+        assert action.approval_status == 'pending'
+
+    def test_action_with_end_date(self):
+        """DisciplinaryAction can have an end date."""
+        from django.utils import timezone
+        end = timezone.now().date() + timedelta(days=30)
+        action = DisciplinaryActionFactory(end_date=end)
+        assert action.end_date == end
+
+    def test_action_types(self):
+        """All disciplinary action types are valid."""
+        member = MemberFactory()
+        creator = PastorFactory()
+        for action_type in ['punishment', 'exemption', 'suspension']:
+            action = DisciplinaryAction.objects.create(
+                member=member,
+                action_type=action_type,
+                reason=f'Test {action_type}',
+                start_date=date.today(),
+                created_by=creator,
+            )
+            assert action.action_type == action_type
+
+    def test_ordering(self):
+        """Actions ordered by -start_date."""
+        member = MemberFactory()
+        creator = PastorFactory()
+        old = DisciplinaryActionFactory(
+            member=member, created_by=creator,
+            start_date=date.today() - timedelta(days=30),
+        )
+        new = DisciplinaryActionFactory(
+            member=member, created_by=creator,
+            start_date=date.today(),
+        )
+        actions = list(member.disciplinary_actions.all())
+        assert actions[0].start_date >= actions[1].start_date

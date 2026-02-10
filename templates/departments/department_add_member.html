@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Ajouter un membre - {{ department.name }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Ajouter un membre</h5></li>
+            <li class="breadcrumb-item"><a href="/members/departments/">Departements</a></li>
+            <li class="breadcrumb-item"><a href="/members/departments/{{ department.pk }}/">{{ department.name }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Ajouter</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Ajouter un membre a {{ department.name }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label" for="member">Membre <span class="text-danger">*</span></label>
+                                <select name="member" id="member" class="form-select" required>
+                                    <option value="">-- Choisir un membre --</option>
+                                    {% for m in form.member.field.queryset %}
+                                    <option value="{{ m.pk }}">{{ m.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="role">Role dans le departement</label>
+                                <select name="role" id="role" class="form-select">
+                                    {% for value, label in form.role.field.choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="/members/departments/{{ department.pk }}/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-user-plus me-2"></i>Ajouter
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

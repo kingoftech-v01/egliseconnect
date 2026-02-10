@@ -435,3 +435,17 @@ Les rapports de dons affichent les top donateurs par **rang uniquement** (1er, 2
 ### Module en lecture seule
 
 Ce module ne possede aucun model propre et n'effectue aucune ecriture en base de donnees. Il est purement oriente lecture et aggregation. Toutes les donnees proviennent des autres modules de l'application.
+
+---
+
+## Recent Additions
+
+### New Frontend Views
+
+- **`attendance_report`** — `/reports/attendance/` — Attendance analytics with date range filtering. Uses `ReportService.get_attendance_report()` and `DashboardService.get_event_stats()`. Requires pastor/admin.
+- **`volunteer_report`** — `/reports/volunteers/` — Volunteer activity report with date range filtering. Uses `ReportService.get_volunteer_report()` and `DashboardService.get_volunteer_stats()`. Requires pastor/admin.
+
+### New Templates
+
+- `attendance_report.html` — Attendance analytics dashboard
+- `volunteer_report.html` — Volunteer activity report

@@ -1,0 +1,34 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Confirmer l'acces{% endblock %}
+
+{% block auth_title %}Confirmer l'acces{% endblock %}
+{% block auth_subtitle %}Veuillez vous reauthentifier pour securiser votre compte{% endblock %}
+
+{% block auth_form %}
+<form method="post" action="{% url 'account_reauthenticate' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    {% for field in form %}
+    <div class="mb-4">
+        <label class="mb-1 text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_class:"form-control" }}
+        {% for error in field.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-block">Confirmer</button>
+    </div>
+</form>
+{% if reauthentication_alternatives %}
+<h6 class="login-title"><span>Ou</span></h6>
+<div class="d-grid gap-2">
+    {% for alt in reauthentication_alternatives %}
+    <a href="{{ alt.url }}" class="btn btn-outline-primary">{{ alt.description }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -2,10 +2,11 @@
 import pytest
 from django.utils import timezone
 
-from apps.volunteers.models import VolunteerPosition, VolunteerSchedule
+from apps.volunteers.models import VolunteerPosition, VolunteerSchedule, PlannedAbsence
 from apps.volunteers.tests.factories import (
     VolunteerPositionFactory,
     VolunteerScheduleFactory,
+    PlannedAbsenceFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -38,3 +39,14 @@ class TestVolunteerScheduleStr:
         assert schedule.member.full_name in result
         assert schedule.position.name in result
         assert str(schedule.date) in result
+
+
+class TestPlannedAbsenceStr:
+    """Tests for PlannedAbsence.__str__."""
+
+    def test_str_returns_member_and_dates(self):
+        absence = PlannedAbsenceFactory()
+        result = str(absence)
+        assert absence.member.full_name in result
+        assert str(absence.start_date) in result
+        assert str(absence.end_date) in result

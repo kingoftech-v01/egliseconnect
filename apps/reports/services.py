@@ -185,7 +185,8 @@ class DashboardService:
                 'member_id': str(member.id),
                 'member_name': member.full_name,
                 'birthday': bd.isoformat(),
-                'age': bd.year - member.birth_date.year if member.birth_date else None
+                'age': bd.year - member.birth_date.year if member.birth_date else None,
+                'email': member.email or '',
             }
             for member, bd in birthdays
         ]
@@ -200,6 +201,96 @@ class DashboardService:
             'help_requests': DashboardService.get_help_request_stats(),
             'upcoming_birthdays': DashboardService.get_upcoming_birthdays(),
             'generated_at': timezone.now().isoformat(),
+        }
+
+    @staticmethod
+    def get_onboarding_pipeline_stats():
+        """Get onboarding pipeline counts for dashboard widget."""
+        from apps.members.models import Member
+        from apps.core.constants import MembershipStatus
+
+        return {
+            'registered': Member.objects.filter(
+                membership_status=MembershipStatus.REGISTERED
+            ).count(),
+            'form_submitted': Member.objects.filter(
+                membership_status=MembershipStatus.FORM_SUBMITTED
+            ).count(),
+            'in_training': Member.objects.filter(
+                membership_status=MembershipStatus.IN_TRAINING
+            ).count(),
+            'interview_scheduled': Member.objects.filter(
+                membership_status=MembershipStatus.INTERVIEW_SCHEDULED
+            ).count(),
+            'total_in_process': Member.objects.filter(
+                membership_status__in=MembershipStatus.IN_PROCESS
+            ).count(),
+        }
+
+    @staticmethod
+    def get_financial_summary():
+        """Monthly giving trend for dashboard financial widget."""
+        from apps.donations.models import Donation
+
+        now = timezone.now()
+        months_data = []
+        for i in range(5, -1, -1):
+            month_start = (now - timedelta(days=30 * i)).replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
+            if i > 0:
+                month_end = (now - timedelta(days=30 * (i - 1))).replace(
+                    day=1, hour=0, minute=0, second=0, microsecond=0
+                )
+            else:
+                month_end = now
+
+            total = Donation.objects.filter(
+                date__gte=month_start.date(),
+                date__lt=month_end.date() if i > 0 else (now.date() + timedelta(days=1)),
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+            months_data.append({
+                'month': month_start.strftime('%b %Y'),
+                'total': float(total),
+            })
+
+        return {
+            'monthly_trend': months_data,
+            'labels': [m['month'] for m in months_data],
+            'values': [m['total'] for m in months_data],
+        }
+
+    @staticmethod
+    def get_member_growth_trend():
+        """Monthly member registrations for the last 12 months."""
+        from apps.members.models import Member
+
+        now = timezone.now()
+        labels = []
+        counts = []
+        for i in range(11, -1, -1):
+            month_start = (now - timedelta(days=30 * i)).replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
+            if i > 0:
+                month_end = (now - timedelta(days=30 * (i - 1))).replace(
+                    day=1, hour=0, minute=0, second=0, microsecond=0
+                )
+            else:
+                month_end = now
+
+            count = Member.objects.filter(
+                created_at__gte=month_start,
+                created_at__lt=month_end if i > 0 else (now + timedelta(days=1)),
+            ).count()
+
+            labels.append(month_start.strftime('%b %Y'))
+            counts.append(count)
+
+        return {
+            'labels': labels,
+            'counts': counts,
         }
 
 
@@ -285,6 +376,49 @@ class ReportService:
             'monthly': monthly,
             'top_donors': donor_data,
             'campaigns': list(campaign_data),
+        }
+
+    @staticmethod
+    def get_attendance_session_stats(start_date=None, end_date=None):
+        """Get attendance session statistics for richer analytics."""
+        from apps.attendance.models import AttendanceSession, AttendanceRecord
+
+        if not start_date:
+            start_date = date.today() - timedelta(days=90)
+        if not end_date:
+            end_date = date.today()
+
+        sessions = AttendanceSession.objects.filter(
+            date__gte=start_date,
+            date__lte=end_date,
+        )
+
+        total_sessions = sessions.count()
+
+        by_type = sessions.values('session_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        total_checkins = AttendanceRecord.objects.filter(
+            session__date__gte=start_date,
+            session__date__lte=end_date,
+        ).count()
+
+        by_method = AttendanceRecord.objects.filter(
+            session__date__gte=start_date,
+            session__date__lte=end_date,
+        ).values('method').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        avg_per_session = round(total_checkins / total_sessions, 1) if total_sessions > 0 else 0
+
+        return {
+            'total_sessions': total_sessions,
+            'total_checkins': total_checkins,
+            'avg_per_session': avg_per_session,
+            'by_type': list(by_type),
+            'by_method': list(by_method),
         }
 
     @staticmethod

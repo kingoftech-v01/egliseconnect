@@ -10,8 +10,9 @@ from apps.onboarding.models import (
     MemberTraining,
     ScheduledLesson,
     Interview,
+    InvitationCode,
 )
-from apps.core.constants import LessonStatus, InterviewStatus
+from apps.core.constants import LessonStatus, InterviewStatus, Roles
 
 
 class TrainingCourseFactory(DjangoModelFactory):
@@ -78,3 +79,18 @@ class InterviewFactory(DjangoModelFactory):
         lambda: timezone.now() + timezone.timedelta(days=14)
     )
     interviewer = factory.SubFactory(PastorFactory)
+
+
+class InvitationCodeFactory(DjangoModelFactory):
+    """Creates InvitationCode instances for testing."""
+
+    class Meta:
+        model = InvitationCode
+
+    role = Roles.MEMBER
+    created_by = factory.SubFactory(PastorFactory)
+    expires_at = factory.LazyFunction(
+        lambda: timezone.now() + timezone.timedelta(days=30)
+    )
+    max_uses = 1
+    skip_onboarding = False

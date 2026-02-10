@@ -9,6 +9,9 @@
             <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
             <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport de presence</a></li>
         </ol>
+        <a href="/reports/export/attendance/?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Exporter CSV
+        </a>
     </div>
     <div class="container-fluid">
         <!-- Date Filter -->
@@ -19,11 +22,11 @@
                         <form method="get" class="row g-3 align-items-end">
                             <div class="col-auto">
                                 <label class="form-label" for="start_date">Date de debut</label>
-                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ report.start_date }}">
+                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}">
                             </div>
                             <div class="col-auto">
                                 <label class="form-label" for="end_date">Date de fin</label>
-                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ report.end_date }}">
+                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}">
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-primary">Filtrer</button>
@@ -98,6 +101,56 @@
             </div>
         </div>
 
+        <!-- Attendance Session Stats -->
+        {% if session_stats %}
+        <div class="row">
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Sessions de presence (QR)</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total des sessions</span>
+                                <strong>{{ session_stats.total_sessions }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total des check-ins</span>
+                                <strong>{{ session_stats.total_checkins }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Moyenne par session</span>
+                                <strong>{{ session_stats.avg_per_session }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Sessions par type</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if session_stats.by_type %}
+                        <ul class="list-group list-group-flush">
+                            {% for item in session_stats.by_type %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>{{ item.session_type|default:"Non defini" }}</span>
+                                <strong>{{ item.count }}</strong>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">Aucune donnee disponible.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Events by Type -->
         {% if event_stats.by_type %}
         <div class="row">
@@ -157,7 +210,7 @@
                     <div class="card-body p-0">
                         <div class="table-responsive active-projects style-1">
                             <div class="tbl-caption">
-                                <h4 class="heading mb-0">Detail de presence par evenement ({{ report.start_date }} au {{ report.end_date }})</h4>
+                                <h4 class="heading mb-0">Detail de presence par evenement ({{ start_date }} au {{ end_date }})</h4>
                             </div>
                             <table id="attendance-detail-table" class="table">
                                 <thead>

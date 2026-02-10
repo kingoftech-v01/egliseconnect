@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}{% if group %}Modifier {{ group.name }}{% else %}Nouveau groupe{% endif %}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{% if group %}Modifier{% else %}Nouveau groupe{% endif %}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/groups/">Groupes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{% if group %}Modifier{% else %}Cr\u00e9er{% endif %}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">
+                            {% if group %}Modifier : {{ group.name }}{% else %}Cr\u00e9er un groupe{% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label" for="name">Nom du groupe <span class="text-danger">*</span></label>
+                                <input type="text" name="name" id="name" class="form-control"
+                                       value="{{ form.name.value|default:'' }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="group_type">Type de groupe</label>
+                                <select name="group_type" id="group_type" class="form-select">
+                                    {% for value, label in form.group_type.field.choices %}
+                                    <option value="{{ value }}" {% if form.group_type.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="description">Description</label>
+                                <textarea name="description" id="description" class="form-control" rows="3">{{ form.description.value|default:'' }}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="leader">Leader</label>
+                                <select name="leader" id="leader" class="form-select">
+                                    <option value="">-- Aucun --</option>
+                                    {% for member in form.leader.field.queryset %}
+                                    <option value="{{ member.pk }}" {% if form.leader.value|stringformat:"s" == member.pk|stringformat:"s" %}selected{% endif %}>
+                                        {{ member.full_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="meeting_day">Jour de r\u00e9union</label>
+                                    <input type="text" name="meeting_day" id="meeting_day" class="form-control"
+                                           value="{{ form.meeting_day.value|default:'' }}" placeholder="Ex: Mercredi">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="meeting_time">Heure</label>
+                                    <input type="time" name="meeting_time" id="meeting_time" class="form-control"
+                                           value="{{ form.meeting_time.value|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="meeting_location">Lieu</label>
+                                    <input type="text" name="meeting_location" id="meeting_location" class="form-control"
+                                           value="{{ form.meeting_location.value|default:'' }}" placeholder="Ex: Salle A">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="email">Courriel du groupe</label>
+                                <input type="email" name="email" id="email" class="form-control"
+                                       value="{{ form.email.value|default:'' }}">
+                            </div>
+
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="/members/groups/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>{% if group %}Enregistrer{% else %}Cr\u00e9er{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Connexion{% endblock %}
+
+{% block auth_title %}Connexion{% endblock %}
+{% block auth_subtitle %}Connectez-vous a votre compte EgliseConnect{% endblock %}
+
+{% block auth_form %}
+<form method="post" action="{% url 'account_login' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    {% for field in form %}
+    <div class="mb-4">
+        <label class="mb-1 text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_class:"form-control" }}
+        {% for error in field.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="form-row d-flex justify-content-between mt-4 mb-2">
+        <div class="mb-4">
+        </div>
+        <div class="mb-4">
+            <a href="{% url 'account_reset_password' %}" class="btn-link text-primary">Mot de passe oublie ?</a>
+        </div>
+    </div>
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+    </div>
+    {% if LOGIN_BY_CODE_ENABLED %}
+    <h6 class="login-title"><span>Ou</span></h6>
+    <div class="text-center mb-3">
+        <a href="{% url 'account_request_login_code' %}" class="btn btn-outline-primary btn-block">Recevoir un code de connexion</a>
+    </div>
+    {% endif %}
+    {% if SOCIALACCOUNT_ENABLED %}
+    <h6 class="login-title"><span>Ou continuer avec</span></h6>
+    <div class="mb-3">
+        {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+    </div>
+    {% endif %}
+    <p class="text-center">Pas encore inscrit ?
+        <a class="btn-link text-primary" href="{% url 'account_signup' %}">Inscrivez-vous</a>
+    </p>
+</form>
+{% endblock %}

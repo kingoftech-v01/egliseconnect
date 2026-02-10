@@ -22,6 +22,10 @@ class VolunteerPosition(BaseModel):
     def __str__(self):
         return self.name
 
+    @property
+    def volunteer_count(self):
+        return self.available_volunteers.count()
+
 
 class VolunteerAvailability(BaseModel):
     """Tracks when a member is available for a specific position."""
@@ -45,6 +49,10 @@ class VolunteerSchedule(BaseModel):
     date = models.DateField(verbose_name=_('Date'))
     status = models.CharField(max_length=20, choices=ScheduleStatus.CHOICES, default=ScheduleStatus.SCHEDULED, verbose_name=_('Statut'))
     reminder_sent = models.BooleanField(default=False, verbose_name=_('Rappel envoyé'))
+    reminder_5days_sent = models.BooleanField(default=False)
+    reminder_3days_sent = models.BooleanField(default=False)
+    reminder_1day_sent = models.BooleanField(default=False)
+    reminder_sameday_sent = models.BooleanField(default=False)
     notes = models.TextField(blank=True, verbose_name=_('Notes'))
 
     class Meta:
@@ -54,6 +62,23 @@ class VolunteerSchedule(BaseModel):
 
     def __str__(self):
         return f'{self.member.full_name} - {self.position.name} ({self.date})'
+
+
+class PlannedAbsence(BaseModel):
+    """Pre-declared absence period to avoid scheduling a member."""
+    member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='planned_absences')
+    start_date = models.DateField(verbose_name=_('Date de début'))
+    end_date = models.DateField(verbose_name=_('Date de fin'))
+    reason = models.TextField(blank=True, verbose_name=_('Raison'))
+    approved_by = models.ForeignKey('members.Member', on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_absences', verbose_name=_('Approuvé par'))
+
+    class Meta:
+        verbose_name = _('Absence prévue')
+        verbose_name_plural = _('Absences prévues')
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f'{self.member.full_name}: {self.start_date} → {self.end_date}'
 
 
 class SwapRequest(BaseModel):

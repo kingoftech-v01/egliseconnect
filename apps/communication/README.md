@@ -424,3 +424,9 @@ pytest apps/communication/tests/test_views_frontend.py -v
 | `apps.members.Group` | M2M pour les groupes cibles des infolettres |
 | `bleach` | Assainissement HTML (prevention XSS) |
 | `django-filter` | Filtrage des endpoints API |
+
+---
+
+## Recent Additions
+
+No major model or view additions since initial README. The communication app continues to serve as the notification backbone for all other apps (onboarding, attendance, payments, worship, volunteers) via `Notification.objects.create()`.

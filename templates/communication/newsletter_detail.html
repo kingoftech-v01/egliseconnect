@@ -20,11 +20,32 @@
                         <span class="badge badge-success">Envoyée</span>
                     {% elif newsletter.status == 'draft' %}
                         <span class="badge badge-warning">Brouillon</span>
+                        {% if is_staff %}
                         <a href="/communication/newsletters/{{ newsletter.pk }}/edit/" class="btn btn-sm btn-outline-primary ms-2">
                             <i class="fa fa-edit me-1"></i> Modifier
                         </a>
+                        <form method="post" action="/communication/newsletters/{{ newsletter.pk }}/send/" class="d-inline ms-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="send">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fa fa-paper-plane me-1"></i> Envoyer
+                            </button>
+                        </form>
+                        <a href="/communication/newsletters/{{ newsletter.pk }}/delete/" class="btn btn-sm btn-outline-danger ms-1">
+                            <i class="fa fa-trash me-1"></i> Supprimer
+                        </a>
+                        {% endif %}
                     {% elif newsletter.status == 'scheduled' %}
                         <span class="badge badge-info">Planifiée</span>
+                        {% if is_staff %}
+                        <form method="post" action="/communication/newsletters/{{ newsletter.pk }}/send/" class="d-inline ms-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="send">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fa fa-paper-plane me-1"></i> Envoyer maintenant
+                            </button>
+                        </form>
+                        {% endif %}
                     {% else %}
                         <span class="badge badge-secondary">{{ newsletter.get_status_display|default:newsletter.status }}</span>
                     {% endif %}
@@ -37,6 +58,12 @@
                     </div>
                     <div class="col-md-6">
                         <p class="mb-1"><strong>Nombre de destinataires :</strong> {{ newsletter.recipients_count|default:"0" }}</p>
+                        {% if newsletter.scheduled_for %}
+                        <p class="mb-1"><strong>Planifiée pour :</strong> {{ newsletter.scheduled_for|date:"d/m/Y H:i" }}</p>
+                        {% endif %}
+                        {% if newsletter.sent_at %}
+                        <p class="mb-1"><strong>Envoyée le :</strong> {{ newsletter.sent_at|date:"d/m/Y H:i" }}</p>
+                        {% endif %}
                     </div>
                 </div>
                 <hr>

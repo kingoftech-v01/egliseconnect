@@ -1,12 +1,13 @@
 """Tests for core permissions."""
 import pytest
 from django.contrib.auth import get_user_model
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 from apps.core.permissions import (
     IsMember,
     IsVolunteer,
     IsGroupLeader,
+    IsDeacon,
     IsPastor,
     IsTreasurer,
     IsAdmin,
@@ -46,6 +47,7 @@ def create_member_profile():
     def _create(role):
         profile = Mock()
         profile.role = role
+        profile.all_roles = {role}
         return profile
     return _create
 
@@ -93,6 +95,12 @@ class TestIsVolunteer:
         permission = IsVolunteer()
         assert permission.has_permission(mock_request, mock_view) is True
 
+    def test_deacon_allowed(self, mock_request, mock_view, create_member_profile):
+        """Deacons are allowed."""
+        mock_request.user.member_profile = create_member_profile(Roles.DEACON)
+        permission = IsVolunteer()
+        assert permission.has_permission(mock_request, mock_view) is True
+
     def test_staff_allowed(self, mock_request, mock_view):
         """Staff users are allowed."""
         mock_request.user.is_staff = True
@@ -116,11 +124,63 @@ class TestIsGroupLeader:
         permission = IsGroupLeader()
         assert permission.has_permission(mock_request, mock_view) is False
 
+    def test_deacon_allowed(self, mock_request, mock_view, create_member_profile):
+        """Deacons are allowed."""
+        mock_request.user.member_profile = create_member_profile(Roles.DEACON)
+        permission = IsGroupLeader()
+        assert permission.has_permission(mock_request, mock_view) is True
+
     def test_pastor_allowed(self, mock_request, mock_view, create_member_profile):
         """Pastors are allowed."""
         mock_request.user.member_profile = create_member_profile(Roles.PASTOR)
         permission = IsGroupLeader()
         assert permission.has_permission(mock_request, mock_view) is True
+
+
+class TestIsDeacon:
+    """Tests for IsDeacon permission."""
+
+    def test_deacon_allowed(self, mock_request, mock_view, create_member_profile):
+        """Deacons are allowed."""
+        mock_request.user.member_profile = create_member_profile(Roles.DEACON)
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is True
+
+    def test_group_leader_denied(self, mock_request, mock_view, create_member_profile):
+        """Group leaders are denied."""
+        mock_request.user.member_profile = create_member_profile(Roles.GROUP_LEADER)
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is False
+
+    def test_pastor_allowed(self, mock_request, mock_view, create_member_profile):
+        """Pastors are allowed."""
+        mock_request.user.member_profile = create_member_profile(Roles.PASTOR)
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is True
+
+    def test_admin_allowed(self, mock_request, mock_view, create_member_profile):
+        """Admins are allowed."""
+        mock_request.user.member_profile = create_member_profile(Roles.ADMIN)
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is True
+
+    def test_volunteer_denied(self, mock_request, mock_view, create_member_profile):
+        """Volunteers are denied."""
+        mock_request.user.member_profile = create_member_profile(Roles.VOLUNTEER)
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is False
+
+    def test_member_denied(self, mock_request, mock_view, create_member_profile):
+        """Regular members are denied."""
+        mock_request.user.member_profile = create_member_profile(Roles.MEMBER)
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is False
+
+    def test_unauthenticated_denied(self, mock_request, mock_view):
+        """Unauthenticated users are denied."""
+        mock_request.user.is_authenticated = False
+        permission = IsDeacon()
+        assert permission.has_permission(mock_request, mock_view) is False
 
 
 class TestIsPastor:
@@ -154,11 +214,11 @@ class TestIsTreasurer:
         permission = IsTreasurer()
         assert permission.has_permission(mock_request, mock_view) is True
 
-    def test_pastor_denied(self, mock_request, mock_view, create_member_profile):
-        """Pastors are denied (for treasurer-only resources)."""
+    def test_pastor_allowed(self, mock_request, mock_view, create_member_profile):
+        """Pastors are allowed (treasurer resources accessible to pastors)."""
         mock_request.user.member_profile = create_member_profile(Roles.PASTOR)
         permission = IsTreasurer()
-        assert permission.has_permission(mock_request, mock_view) is False
+        assert permission.has_permission(mock_request, mock_view) is True
 
     def test_admin_allowed(self, mock_request, mock_view, create_member_profile):
         """Admins are allowed."""
@@ -176,11 +236,11 @@ class TestIsAdmin:
         permission = IsAdmin()
         assert permission.has_permission(mock_request, mock_view) is True
 
-    def test_pastor_denied(self, mock_request, mock_view, create_member_profile):
-        """Pastors are denied."""
+    def test_pastor_allowed(self, mock_request, mock_view, create_member_profile):
+        """Pastors are allowed (admin access includes pastors)."""
         mock_request.user.member_profile = create_member_profile(Roles.PASTOR)
         permission = IsAdmin()
-        assert permission.has_permission(mock_request, mock_view) is False
+        assert permission.has_permission(mock_request, mock_view) is True
 
     def test_superuser_allowed(self, mock_request, mock_view):
         """Superusers are allowed."""
@@ -212,8 +272,10 @@ class TestIsFinanceStaff:
         permission = IsFinanceStaff()
         assert permission.has_permission(mock_request, mock_view) is True
 
-    def test_group_leader_denied(self, mock_request, mock_view, create_member_profile):
+    @patch('apps.donations.models.FinanceDelegation.objects')
+    def test_group_leader_denied(self, mock_fd_objects, mock_request, mock_view, create_member_profile):
         """Group leaders are denied."""
+        mock_fd_objects.filter.return_value.exists.return_value = False
         mock_request.user.member_profile = create_member_profile(Roles.GROUP_LEADER)
         permission = IsFinanceStaff()
         assert permission.has_permission(mock_request, mock_view) is False
@@ -263,6 +325,14 @@ class TestIsStaffMember:
         user.member_profile = create_member_profile(Roles.PASTOR)
         assert is_staff_member(user) is True
 
+    def test_deacon_is_staff(self, create_member_profile):
+        """Deacons are considered staff."""
+        user = Mock()
+        user.is_staff = False
+        user.is_superuser = False
+        user.member_profile = create_member_profile(Roles.DEACON)
+        assert is_staff_member(user) is True
+
     def test_volunteer_is_not_staff(self, create_member_profile):
         """Volunteers are not considered staff."""
         user = Mock()
@@ -289,12 +359,12 @@ class TestCanManageFinances:
         user.member_profile = create_member_profile(Roles.ADMIN)
         assert can_manage_finances(user) is True
 
-    def test_pastor_cannot_manage(self, create_member_profile):
-        """Pastors cannot manage finances (unless in FINANCE_ROLES)."""
+    def test_pastor_can_manage(self, create_member_profile):
+        """Pastors can manage finances (PASTOR in FINANCE_ROLES)."""
         user = Mock()
         user.is_superuser = False
         user.member_profile = create_member_profile(Roles.PASTOR)
-        assert can_manage_finances(user) is False
+        assert can_manage_finances(user) is True
 
 
 # ==============================================================================

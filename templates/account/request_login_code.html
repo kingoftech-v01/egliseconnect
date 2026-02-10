@@ -1,0 +1,29 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Connexion par code{% endblock %}
+
+{% block auth_title %}Connexion par code{% endblock %}
+{% block auth_subtitle %}Recevez un code de connexion par e-mail{% endblock %}
+
+{% block auth_form %}
+<form method="post" action="{% url 'account_request_login_code' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    {% for field in form %}
+    <div class="mb-4">
+        <label class="mb-1 text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_class:"form-control" }}
+        {% for error in field.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-block">Demander un code</button>
+    </div>
+    <p class="text-center">
+        <a class="btn-link text-primary" href="{% url 'account_login' %}">Autres options de connexion</a>
+    </p>
+</form>
+{% endblock %}

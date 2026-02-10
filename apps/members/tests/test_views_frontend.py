@@ -250,7 +250,7 @@ class TestMemberDetailView:
         response = client.get(self._url(member.pk))
         assert response.status_code == 200
         assert response.context['member'] == member
-        assert response.context['can_edit'] is True
+        assert response.context['is_own_profile'] is True
 
     def test_staff_can_view_any_profile(self, client, staff_user):
         """Django staff can view any member profile."""
@@ -258,7 +258,7 @@ class TestMemberDetailView:
         member = MemberFactory()
         response = client.get(self._url(member.pk))
         assert response.status_code == 200
-        assert response.context['can_edit'] is True
+        assert response.context['can_edit_admin_fields'] is True
 
     def test_pastor_can_view_any_profile(self, client, pastor_user_with_member):
         """Pastors can view any member profile."""
@@ -267,7 +267,7 @@ class TestMemberDetailView:
         other_member = MemberFactory()
         response = client.get(self._url(other_member.pk))
         assert response.status_code == 200
-        assert response.context['can_edit'] is True
+        assert response.context['can_edit_admin_fields'] is True
 
     def test_admin_can_view_any_profile(self, client, admin_user_with_member):
         """Admins can view any member profile."""
@@ -276,7 +276,7 @@ class TestMemberDetailView:
         other_member = MemberFactory()
         response = client.get(self._url(other_member.pk))
         assert response.status_code == 200
-        assert response.context['can_edit'] is True
+        assert response.context['can_edit_admin_fields'] is True
 
     def test_group_leader_can_view_group_member(self, client, group_leader_user_with_member):
         """Group leader can view profile of member in their group."""
@@ -289,7 +289,7 @@ class TestMemberDetailView:
 
         response = client.get(self._url(target_member.pk))
         assert response.status_code == 200
-        assert response.context['can_edit'] is False
+        assert response.context['can_edit_admin_fields'] is False
 
     def test_group_leader_cannot_view_non_group_member(
         self, client, group_leader_user_with_member
@@ -552,23 +552,13 @@ class TestMemberUpdateView:
         assert member.first_name == 'Updated'
 
     def test_post_valid_update_as_admin(self, client, pastor_user_with_member):
-        """POST updates member as admin with admin fields."""
+        """POST updates member as admin with staff-only fields (no personal info)."""
         user, _ = pastor_user_with_member
         client.force_login(user)
         member = MemberFactory(phone='514-555-0100')
         data = {
-            'first_name': member.first_name,
-            'last_name': member.last_name,
-            'email': member.email,
-            'phone': '514-555-0100',
-            'phone_secondary': '',
-            'birth_date': member.birth_date or '',
-            'address': member.address,
-            'city': member.city,
-            'province': member.province,
-            'postal_code': member.postal_code,
             'role': Roles.VOLUNTEER,
-            'family_status': member.family_status,
+            'membership_status': 'active',
             'notes': 'Admin note',
             'is_active': True,
             'joined_date': '',

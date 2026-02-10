@@ -35,9 +35,9 @@
                                 <div class="p-3 bg-light rounded text-center">
                                     <i class="fas fa-calendar-alt text-primary mb-2" style="font-size:2rem;"></i>
                                     <h6 class="text-muted mb-1">Date</h6>
-                                    <strong>{{ interview.scheduled_date|date:"d F Y" }}</strong>
+                                    <strong>{{ interview.final_date|date:"d F Y" }}</strong>
                                     <br>
-                                    <span class="text-muted">{{ interview.scheduled_date|date:"H:i" }}</span>
+                                    <span class="text-muted">{{ interview.final_date|date:"H:i" }}</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -61,9 +61,9 @@
                         <div class="border rounded p-4 mb-3">
                             <h5 class="mb-3">Repondre a la proposition</h5>
                             <div class="d-flex gap-3 mb-4">
-                                <form method="post" action="/onboarding/interview/accept/">
+                                <form method="post" action="/onboarding/interview/">
                                     {% csrf_token %}
-                                    <input type="hidden" name="interview_id" value="{{ interview.pk }}">
+                                    <input type="hidden" name="action" value="accept">
                                     <button type="submit" class="btn btn-success btn-lg">
                                         <i class="fas fa-check me-2"></i>Accepter cette date
                                     </button>
@@ -73,17 +73,13 @@
                             <hr>
 
                             <h6 class="mb-3">Proposer une autre date</h6>
-                            <form method="post" action="/onboarding/interview/counter-propose/">
+                            <form method="post" action="/onboarding/interview/">
                                 {% csrf_token %}
-                                <input type="hidden" name="interview_id" value="{{ interview.pk }}">
+                                <input type="hidden" name="action" value="counter">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label" for="proposed_date">Date et heure souhaitees</label>
-                                        <input type="datetime-local" name="proposed_date" id="proposed_date" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="reason">Motif (facultatif)</label>
-                                        <input type="text" name="reason" id="reason" class="form-control" placeholder="Raison de la contre-proposition">
+                                        <label class="form-label" for="id_counter_proposed_date">Date et heure souhaitees</label>
+                                        <input type="datetime-local" name="counter_proposed_date" id="id_counter_proposed_date" class="form-control" required>
                                     </div>
                                     <div class="col-12">
                                         <button type="submit" class="btn btn-outline-primary">

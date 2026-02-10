@@ -463,3 +463,24 @@ def test_rsvp_unique_per_member():
     assert created2 is False
     assert rsvp1.pk == rsvp2.pk
 ```
+
+---
+
+## Recent Additions
+
+### EventForm
+New form in `apps/events/forms.py` using W3CRMFormMixin:
+- Fields: `title`, `description`, `event_type`, `start_datetime`, `end_datetime`, `all_day`, `location`, `location_address`, `is_online`, `online_link`, `organizer`, `max_attendees`, `requires_rsvp`, `image`, `is_published`
+- DateTimeInput widgets for datetime fields
+
+### RSVPForm
+- Fields: `status`, `guests`, `notes`
+
+### New Frontend Views
+- `event_create` — `/events/create/` — Create new event (admin/pastor)
+- `event_update` — `/events/<pk>/edit/` — Edit existing event (admin/pastor)
+- `event_delete` — `/events/<pk>/delete/` — Delete event with confirmation (admin/pastor)
+
+### New Templates
+- `event_form.html` — Create/update event form (shared for create and edit)
+- `event_delete.html` — Delete event confirmation page

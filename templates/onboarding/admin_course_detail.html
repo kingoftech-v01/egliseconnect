@@ -84,13 +84,13 @@
                                         <td>{{ lesson.title }}</td>
                                         <td>{{ lesson.description|truncatewords:8|default:"-" }}</td>
                                         <td>
-                                            {% if lesson.material_pdf %}
+                                            {% if lesson.materials_pdf %}
                                                 <span class="badge bg-light text-dark"><i class="fas fa-file-pdf text-danger me-1"></i>PDF</span>
                                             {% endif %}
-                                            {% if lesson.notes_file %}
+                                            {% if lesson.materials_notes %}
                                                 <span class="badge bg-light text-dark"><i class="fas fa-file-alt text-info me-1"></i>Notes</span>
                                             {% endif %}
-                                            {% if not lesson.material_pdf and not lesson.notes_file %}
+                                            {% if not lesson.materials_pdf and not lesson.materials_notes %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
@@ -120,7 +120,7 @@
                         <h4 class="heading mb-0">Ajouter une lecon</h4>
                     </div>
                     <div class="card-body">
-                        <form method="post" enctype="multipart/form-data" action="/onboarding/admin/courses/{{ course.pk }}/lessons/add/">
+                        <form method="post" enctype="multipart/form-data" action="/onboarding/admin/courses/{{ course.pk }}/">
                             {% csrf_token %}
 
                             {% if lesson_form.errors %}
@@ -154,13 +154,19 @@
                                     <textarea name="description" id="description" class="form-control" rows="3"
                                               placeholder="Description du contenu de la lecon...">{{ lesson_form.description.value|default:'' }}</textarea>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="material_pdf">Support de cours (PDF)</label>
-                                    <input type="file" name="material_pdf" id="material_pdf" class="form-control" accept=".pdf">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="duration_minutes">Duree (minutes)</label>
+                                    <input type="number" name="duration_minutes" id="duration_minutes" class="form-control" min="1"
+                                           value="{{ lesson_form.duration_minutes.value|default:'90' }}">
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="notes_file">Notes de cours</label>
-                                    <input type="file" name="notes_file" id="notes_file" class="form-control" accept=".pdf,.doc,.docx,.txt">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="materials_pdf">Support de cours (PDF)</label>
+                                    <input type="file" name="materials_pdf" id="materials_pdf" class="form-control" accept=".pdf">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="materials_notes">Notes de cours</label>
+                                    <textarea name="materials_notes" id="materials_notes" class="form-control" rows="3"
+                                              placeholder="Notes complementaires...">{{ lesson_form.materials_notes.value|default:'' }}</textarea>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary">

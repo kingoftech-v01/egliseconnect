@@ -296,3 +296,49 @@ class TaxReceipt(BaseModel):
         if not self.member_address:
             self.member_address = self.member.full_address
         super().save(*args, **kwargs)
+
+
+class FinanceDelegation(BaseModel):
+    """Delegation of finance access from a pastor to another leader."""
+
+    delegated_to = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='finance_delegations_received',
+        verbose_name=_('Délégué à')
+    )
+
+    delegated_by = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='finance_delegations_granted',
+        verbose_name=_('Délégué par')
+    )
+
+    granted_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Accordé le')
+    )
+
+    revoked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Révoqué le')
+    )
+
+    reason = models.TextField(
+        blank=True,
+        verbose_name=_('Motif')
+    )
+
+    class Meta:
+        verbose_name = _('Délégation financière')
+        verbose_name_plural = _('Délégations financières')
+        ordering = ['-granted_at']
+
+    def __str__(self):
+        return f'{self.delegated_by} → {self.delegated_to}'
+
+    @property
+    def is_active_delegation(self):
+        return self.is_active and self.revoked_at is None

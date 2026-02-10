@@ -1,0 +1,21 @@
+{% extends "account/base_auth.html" %}
+{% load i18n %}
+
+{% block head_title %}Deconnexion{% endblock %}
+
+{% block auth_title %}Deconnexion{% endblock %}
+{% block auth_subtitle %}Etes-vous sur de vouloir vous deconnecter ?{% endblock %}
+
+{% block auth_form %}
+<div class="text-center">
+    <div class="mb-4">
+        <i class="fas fa-sign-out-alt fa-3x text-primary mb-3"></i>
+    </div>
+    <form method="post" action="{% url 'account_logout' %}">
+        {% csrf_token %}
+        {{ redirect_field }}
+        <button type="submit" class="btn btn-primary btn-block mb-3">Se deconnecter</button>
+    </form>
+    <a href="/" class="btn-link text-primary">Annuler</a>
+</div>
+{% endblock %}

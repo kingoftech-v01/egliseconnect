@@ -1,0 +1,38 @@
+{% extends "account/base_manage_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Codes de recuperation{% endblock %}
+
+{% block page_title %}Codes de recuperation{% endblock %}
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Securite 2FA</a></li>
+    <li class="breadcrumb-item active"><a href="javascript:void(0)">Codes de recuperation</a></li>
+{% endblock %}
+
+{% block content %}
+<h4 class="heading mb-4">Codes de recuperation</h4>
+<p class="mb-3">
+    Il reste {{ unused_codes|length }} code{{ unused_codes|length|pluralize }} de recuperation disponible{{ unused_codes|length|pluralize }}
+    sur {{ total_count }}.
+</p>
+
+{% if unused_codes %}
+<div class="mb-4">
+    <label class="form-label">Codes non utilises</label>
+    <textarea class="form-control" rows="{{ unused_codes|length }}" readonly disabled>{% for code in unused_codes %}{% if forloop.counter0 %}
+{% endif %}{{ code }}{% endfor %}</textarea>
+</div>
+<div class="d-flex gap-2">
+    <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-primary">
+        <i class="fas fa-download me-1"></i>Telecharger
+    </a>
+    <a href="{% url 'mfa_generate_recovery_codes' %}" class="btn btn-secondary">
+        <i class="fas fa-sync me-1"></i>Generer de nouveaux codes
+    </a>
+</div>
+{% else %}
+<a href="{% url 'mfa_generate_recovery_codes' %}" class="btn btn-primary">
+    <i class="fas fa-sync me-1"></i>Generer des codes
+</a>
+{% endif %}
+{% endblock %}

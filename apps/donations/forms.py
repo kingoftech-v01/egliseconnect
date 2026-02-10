@@ -128,6 +128,43 @@ class DonationCampaignForm(W3CRMFormMixin, forms.ModelForm):
         return cleaned_data
 
 
+class DonationEditForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for finance staff to edit a donation."""
+
+    class Meta:
+        model = Donation
+        fields = [
+            'amount',
+            'donation_type',
+            'payment_method',
+            'date',
+            'campaign',
+            'check_number',
+            'notes',
+        ]
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'amount': forms.NumberInput(attrs={
+                'min': '1',
+                'step': '0.01',
+            }),
+            'notes': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['campaign'].queryset = DonationCampaign.objects.filter(
+            is_active=True
+        )
+        self.fields['campaign'].required = False
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and amount <= 0:
+            raise forms.ValidationError(_('Le montant doit être positif.'))
+        return amount
+
+
 class DonationFilterForm(W3CRMFormMixin, forms.Form):
     """Filter form for donation list."""
 

@@ -57,11 +57,11 @@
 
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" for="scheduled_date">Date et heure <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" name="scheduled_date" id="scheduled_date" class="form-control" required
-                                           value="{{ form.scheduled_date.value|default:'' }}">
-                                    {% if form.scheduled_date.errors %}
-                                    <div class="invalid-feedback d-block">{{ form.scheduled_date.errors.0 }}</div>
+                                    <label class="form-label" for="id_proposed_date">Date et heure <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="proposed_date" id="id_proposed_date" class="form-control" required
+                                           value="{{ form.proposed_date.value|default:'' }}">
+                                    {% if form.proposed_date.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.proposed_date.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
@@ -90,19 +90,6 @@
                                     {% if form.interviewer.errors %}
                                     <div class="invalid-feedback d-block">{{ form.interviewer.errors.0 }}</div>
                                     {% endif %}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="duration">Duree estimee</label>
-                                    <select name="duration" id="duration" class="form-select">
-                                        <option value="15">15 minutes</option>
-                                        <option value="30" selected>30 minutes</option>
-                                        <option value="45">45 minutes</option>
-                                        <option value="60">1 heure</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label" for="notes">Notes (facultatif)</label>
-                                    <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Notes ou instructions supplementaires pour l'entretien...">{{ form.notes.value|default:'' }}</textarea>
                                 </div>
                             </div>
 

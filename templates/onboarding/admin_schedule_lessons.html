@@ -130,25 +130,24 @@
                                             </td>
                                         </tr>
                                         {% empty %}
-                                        <!-- Fallback: manual lesson rows from lessons context -->
-                                        {% for lesson in lessons %}
+                                        <!-- Fallback: manual lesson rows from scheduled_lessons context -->
+                                        {% for sl in lessons %}
                                         <tr>
-                                            <td><strong>{{ lesson.order }}</strong></td>
+                                            <td><strong>{{ sl.lesson.order }}</strong></td>
                                             <td>
-                                                <strong>{{ lesson.title }}</strong>
-                                                <input type="hidden" name="lesson_id_{{ forloop.counter0 }}" value="{{ lesson.pk }}">
+                                                <strong>{{ sl.lesson.title }}</strong>
                                             </td>
                                             <td>
                                                 <input type="datetime-local"
-                                                       name="scheduled_date_{{ forloop.counter0 }}"
+                                                       name="date_{{ sl.pk }}"
                                                        class="form-control"
-                                                       value="{{ lesson.scheduled_date|date:'Y-m-d\\TH:i'|default:'' }}">
+                                                       value="{{ sl.scheduled_date|date:'Y-m-d\TH:i'|default:'' }}">
                                             </td>
                                             <td>
                                                 <input type="text"
-                                                       name="location_{{ forloop.counter0 }}"
+                                                       name="location_{{ sl.pk }}"
                                                        class="form-control"
-                                                       value="{{ lesson.location|default:'' }}"
+                                                       value="{{ sl.location|default:'' }}"
                                                        placeholder="Lieu de la lecon">
                                             </td>
                                         </tr>

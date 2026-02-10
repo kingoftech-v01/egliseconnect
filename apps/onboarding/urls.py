@@ -27,7 +27,16 @@ frontend_urlpatterns = [
     path('admin/courses/', views_frontend.admin_courses, name='admin_courses'),
     path('admin/courses/create/', views_frontend.admin_course_create, name='admin_course_create'),
     path('admin/courses/<uuid:pk>/', views_frontend.admin_course_detail, name='admin_course_detail'),
+    path('admin/courses/<uuid:pk>/edit/', views_frontend.admin_course_edit, name='admin_course_edit'),
+    path('admin/courses/<uuid:course_pk>/lessons/<uuid:pk>/edit/', views_frontend.admin_lesson_edit, name='admin_lesson_edit'),
+    path('admin/courses/<uuid:course_pk>/lessons/<uuid:pk>/delete/', views_frontend.admin_lesson_delete, name='admin_lesson_delete'),
     path('admin/stats/', views_frontend.admin_stats, name='admin_stats'),
+    # Invitations
+    path('admin/invitations/', views_frontend.admin_invitations, name='admin_invitations'),
+    path('admin/invitations/create/', views_frontend.admin_invitation_create, name='admin_invitation_create'),
+    path('admin/invitations/<uuid:pk>/edit/', views_frontend.admin_invitation_edit, name='admin_invitation_edit'),
+    path('admin/invitations/<uuid:pk>/delete/', views_frontend.admin_invitation_delete, name='admin_invitation_delete'),
+    path('invitation/', views_frontend.accept_invitation, name='accept_invitation'),
 ]
 
 app_name = 'onboarding'

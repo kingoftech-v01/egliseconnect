@@ -1,0 +1,43 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Inscription{% endblock %}
+
+{% block auth_title %}Inscription{% endblock %}
+{% block auth_subtitle %}Creez votre compte EgliseConnect{% endblock %}
+
+{% block auth_form %}
+<form method="post" action="{% url 'account_signup' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    {% for field in form %}
+    <div class="mb-4{% if field.field.widget.input_type == 'checkbox' %} form-check{% endif %}">
+        {% if field.field.widget.input_type == 'checkbox' %}
+        {{ field|add_class:"form-check-input" }}
+        <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% else %}
+        <label class="mb-1 text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_class:"form-control" }}
+        {% endif %}
+        {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
+        {% for error in field.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-block">S'inscrire</button>
+    </div>
+    {% if SOCIALACCOUNT_ENABLED %}
+    <h6 class="login-title"><span>Ou continuer avec</span></h6>
+    <div class="mb-3">
+        {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+    </div>
+    {% endif %}
+    <p class="text-center">Deja un compte ?
+        <a class="btn-link text-primary" href="{% url 'account_login' %}">Connectez-vous</a>
+    </p>
+</form>
+{% endblock %}

@@ -5,7 +5,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel, SoftDeleteModel
-from apps.core.constants import Roles, FamilyStatus, GroupType, PrivacyLevel, Province, MembershipStatus
+from apps.core.constants import (
+    Roles, FamilyStatus, GroupType, PrivacyLevel, Province, MembershipStatus,
+    DepartmentRole, DisciplinaryType, ApprovalStatus, ModificationRequestStatus,
+)
 from apps.core.validators import validate_image_file
 
 User = get_user_model()
@@ -356,12 +359,26 @@ class Member(SoftDeleteModel):
         return timezone.now() > self.two_factor_deadline and not self.two_factor_enabled
 
     @property
+    def all_roles(self):
+        """Returns set of all roles including primary and additional."""
+        roles = {self.role}
+        try:
+            roles.update(self.additional_roles.values_list('role', flat=True))
+        except (AttributeError, ValueError, TypeError):
+            pass
+        return roles
+
+    def has_role(self, role):
+        """Check if member has a specific role (primary or additional)."""
+        return role in self.all_roles
+
+    @property
     def is_staff_member(self):
-        return self.role in Roles.STAFF_ROLES
+        return bool(self.all_roles & set(Roles.STAFF_ROLES))
 
     @property
     def can_manage_finances(self):
-        return self.role in Roles.FINANCE_ROLES
+        return bool(self.all_roles & set(Roles.FINANCE_ROLES))
 
     def get_groups(self):
         """Get all active groups this member belongs to."""
@@ -532,3 +549,291 @@ class DirectoryPrivacy(BaseModel):
 
     def __str__(self):
         return f'Confidentialité - {self.member.full_name}'
+
+
+class MemberRole(BaseModel):
+    """Allows a member to hold multiple roles simultaneously."""
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='additional_roles',
+        verbose_name=_('Membre')
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=Roles.CHOICES,
+        verbose_name=_('Rôle')
+    )
+
+    class Meta:
+        verbose_name = _('Rôle supplémentaire')
+        verbose_name_plural = _('Rôles supplémentaires')
+        unique_together = ['member', 'role']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.get_role_display()}'
+
+
+class Department(BaseModel):
+    """Specialized group with leader, calendar, and custom task types."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_('Nom')
+    )
+
+    description = models.TextField(
+        blank=True,
+        verbose_name=_('Description')
+    )
+
+    leader = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='led_departments',
+        verbose_name=_('Leader')
+    )
+
+    parent_department = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sub_departments',
+        verbose_name=_('Département parent')
+    )
+
+    meeting_day = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_('Jour de réunion')
+    )
+
+    meeting_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Heure de réunion')
+    )
+
+    meeting_location = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=_('Lieu de réunion')
+    )
+
+    class Meta:
+        verbose_name = _('Département')
+        verbose_name_plural = _('Départements')
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def member_count(self):
+        return self.memberships.filter(is_active=True).count()
+
+
+class DepartmentMembership(BaseModel):
+    """Member's enrollment in a department."""
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='department_memberships',
+        verbose_name=_('Membre')
+    )
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='memberships',
+        verbose_name=_('Département')
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=DepartmentRole.CHOICES,
+        default=DepartmentRole.MEMBER,
+        verbose_name=_('Rôle')
+    )
+
+    joined_date = models.DateField(
+        auto_now_add=True,
+        verbose_name=_('Date d\'adhésion')
+    )
+
+    class Meta:
+        verbose_name = _('Adhésion au département')
+        verbose_name_plural = _('Adhésions aux départements')
+        unique_together = ['member', 'department']
+        ordering = ['department__name']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.department.name}'
+
+
+class DepartmentTaskType(BaseModel):
+    """Custom task types specific to a department."""
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='task_types',
+        verbose_name=_('Département')
+    )
+
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_('Nom de la tâche')
+    )
+
+    description = models.TextField(
+        blank=True,
+        verbose_name=_('Description')
+    )
+
+    max_assignees = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_('Nombre max d\'assignés')
+    )
+
+    class Meta:
+        verbose_name = _('Type de tâche')
+        verbose_name_plural = _('Types de tâches')
+        unique_together = ['department', 'name']
+        ordering = ['department', 'name']
+
+    def __str__(self):
+        return f'{self.department.name} - {self.name}'
+
+
+class DisciplinaryAction(BaseModel):
+    """Punishment, exemption, or suspension of a member."""
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='disciplinary_actions',
+        verbose_name=_('Membre')
+    )
+
+    action_type = models.CharField(
+        max_length=20,
+        choices=DisciplinaryType.CHOICES,
+        verbose_name=_('Type d\'action')
+    )
+
+    reason = models.TextField(
+        verbose_name=_('Motif')
+    )
+
+    start_date = models.DateField(
+        verbose_name=_('Date de début')
+    )
+
+    end_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date de fin')
+    )
+
+    created_by = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_disciplinary_actions',
+        verbose_name=_('Créé par')
+    )
+
+    approved_by = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_disciplinary_actions',
+        verbose_name=_('Approuvé par')
+    )
+
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.CHOICES,
+        default=ApprovalStatus.PENDING,
+        verbose_name=_('Statut d\'approbation')
+    )
+
+    auto_suspend_membership = models.BooleanField(
+        default=True,
+        verbose_name=_('Suspendre automatiquement le compte')
+    )
+
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_('Notes')
+    )
+
+    class Meta:
+        verbose_name = _('Action disciplinaire')
+        verbose_name_plural = _('Actions disciplinaires')
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f'{self.get_action_type_display()} - {self.member.full_name}'
+
+    @property
+    def is_current(self):
+        """Is this action currently in effect?"""
+        from datetime import date
+        today = date.today()
+        if self.end_date:
+            return self.start_date <= today <= self.end_date
+        return self.start_date <= today
+
+
+class ProfileModificationRequest(BaseModel):
+    """Request from staff asking a member to update their personal information."""
+
+    target_member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='modification_requests',
+        verbose_name=_('Membre cible')
+    )
+
+    requested_by = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_modification_requests',
+        verbose_name=_('Demandé par')
+    )
+
+    message = models.TextField(
+        verbose_name=_('Message'),
+        help_text=_('Décrivez les modifications demandées')
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=ModificationRequestStatus.CHOICES,
+        default=ModificationRequestStatus.PENDING,
+        verbose_name=_('Statut')
+    )
+
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Complété le')
+    )
+
+    class Meta:
+        verbose_name = _('Demande de modification de profil')
+        verbose_name_plural = _('Demandes de modification de profil')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Demande pour {self.target_member.full_name} par {self.requested_by}'

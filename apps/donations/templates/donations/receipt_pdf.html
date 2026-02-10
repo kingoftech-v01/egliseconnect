@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Reçu fiscal {{ receipt.receipt_number }}</title>
+    <style>
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        .header h1 { font-size: 18px; margin: 0 0 5px; }
+        .header p { margin: 2px 0; color: #666; }
+        .receipt-info { margin-bottom: 20px; }
+        .receipt-info table { width: 100%; }
+        .receipt-info td { padding: 4px 8px; }
+        .receipt-info .label { font-weight: bold; width: 200px; }
+        .section-title { font-size: 14px; font-weight: bold; margin: 20px 0 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        table.donations { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.donations th, table.donations td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+        table.donations th { background-color: #f5f5f5; font-weight: bold; }
+        table.donations .amount { text-align: right; }
+        .total-row { font-weight: bold; font-size: 14px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #ccc; padding-top: 10px; }
+        .official { margin-top: 30px; font-size: 11px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ church_name }}</h1>
+        {% if church_address %}<p>{{ church_address }}</p>{% endif %}
+        {% if church_registration %}<p>No. d'enregistrement : {{ church_registration }}</p>{% endif %}
+    </div>
+
+    <h2 style="text-align: center;">Reçu officiel de don</h2>
+
+    <div class="receipt-info">
+        <table>
+            <tr>
+                <td class="label">Numéro de reçu :</td>
+                <td>{{ receipt.receipt_number }}</td>
+            </tr>
+            <tr>
+                <td class="label">Année fiscale :</td>
+                <td>{{ receipt.year }}</td>
+            </tr>
+            <tr>
+                <td class="label">Nom du donateur :</td>
+                <td>{{ receipt.member_name }}</td>
+            </tr>
+            {% if receipt.member_address %}
+            <tr>
+                <td class="label">Adresse :</td>
+                <td>{{ receipt.member_address }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td class="label">Montant total :</td>
+                <td><strong>{{ receipt.total_amount }} $</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Date d'émission :</td>
+                <td>{{ receipt.generated_at|date:"d/m/Y" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section-title">Détail des dons</div>
+    <table class="donations">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Numéro</th>
+                <th>Type</th>
+                <th>Mode de paiement</th>
+                <th class="amount">Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for donation in donations %}
+            <tr>
+                <td>{{ donation.date|date:"d/m/Y" }}</td>
+                <td>{{ donation.donation_number }}</td>
+                <td>{{ donation.get_donation_type_display }}</td>
+                <td>{{ donation.get_payment_method_display }}</td>
+                <td class="amount">{{ donation.amount }} $</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center;">Aucun don pour cette période.</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="4" style="text-align: right;">Total :</td>
+                <td class="amount">{{ receipt.total_amount }} $</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="official">
+        Ce reçu est émis conformément aux dispositions de la Loi de l'impôt sur le revenu du Canada.
+    </div>
+
+    <div class="footer">
+        {{ church_name }} - Reçu généré le {{ receipt.generated_at|date:"d/m/Y" }}
+    </div>
+</body>
+</html>

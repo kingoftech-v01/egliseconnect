@@ -1,9 +1,13 @@
-"""Onboarding models: training courses, lessons, interviews."""
+"""Onboarding models: training courses, lessons, interviews, invitations."""
+import secrets
+import string
+
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
-from apps.core.constants import LessonStatus, InterviewStatus
+from apps.core.constants import LessonStatus, InterviewStatus, Roles
 from apps.core.validators import validate_pdf_file
 
 
@@ -52,6 +56,14 @@ class TrainingCourse(BaseModel):
     @property
     def lesson_count(self):
         return self.lessons.filter(is_active=True).count()
+
+    @property
+    def lessons_count(self):
+        return self.lesson_count
+
+    @property
+    def participants_count(self):
+        return self.enrollments.filter(is_active=True).count()
 
 
 class Lesson(BaseModel):
@@ -242,6 +254,7 @@ class ScheduledLesson(BaseModel):
         verbose_name=_('Notes')
     )
 
+    reminder_5days_sent = models.BooleanField(default=False)
     reminder_3days_sent = models.BooleanField(default=False)
     reminder_1day_sent = models.BooleanField(default=False)
     reminder_sameday_sent = models.BooleanField(default=False)
@@ -320,6 +333,7 @@ class Interview(BaseModel):
         verbose_name=_('Notes de résultat')
     )
 
+    reminder_5days_sent = models.BooleanField(default=False)
     reminder_3days_sent = models.BooleanField(default=False)
     reminder_1day_sent = models.BooleanField(default=False)
     reminder_sameday_sent = models.BooleanField(default=False)
@@ -336,3 +350,95 @@ class Interview(BaseModel):
     def final_date(self):
         """The definitive date for this interview."""
         return self.confirmed_date or self.proposed_date
+
+
+def _generate_invitation_code():
+    """Generate a unique 8-char uppercase alphanumeric code."""
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(8))
+
+
+class InvitationCode(BaseModel):
+    """Code d'invitation pour intégrer un nouveau membre ou assigner un rôle."""
+
+    code = models.CharField(
+        max_length=32,
+        unique=True,
+        default=_generate_invitation_code,
+        verbose_name=_('Code'),
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=Roles.CHOICES,
+        default=Roles.MEMBER,
+        verbose_name=_('Rôle assigné'),
+        help_text=_('Rôle attribué au membre lors de l\'utilisation'),
+    )
+
+    created_by = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='created_invitations',
+        verbose_name=_('Créé par'),
+    )
+
+    used_by = models.ForeignKey(
+        'members.Member',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='used_invitations',
+        verbose_name=_('Utilisé par'),
+    )
+
+    used_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Utilisé le'),
+    )
+
+    expires_at = models.DateTimeField(
+        verbose_name=_('Expire le'),
+    )
+
+    max_uses = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_('Utilisations max'),
+    )
+
+    use_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Nombre d\'utilisations'),
+    )
+
+    skip_onboarding = models.BooleanField(
+        default=False,
+        verbose_name=_('Passer le parcours'),
+        help_text=_('Si coché, le membre devient actif immédiatement (membres pré-existants)'),
+    )
+
+    note = models.TextField(
+        blank=True,
+        verbose_name=_('Note'),
+    )
+
+    class Meta:
+        verbose_name = _('Code d\'invitation')
+        verbose_name_plural = _('Codes d\'invitation')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.code} ({self.get_role_display()})'
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    @property
+    def is_usable(self):
+        return (
+            self.is_active
+            and not self.is_expired
+            and self.use_count < self.max_uses
+        )

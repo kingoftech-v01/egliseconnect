@@ -583,3 +583,31 @@ def test_campaign_progress():
     DonationFactory(campaign=campaign, amount=Decimal('250.00'))
     assert campaign.progress_percentage == 25
 ```
+
+---
+
+## Recent Additions
+
+### FinanceDelegation Model
+
+Allows a member to delegate finance access to another member (e.g., treasurer delegating to assistant).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `delegated_to` | ForeignKey → Member | Member granted access |
+| `delegated_by` | ForeignKey → Member | Member granting access |
+| `granted_at` | DateTimeField | Auto-set on creation |
+| `revoked_at` | DateTimeField | When delegation was revoked (nullable) |
+| `reason` | TextField | Reason for delegation (optional) |
+
+Property: `is_active_delegation` → True if active and not revoked.
+
+### New Frontend Views
+- `finance_delegations` — `/donations/delegations/` — List active and revoked delegations
+- `delegate_finance_access` — `/donations/delegations/grant/` — Grant finance access (POST)
+- `revoke_finance_access` — `/donations/delegations/<pk>/revoke/` — Revoke delegation (POST)
+
+### New Templates
+- `campaign_form.html` — Create/update campaign form
+- `campaign_delete.html` — Delete campaign confirmation
+- `finance_delegations.html` — Finance delegation management page

@@ -312,6 +312,78 @@ class OnboardingService:
         member.save(update_fields=['membership_status', 'rejection_reason', 'updated_at'])
 
     @staticmethod
+    def create_invitation(created_by, role=None, expires_in_days=30,
+                          max_uses=1, skip_onboarding=False, note=''):
+        """Create a new invitation code."""
+        from .models import InvitationCode
+
+        if role is None:
+            role = Roles.MEMBER
+
+        invitation = InvitationCode.objects.create(
+            created_by=created_by,
+            role=role,
+            expires_at=timezone.now() + timedelta(days=expires_in_days),
+            max_uses=max_uses,
+            skip_onboarding=skip_onboarding,
+            note=note,
+        )
+        return invitation
+
+    @staticmethod
+    def accept_invitation(invitation, member):
+        """Use an invitation code to assign role and optionally skip onboarding."""
+        if not invitation.is_usable:
+            raise ValueError('Ce code d\'invitation n\'est plus valide.')
+
+        invitation.use_count += 1
+        invitation.used_by = member
+        invitation.used_at = timezone.now()
+
+        if invitation.use_count >= invitation.max_uses:
+            invitation.is_active = False
+
+        invitation.save()
+
+        # Assign the role via additional_roles if different from primary
+        if invitation.role != member.role and invitation.role != Roles.MEMBER:
+            from apps.members.models import MemberRole
+            MemberRole.objects.get_or_create(
+                member=member, role=invitation.role
+            )
+
+        # Skip onboarding if flagged (pre-existing members)
+        if invitation.skip_onboarding:
+            member.membership_status = MembershipStatus.ACTIVE
+            member.became_active_at = timezone.now()
+            member.joined_date = timezone.now().date()
+            member.save(update_fields=[
+                'membership_status', 'became_active_at', 'joined_date', 'updated_at'
+            ])
+
+            Notification.objects.create(
+                member=member,
+                title='Bienvenue!',
+                message=(
+                    f'Votre invitation a été acceptée. '
+                    f'Vous êtes maintenant {invitation.get_role_display()}.'
+                ),
+                notification_type='general',
+            )
+        else:
+            Notification.objects.create(
+                member=member,
+                title='Invitation acceptée',
+                message=(
+                    f'Votre invitation a été acceptée avec le rôle '
+                    f'{invitation.get_role_display()}. Poursuivez votre parcours.'
+                ),
+                notification_type='general',
+            )
+
+        return invitation
+
+    @staticmethod
     def expire_overdue_members():
         """Expire accounts that didn't submit form within deadline."""
         from apps.members.models import Member

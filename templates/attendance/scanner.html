@@ -12,6 +12,9 @@
             <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
             <li class="breadcrumb-item active"><a href="javascript:void(0)">Scanner QR</a></li>
         </ol>
+        <a href="/attendance/sessions/create/" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-plus-circle me-1"></i>Nouvelle session
+        </a>
     </div>
     <div class="container-fluid">
         <div class="row">
@@ -71,16 +74,18 @@
 
             <!-- Scanner Area and Recent Check-ins -->
             <div class="col-xl-8 col-lg-7">
-                <!-- Camera Scanner Placeholder -->
+                <!-- Camera Scanner -->
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h4 class="heading mb-0">Scanner de camera</h4>
+                        <button id="toggle-scanner" class="btn btn-sm btn-outline-primary" onclick="toggleScanner()">
+                            <i class="bi bi-camera me-1"></i>Demarrer
+                        </button>
                     </div>
-                    <div class="card-body text-center">
-                        <div id="scanner-area" class="border rounded p-5 mb-3 bg-light">
-                            <i class="bi bi-camera" style="font-size: 3rem;"></i>
-                            <p class="text-muted mt-3 mb-0">Le scanner de camera sera disponible prochainement.</p>
-                            <p class="text-muted small">Utilisez la saisie manuelle en attendant.</p>
+                    <div class="card-body">
+                        <div id="qr-reader" style="width:100%;"></div>
+                        <div id="scan-result" class="mt-3" style="display:none;">
+                            <div id="scan-result-content"></div>
                         </div>
                     </div>
                 </div>
@@ -105,7 +110,7 @@
                                     <tr>
                                         <td>{{ record.member.first_name }} {{ record.member.last_name }}</td>
                                         <td>
-                                            {% if record.method == 'qr' %}
+                                            {% if record.method == 'qr_scan' %}
                                             <span class="badge bg-success">QR</span>
                                             {% else %}
                                             <span class="badge bg-info">Manuel</span>
@@ -130,31 +135,97 @@
 {% endblock %}
 
 {% block additional_js %}
+<script src="{% static 'w3crm/vendor/html5-qrcode/html5-qrcode.min.js' %}"></script>
 <script>
-    // -------------------------------------------------------
-    // Scanner QR - Integration camera
-    // -------------------------------------------------------
-    // TODO: Integration future avec une librairie de scan QR
-    // par camera (ex: html5-qrcode, jsQR, instascan).
-    //
-    // Exemple d'integration prevue :
-    // 1. Initialiser le flux camera dans #scanner-area
-    // 2. Decoder le QR code en temps reel
-    // 3. Envoyer automatiquement le code au serveur via fetch()
-    // 4. Afficher la confirmation de check-in
-    //
-    // function initScanner() {
-    //     // Initialisation du scanner camera
-    // }
-    //
-    // function onQRCodeScanned(decodedText) {
-    //     // Traitement du code QR scanne
-    // }
-    // -------------------------------------------------------
+var scannerRunning = false;
+var html5QrcodeScanner = null;
 
-    // Synchroniser les selects de session
-    document.getElementById('session-select').addEventListener('change', function() {
-        document.getElementById('manual-session-select').value = this.value;
+function toggleScanner() {
+    if (scannerRunning) {
+        stopScanner();
+    } else {
+        startScanner();
+    }
+}
+
+function startScanner() {
+    var sessionId = document.getElementById('session-select').value || document.getElementById('manual-session-select').value;
+    if (!sessionId) {
+        alert('Veuillez selectionner une session avant de scanner.');
+        return;
+    }
+
+    html5QrcodeScanner = new Html5Qrcode("qr-reader");
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        function() {}
+    ).then(function() {
+        scannerRunning = true;
+        var btn = document.getElementById('toggle-scanner');
+        btn.innerHTML = '<i class="bi bi-stop-circle me-1"></i>Arreter';
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-outline-danger');
+    }).catch(function(err) {
+        console.error('Camera error:', err);
+        alert('Impossible d\'acceder a la camera. Verifiez les permissions.');
     });
+}
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(function() {
+            scannerRunning = false;
+            var btn = document.getElementById('toggle-scanner');
+            btn.innerHTML = '<i class="bi bi-camera me-1"></i>Demarrer';
+            btn.classList.remove('btn-outline-danger');
+            btn.classList.add('btn-outline-primary');
+            document.getElementById('qr-reader').innerHTML = '';
+        });
+    }
+}
+
+function onScanSuccess(decodedText) {
+    // Stop scanner temporarily
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(function() {
+            scannerRunning = false;
+        });
+    }
+
+    var sessionId = document.getElementById('session-select').value || document.getElementById('manual-session-select').value;
+
+    // Send check-in via fetch
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch('/attendance/scanner/checkin/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken
+        },
+        body: 'qr_code=' + encodeURIComponent(decodedText) + '&session_id=' + encodeURIComponent(sessionId)
+    }).then(function(response) {
+        // Redirect to scanner page to see the flash message
+        window.location.href = '/attendance/scanner/';
+    }).catch(function(error) {
+        showScanResult('Erreur de connexion', 'danger');
+        // Restart scanner after error
+        setTimeout(startScanner, 2000);
+    });
+}
+
+function showScanResult(message, type) {
+    var resultDiv = document.getElementById('scan-result');
+    var contentDiv = document.getElementById('scan-result-content');
+    resultDiv.style.display = 'block';
+    contentDiv.innerHTML = '<div class="alert alert-' + type + ' mb-0">' + message + '</div>';
+}
+
+// Sync session selects
+document.getElementById('session-select').addEventListener('change', function() {
+    document.getElementById('manual-session-select').value = this.value;
+});
 </script>
 {% endblock %}

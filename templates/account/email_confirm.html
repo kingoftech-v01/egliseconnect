@@ -1,0 +1,45 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags account i18n %}
+
+{% block head_title %}Confirmer l'adresse e-mail{% endblock %}
+
+{% block auth_title %}Confirmer l'adresse e-mail{% endblock %}
+{% block auth_subtitle %}{% if confirmation and can_confirm %}Confirmez votre adresse e-mail{% else %}Lien de confirmation{% endif %}{% endblock %}
+
+{% block auth_form %}
+{% if confirmation %}
+    {% user_display confirmation.email_address.user as user_display %}
+    {% if can_confirm %}
+    <div class="text-center">
+        <p class="mb-4">
+            Veuillez confirmer que <strong>{{ confirmation.email_address.email }}</strong>
+            est bien une adresse e-mail pour l'utilisateur {{ user_display }}.
+        </p>
+        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+            {% csrf_token %}
+            {{ redirect_field }}
+            <button type="submit" class="btn btn-primary btn-block">Confirmer</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="text-center">
+        <div class="mb-4">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+        </div>
+        <p class="mb-4">
+            Impossible de confirmer cette adresse e-mail car elle est deja confirmee par un autre compte.
+        </p>
+    </div>
+    {% endif %}
+{% else %}
+<div class="text-center">
+    <div class="mb-4">
+        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+    </div>
+    <p class="mb-4">
+        Ce lien de confirmation a expire ou est invalide.
+        Veuillez <a href="{% url 'account_email' %}">demander un nouveau lien de confirmation</a>.
+    </p>
+</div>
+{% endif %}
+{% endblock %}

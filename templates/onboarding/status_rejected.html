@@ -25,10 +25,10 @@
                             Nous vous remercions pour votre interet et votre engagement.
                         </p>
 
-                        {% if rejection_reason %}
+                        {% if member.rejection_reason %}
                         <div class="alert alert-light border text-start mx-auto" style="max-width:600px;" role="alert">
                             <h6 class="alert-heading"><i class="fas fa-comment-alt me-2"></i>Motif communique :</h6>
-                            <p class="mb-0">{{ rejection_reason }}</p>
+                            <p class="mb-0">{{ member.rejection_reason }}</p>
                         </div>
                         {% endif %}
                     </div>

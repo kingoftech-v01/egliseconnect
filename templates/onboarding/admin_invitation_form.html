@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Creer une invitation - Administration{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Creer une invitation</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/invitations/">Invitations</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Creer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Nouveau code d'invitation</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label" for="role">Role assigne <span class="text-danger">*</span></label>
+                                <select name="role" id="role" class="form-select">
+                                    {% for value, label in form.role.field.choices %}
+                                    <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Le role qui sera attribue au membre lors de l'utilisation du code.</div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="expires_in_days">Expire dans (jours) <span class="text-danger">*</span></label>
+                                    <input type="number" name="expires_in_days" id="expires_in_days" class="form-control"
+                                           value="{{ form.expires_in_days.value|default:'30' }}" min="1" max="365" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="max_uses">Utilisations max <span class="text-danger">*</span></label>
+                                    <input type="number" name="max_uses" id="max_uses" class="form-control"
+                                           value="{{ form.max_uses.value|default:'1' }}" min="1" max="100" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" name="skip_onboarding" class="form-check-input" id="skip_onboarding"
+                                           {% if form.skip_onboarding.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="skip_onboarding">
+                                        Passer le parcours d'integration
+                                    </label>
+                                    <div class="form-text">Si coche, le membre devient actif immediatement sans passer par la formation.</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="note">Note</label>
+                                <textarea name="note" id="note" class="form-control" rows="2"
+                                          placeholder="Note interne (optionnel)...">{{ form.note.value|default:'' }}</textarea>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/invitations/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Creer l'invitation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

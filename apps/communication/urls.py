@@ -14,7 +14,11 @@ frontend_urlpatterns = [
     path('newsletters/', views_frontend.newsletter_list, name='newsletter_list'),
     path('newsletters/create/', views_frontend.newsletter_create, name='newsletter_create'),
     path('newsletters/<uuid:pk>/', views_frontend.newsletter_detail, name='newsletter_detail'),
+    path('newsletters/<uuid:pk>/edit/', views_frontend.newsletter_edit, name='newsletter_edit'),
+    path('newsletters/<uuid:pk>/delete/', views_frontend.newsletter_delete, name='newsletter_delete'),
+    path('newsletters/<uuid:pk>/send/', views_frontend.newsletter_send, name='newsletter_send'),
     path('notifications/', views_frontend.notification_list, name='notification_list'),
+    path('notifications/mark-all-read/', views_frontend.mark_all_read, name='mark_all_read'),
     path('preferences/', views_frontend.preferences, name='preferences'),
 ]
 

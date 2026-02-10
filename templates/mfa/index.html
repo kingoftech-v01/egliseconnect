@@ -1,0 +1,65 @@
+{% extends "account/base_manage_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Authentification a deux facteurs{% endblock %}
+
+{% block page_title %}Authentification a deux facteurs{% endblock %}
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item active"><a href="javascript:void(0)">Securite 2FA</a></li>
+{% endblock %}
+
+{% block content %}
+<h4 class="heading mb-4">Authentification a deux facteurs</h4>
+
+{% if "totp" in MFA_SUPPORTED_TYPES %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1">Application d'authentification</h5>
+                {% if authenticators.totp %}
+                <p class="text-success mb-0"><i class="fas fa-check-circle me-1"></i>Active</p>
+                {% else %}
+                <p class="text-muted mb-0"><i class="fas fa-times-circle me-1"></i>Non active</p>
+                {% endif %}
+            </div>
+            <div>
+                {% if authenticators.totp %}
+                <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-danger btn-sm">Desactiver</a>
+                {% else %}
+                <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary btn-sm">Activer</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
+{% with total_count=authenticators.recovery_codes.generate_codes|length unused_count=authenticators.recovery_codes.get_unused_codes|length %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1">Codes de recuperation</h5>
+                {% if authenticators.recovery_codes %}
+                <p class="text-muted mb-0">{{ unused_count }} code{{ unused_count|pluralize }} disponible{{ unused_count|pluralize }} sur {{ total_count }}</p>
+                {% else %}
+                <p class="text-muted mb-0">Aucun code configure</p>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2">
+                {% if is_mfa_enabled %}
+                {% if authenticators.recovery_codes and unused_count > 0 %}
+                <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-outline-primary btn-sm">Voir</a>
+                <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-secondary btn-sm">Telecharger</a>
+                {% endif %}
+                <a href="{% url 'mfa_generate_recovery_codes' %}" class="btn btn-secondary btn-sm">Generer</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endif %}
+{% endblock %}

@@ -335,6 +335,49 @@ class TestPreferencesView:
         assert prefs.push_enabled is False
         assert prefs.sms_enabled is False
 
+    def test_post_all_on(self, client, member_user):
+        """POST with all checkboxes 'on' saves all preferences as True."""
+        user, member = member_user
+        client.force_login(user)
+        NotificationPreference.objects.create(member=member)
+        data = {
+            'email_newsletter': 'on',
+            'email_events': 'on',
+            'email_birthdays': 'on',
+            'push_enabled': 'on',
+            'sms_enabled': 'on',
+        }
+        response = client.post(
+            reverse('frontend:communication:preferences'), data
+        )
+        assert response.status_code == 200
+        prefs = NotificationPreference.objects.get(member=member)
+        assert prefs.email_newsletter is True
+        assert prefs.email_events is True
+        assert prefs.email_birthdays is True
+        assert prefs.push_enabled is True
+        assert prefs.sms_enabled is True
+
+    def test_post_partial_save(self, client, member_user):
+        """POST with some checkboxes saves correct mix of True/False."""
+        user, member = member_user
+        client.force_login(user)
+        NotificationPreference.objects.create(member=member)
+        data = {
+            'email_newsletter': 'on',
+            'sms_enabled': 'on',
+        }
+        response = client.post(
+            reverse('frontend:communication:preferences'), data
+        )
+        assert response.status_code == 200
+        prefs = NotificationPreference.objects.get(member=member)
+        assert prefs.email_newsletter is True
+        assert prefs.email_events is False
+        assert prefs.email_birthdays is False
+        assert prefs.push_enabled is False
+        assert prefs.sms_enabled is True
+
     def test_no_member_profile_redirects(self, client, user_no_profile):
         client.force_login(user_no_profile)
         response = client.get(reverse('frontend:communication:preferences'))
@@ -345,3 +388,398 @@ class TestPreferencesView:
         response = client.get(reverse('frontend:communication:preferences'))
         assert response.status_code == 302
         assert '/accounts/login/' in response.url
+
+
+@pytest.mark.django_db
+class TestNewsletterEditView:
+    """Tests for newsletter_edit view."""
+
+    def test_get_form_as_pastor(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert response.context["newsletter"] == newsletter
+
+    def test_get_form_as_admin(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_non_draft_cannot_edit(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.SENT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 302
+
+    def test_post_valid_form(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        data = {
+            "subject": "Updated Subject",
+            "content": "<p>Updated content</p>",
+            "content_plain": "Updated content",
+            "send_to_all": True,
+        }
+        response = client.post(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk}),
+            data,
+        )
+        assert response.status_code == 302
+        newsletter.refresh_from_db()
+        assert newsletter.subject == "Updated Subject"
+
+    def test_post_invalid_form(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        data = {"subject": "", "content": "<p>Content</p>"}
+        response = client.post(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk}),
+            data,
+        )
+        assert response.status_code == 200
+        assert response.context["form"].errors
+
+    def test_not_found(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        import uuid
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": uuid.uuid4()})
+        )
+        assert response.status_code == 404
+
+    def test_unauthenticated_redirects(self, client):
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+    def test_staff_user_no_profile_allowed(self, client, staff_user_no_profile):
+        client.force_login(staff_user_no_profile)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+
+    def test_recipient_count_in_context(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_edit", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+        assert "recipient_count" in response.context
+
+
+
+@pytest.mark.django_db
+class TestNewsletterDeleteView:
+    """Tests for newsletter_delete view."""
+
+    def test_get_confirmation_page(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory()
+        response = client.get(
+            reverse("frontend:communication:newsletter_delete", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["newsletter"] == newsletter
+
+    def test_post_deletes_newsletter(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory()
+        pk = newsletter.pk
+        response = client.post(
+            reverse("frontend:communication:newsletter_delete", kwargs={"pk": pk})
+        )
+        assert response.status_code == 302
+        assert not Newsletter.objects.filter(pk=pk).exists()
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        newsletter = NewsletterFactory()
+        response = client.get(
+            reverse("frontend:communication:newsletter_delete", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_admin_can_delete(self, client, admin_user):
+        user, _ = admin_user
+        client.force_login(user)
+        newsletter = NewsletterFactory()
+        pk = newsletter.pk
+        response = client.post(
+            reverse("frontend:communication:newsletter_delete", kwargs={"pk": pk})
+        )
+        assert response.status_code == 302
+        assert not Newsletter.objects.filter(pk=pk).exists()
+
+    def test_not_found(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        import uuid
+        response = client.get(
+            reverse("frontend:communication:newsletter_delete", kwargs={"pk": uuid.uuid4()})
+        )
+        assert response.status_code == 404
+
+    def test_unauthenticated_redirects(self, client):
+        newsletter = NewsletterFactory()
+        response = client.get(
+            reverse("frontend:communication:newsletter_delete", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+
+@pytest.mark.django_db
+class TestNewsletterSendView:
+    """Tests for newsletter_send view."""
+
+    def test_send_draft_newsletter(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "send"},
+        )
+        assert response.status_code == 302
+        newsletter.refresh_from_db()
+        assert newsletter.status == NewsletterStatus.SENT
+        assert newsletter.sent_at is not None
+
+    def test_schedule_newsletter(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "schedule", "scheduled_for": "2026-03-01 10:00:00"},
+        )
+        assert response.status_code == 302
+        newsletter.refresh_from_db()
+        assert newsletter.status == NewsletterStatus.SCHEDULED
+
+    def test_schedule_without_date(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "schedule"},
+        )
+        assert response.status_code == 302
+        newsletter.refresh_from_db()
+        assert newsletter.status == NewsletterStatus.DRAFT
+
+    def test_cannot_send_already_sent(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.SENT)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "send"},
+        )
+        assert response.status_code == 302
+
+    def test_get_redirects_to_detail(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 302
+
+    def test_member_denied(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "send"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_not_found(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        import uuid
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": uuid.uuid4()}),
+            {"action": "send"},
+        )
+        assert response.status_code == 404
+
+    def test_unauthenticated_redirects(self, client):
+        newsletter = NewsletterFactory(status=NewsletterStatus.DRAFT)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "send"},
+        )
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+    def test_send_scheduled_newsletter(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.SCHEDULED)
+        response = client.post(
+            reverse("frontend:communication:newsletter_send", kwargs={"pk": newsletter.pk}),
+            {"action": "send"},
+        )
+        assert response.status_code == 302
+        newsletter.refresh_from_db()
+        assert newsletter.status == NewsletterStatus.SENT
+
+
+
+@pytest.mark.django_db
+class TestMarkAllReadView:
+    """Tests for mark_all_read view."""
+
+    def test_marks_all_as_read(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        NotificationFactory.create_batch(5, member=member, is_read=False)
+        response = client.post(reverse("frontend:communication:mark_all_read"))
+        assert response.status_code == 302
+        assert Notification.objects.filter(member=member, is_read=False).count() == 0
+        assert Notification.objects.filter(member=member, is_read=True).count() == 5
+
+    def test_get_redirects(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        response = client.get(reverse("frontend:communication:mark_all_read"))
+        assert response.status_code == 302
+        assert "/communication/notifications/" in response.url
+
+    def test_no_member_profile_redirects(self, client, user_no_profile):
+        client.force_login(user_no_profile)
+        response = client.post(reverse("frontend:communication:mark_all_read"))
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_unauthenticated_redirects(self, client):
+        response = client.post(reverse("frontend:communication:mark_all_read"))
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+    def test_does_not_affect_other_users(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        NotificationFactory.create_batch(3, member=member, is_read=False)
+        other_notifs = NotificationFactory.create_batch(2, is_read=False)
+        client.post(reverse("frontend:communication:mark_all_read"))
+        for n in other_notifs:
+            n.refresh_from_db()
+            assert n.is_read is False
+
+
+@pytest.mark.django_db
+class TestNotificationListFilter:
+    """Tests for notification_list type filter."""
+
+    def test_filter_by_type(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        from apps.core.constants import NotificationType
+        NotificationFactory(member=member, notification_type=NotificationType.EVENT)
+        NotificationFactory(member=member, notification_type=NotificationType.BIRTHDAY)
+        NotificationFactory(member=member, notification_type=NotificationType.EVENT)
+        response = client.get(
+            reverse("frontend:communication:notification_list") + "?type=event"
+        )
+        assert response.status_code == 200
+        assert len(response.context["notifications"].object_list) == 2
+        assert response.context["current_type"] == "event"
+
+    def test_no_filter_shows_all(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        from apps.core.constants import NotificationType
+        NotificationFactory(member=member, notification_type=NotificationType.EVENT)
+        NotificationFactory(member=member, notification_type=NotificationType.BIRTHDAY)
+        response = client.get(reverse("frontend:communication:notification_list"))
+        assert response.status_code == 200
+        assert len(response.context["notifications"].object_list) == 2
+        assert response.context["current_type"] is None
+
+    def test_notification_types_in_context(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        response = client.get(reverse("frontend:communication:notification_list"))
+        assert response.status_code == 200
+        assert "notification_types" in response.context
+
+
+@pytest.mark.django_db
+class TestNewsletterCreateRecipientCount:
+    """Tests for recipient count in newsletter_create."""
+
+    def test_recipient_count_in_context(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        response = client.get(reverse("frontend:communication:newsletter_create"))
+        assert response.status_code == 200
+        assert "recipient_count" in response.context
+
+
+@pytest.mark.django_db
+class TestNewsletterDetailStaff:
+    """Tests for is_staff context in newsletter_detail."""
+
+    def test_staff_sees_is_staff_true(self, client, pastor_user):
+        user, _ = pastor_user
+        client.force_login(user)
+        newsletter = NewsletterFactory()
+        response = client.get(
+            reverse("frontend:communication:newsletter_detail", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["is_staff"] is True
+
+    def test_member_sees_is_staff_false(self, client, member_user):
+        user, _ = member_user
+        client.force_login(user)
+        newsletter = NewsletterFactory(status=NewsletterStatus.SENT)
+        response = client.get(
+            reverse("frontend:communication:newsletter_detail", kwargs={"pk": newsletter.pk})
+        )
+        assert response.status_code == 200
+        assert response.context["is_staff"] is False
+

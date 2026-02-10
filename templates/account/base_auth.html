@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+{% load static custom_tags %}
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ dz_array.public.description }}">
+    <title>{% block head_title %}EgliseConnect{% endblock %} - EgliseConnect</title>
+    <link rel="shortcut icon" type="image/png" href="{% static dz_array.public.favicon %}">
+    <link rel="stylesheet" href="{% static 'w3crm/vendor/bootstrap-select/dist/css/bootstrap-select.min.css' %}">
+    <link rel="stylesheet" href="{% static 'w3crm/css/style.css' %}">
+</head>
+<body class="vh-100">
+    <div class="authincation h-100">
+        <div class="container-fluid h-100">
+            <div class="row h-100">
+                <div class="col-lg-6 col-md-7 col-sm-12 mx-auto align-self-center">
+                    <div class="login-form">
+                        <div class="text-center">
+                            <h3 class="title">{% block auth_title %}{% endblock %}</h3>
+                            <p>{% block auth_subtitle %}{% endblock %}</p>
+                        </div>
+                        {% if messages %}
+                        <div class="mb-3">
+                            {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% block auth_form %}{% endblock %}
+                    </div>
+                </div>
+                <div class="col-xl-6 col-lg-6">
+                    <div class="pages-left h-100">
+                        <div class="login-content">
+                            <a href="/"><img src="{% static 'w3crm/images/logo-full.png' %}" class="mb-3 logo-dark" alt="EgliseConnect"></a>
+                            <a href="/"><img src="{% static 'w3crm/images/logo-white.png' %}" class="mb-3 logo-light" alt="EgliseConnect"></a>
+                            <p>Systeme de gestion pour votre communaute ecclesiale</p>
+                        </div>
+                        <div class="login-media text-center">
+                            <img src="{% static 'w3crm/images/login.png' %}" alt="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'w3crm/vendor/global/global.min.js' %}"></script>
+    <script src="{% static 'w3crm/vendor/bootstrap-select/dist/js/bootstrap-select.min.js' %}"></script>
+    {% block extra_body %}{% endblock %}
+</body>
+</html>

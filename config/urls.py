@@ -1,6 +1,6 @@
 """ÉgliseConnect URL configuration with namespaced routing."""
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
@@ -21,6 +21,7 @@ from apps.reports.urls import api_urlpatterns as reports_api
 from apps.onboarding.urls import api_urlpatterns as onboarding_api
 from apps.attendance.urls import api_urlpatterns as attendance_api
 from apps.payments.urls import api_urlpatterns as payments_api
+from apps.worship.urls import api_urlpatterns as worship_api
 
 from apps.members.urls import frontend_urlpatterns as members_frontend
 from apps.donations.urls import frontend_urlpatterns as donations_frontend
@@ -32,9 +33,11 @@ from apps.reports.urls import frontend_urlpatterns as reports_frontend
 from apps.onboarding.urls import frontend_urlpatterns as onboarding_frontend
 from apps.attendance.urls import frontend_urlpatterns as attendance_frontend
 from apps.payments.urls import frontend_urlpatterns as payments_frontend
+from apps.worship.urls import frontend_urlpatterns as worship_frontend
 
 from apps.core.views_audit import LoginAuditViewSet
 from apps.core import views_frontend_audit as core_frontend_audit
+from apps.core.views_frontend_search import search_view as core_search_view
 from apps.core.views_pwa import service_worker, offline, manifest
 
 # Audit API router
@@ -53,6 +56,7 @@ api_v1_patterns = [
     path('onboarding/', include((onboarding_api, 'onboarding'))),
     path('attendance/', include((attendance_api, 'attendance'))),
     path('payments/', include((payments_api, 'payments'))),
+    path('worship/', include((worship_api, 'worship'))),
     path('audit/', include((audit_router.urls, 'audit'))),
 ]
 
@@ -68,6 +72,7 @@ frontend_patterns = [
     path('onboarding/', include((onboarding_frontend, 'onboarding'))),
     path('attendance/', include((attendance_frontend, 'attendance'))),
     path('payments/', include((payments_frontend, 'payments'))),
+    path('worship/', include((worship_frontend, 'worship'))),
     path('audit/logins/', include(([
         path('', core_frontend_audit.login_audit_list, name='login_audit_list'),
         path('2fa-status/', core_frontend_audit.two_factor_status, name='two_factor_status'),
@@ -85,6 +90,8 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    re_path(r'^departments/(?P<rest>.*)$', RedirectView.as_view(url='/members/departments/%(rest)s', permanent=False)),
+    path('search/', core_search_view, name='search'),
     path('', RedirectView.as_view(url='/onboarding/dashboard/', permanent=False), name='home'),
     path('', include((frontend_patterns, 'frontend'))),
     path('accounts/', include('allauth.urls')),

@@ -656,4 +656,77 @@ apps/core/
     permissions.py     # Classes de permission DRF
     utils.py           # Fonctions utilitaires
     validators.py      # Validateurs de fichiers
+    views_pwa.py       # PWA service worker, manifest, offline
+    views_audit.py     # LoginAuditViewSet (API)
+    views_frontend_audit.py  # Login audit list, 2FA status (frontend)
+    reminders.py       # Generic reminder batch sender
+
+tests/
+    test_permissions.py
+    test_permissions_extended.py
+    test_allauth_templates.py
+    test_reminders.py
 ```
+
+---
+
+## Recent Additions
+
+### New Constants
+
+The following constant classes were added to `apps/core/constants.py`:
+
+- **MembershipStatus** — `registered`, `form_pending`, `form_submitted`, `in_review`, `approved`, `in_training`, `interview_scheduled`, `active`, `inactive`, `suspended`, `rejected`, `expired`. Includes group constants: `QR_ALLOWED`, `FULL_ACCESS`, `IN_PROCESS`.
+- **InterviewStatus** — `proposed`, `accepted`, `counter`, `confirmed`, `completed_pass`, `completed_fail`, `no_show`, `cancelled`
+- **LessonStatus** — `upcoming`, `completed`, `absent`, `makeup`
+- **AttendanceSessionType** — `worship`, `event`, `lesson`, `other`
+- **CheckInMethod** — `qr_scan`, `manual`
+- **Province** — All 13 Canadian provinces/territories (`AB`, `BC`, `MB`, `NB`, `NL`, `NS`, `NT`, `NU`, `ON`, `PE`, `QC`, `SK`, `YT`)
+- **FamilyStatus** — `single`, `married`, `divorced`, `widowed`, `common_law`
+- **WorshipServiceStatus** — `draft`, `planned`, `confirmed`, `completed`, `cancelled`
+- **ServiceSectionType** — `prelude`, `annonces`, `louange`, `offrande`, `predication`, `communion`, `priere`, `benediction`, `other`
+- **AssignmentStatus** — `assigned`, `confirmed`, `declined`
+- **DepartmentRole** — `member`, `leader`, `assistant`
+- **DisciplinaryType** — `punishment`, `exemption`, `suspension`
+- **ApprovalStatus** — `pending`, `approved`, `rejected`
+- **ModificationRequestStatus** — `pending`, `completed`, `cancelled`
+- **DonationType** — `tithe`, `offering`, `building_fund`, `missions`, `special`, `other`
+- **PaymentMethod** — `cash`, `cheque`, `bank_transfer`, `online`, `other`
+
+### New Permission Classes
+
+Added to `apps/core/permissions.py`:
+
+- **IsDeacon** — Deacon or higher role
+- **IsTreasurer** — Treasurer, pastor, or admin
+- **IsFinanceStaff** — Finance roles or members with delegated finance access
+- **IsOwnerOrStaff** — Object-level: owner or staff member
+- **IsOwnerOrReadOnly** — Object-level: owner can write, others read-only
+- **CanViewMember** — Privacy-aware member viewing permission
+
+Helper functions: `get_user_role()`, `is_staff_member()`, `can_manage_finances()`
+
+### Reminders Module
+
+`apps/core/reminders.py` provides a generic `send_reminder_batch()` function:
+
+- Iterates over items with `reminder_5days_sent`, `reminder_3days_sent`, `reminder_1day_sent`, `reminder_sameday_sent` flags
+- Creates `Notification` objects at each interval
+- Used by onboarding (lessons, interviews), volunteers (schedules), and worship (assignments)
+
+### PWA Support
+
+`apps/core/views_pwa.py` provides:
+
+- `service_worker` — Serves `sw.js` at root scope
+- `manifest` — Serves `manifest.json` for PWA installation
+- `offline` — Offline fallback page
+
+### Audit Views
+
+**API:** `LoginAuditViewSet` in `apps/core/views_audit.py` — registered at `/api/v1/audit/login-audits/`
+
+**Frontend:** `apps/core/views_frontend_audit.py`:
+
+- `login_audit_list` — `/audit/logins/` — Login history list
+- `two_factor_status` — `/audit/logins/2fa-status/` — 2FA status page

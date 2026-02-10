@@ -4,7 +4,11 @@ from django.contrib.auth import get_user_model
 from factory.django import DjangoModelFactory
 
 from apps.core.constants import Roles, FamilyStatus, GroupType, Province, MembershipStatus
-from apps.members.models import Member, Family, Group, GroupMembership, DirectoryPrivacy
+from apps.members.models import (
+    Member, Family, Group, GroupMembership, DirectoryPrivacy,
+    MemberRole, Department, DepartmentMembership, DepartmentTaskType,
+    DisciplinaryAction,
+)
 
 User = get_user_model()
 
@@ -98,6 +102,69 @@ class VolunteerFactory(MemberFactory):
     """Creates Member with volunteer role."""
 
     role = Roles.VOLUNTEER
+
+
+class DeaconFactory(MemberFactory):
+    """Creates Member with deacon role."""
+
+    role = Roles.DEACON
+
+
+class DepartmentFactory(DjangoModelFactory):
+    """Creates Department instances."""
+
+    class Meta:
+        model = Department
+
+    name = factory.Sequence(lambda n: f'Département {n}')
+    description = factory.Faker('paragraph')
+
+
+class DepartmentMembershipFactory(DjangoModelFactory):
+    """Creates DepartmentMembership linking a member to a department."""
+
+    class Meta:
+        model = DepartmentMembership
+
+    member = factory.SubFactory(MemberFactory)
+    department = factory.SubFactory(DepartmentFactory)
+    role = 'member'
+
+
+class DepartmentTaskTypeFactory(DjangoModelFactory):
+    """Creates DepartmentTaskType instances."""
+
+    class Meta:
+        model = DepartmentTaskType
+
+    department = factory.SubFactory(DepartmentFactory)
+    name = factory.Sequence(lambda n: f'Tâche {n}')
+    description = factory.Faker('sentence')
+    max_assignees = 1
+
+
+class MemberRoleFactory(DjangoModelFactory):
+    """Creates MemberRole instances for multi-role support."""
+
+    class Meta:
+        model = MemberRole
+
+    member = factory.SubFactory(MemberFactory)
+    role = Roles.VOLUNTEER
+
+
+class DisciplinaryActionFactory(DjangoModelFactory):
+    """Creates DisciplinaryAction instances."""
+
+    class Meta:
+        model = DisciplinaryAction
+
+    member = factory.SubFactory(MemberFactory)
+    action_type = 'suspension'
+    reason = factory.Faker('paragraph')
+    start_date = factory.LazyFunction(lambda: __import__('django.utils.timezone', fromlist=['now']).now().date())
+    created_by = factory.SubFactory(PastorFactory)
+    approval_status = 'pending'
 
 
 class GroupFactory(DjangoModelFactory):

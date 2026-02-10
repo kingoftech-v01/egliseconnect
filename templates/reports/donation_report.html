@@ -9,6 +9,9 @@
             <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
             <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapport des dons</a></li>
         </ol>
+        <a href="/reports/export/donations/?year={{ current_year }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Exporter CSV
+        </a>
     </div>
     <div class="container-fluid">
         <!-- Year Filter -->
@@ -94,7 +97,54 @@
             </div>
         </div>
 
-        <!-- Monthly Breakdown -->
+        <!-- Year-over-Year Comparison -->
+        {% if yoy_comparison %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Comparaison {{ yoy_comparison.prev_year }} vs {{ yoy_comparison.current_year }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center">
+                                <h6 class="text-muted">{{ yoy_comparison.prev_year }}</h6>
+                                <h3>{{ yoy_comparison.prev_total|floatformat:2 }} $</h3>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h6 class="text-muted">Variation</h6>
+                                {% if yoy_comparison.change_amount >= 0 %}
+                                <h3 class="text-success">+{{ yoy_comparison.change_amount|floatformat:2 }} $ ({{ yoy_comparison.change_percent }}%)</h3>
+                                {% else %}
+                                <h3 class="text-danger">{{ yoy_comparison.change_amount|floatformat:2 }} $ ({{ yoy_comparison.change_percent }}%)</h3>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h6 class="text-muted">{{ yoy_comparison.current_year }}</h6>
+                                <h3>{{ yoy_comparison.current_total|floatformat:2 }} $</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Monthly Comparison Chart -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Dons mensuels - Comparaison annuelle</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="donationCompChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Breakdown Table -->
         <div class="row">
             <div class="col-xl-8 col-lg-8">
                 <div class="card">
@@ -270,4 +320,48 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var ctx = document.getElementById('donationCompChart');
+if (ctx) {
+    var chartData = JSON.parse('{{ monthly_chart_json|escapejs }}');
+    new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: chartData.labels || [],
+            datasets: [
+                {
+                    label: '{{ current_year }}',
+                    data: chartData.current || [],
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                    borderColor: '#0d6efd',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+                {
+                    label: '{{ current_year|add:"-1" }}',
+                    data: chartData.previous || [],
+                    backgroundColor: 'rgba(108, 117, 125, 0.4)',
+                    borderColor: '#6c757d',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+</script>
 {% endblock %}

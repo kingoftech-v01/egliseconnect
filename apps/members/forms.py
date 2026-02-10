@@ -4,7 +4,11 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.mixins import W3CRMFormMixin
-from .models import Member, Family, Group, GroupMembership, DirectoryPrivacy
+from .models import (
+    Member, Family, Group, GroupMembership, DirectoryPrivacy,
+    Department, DepartmentMembership, DepartmentTaskType,
+    DisciplinaryAction, ProfileModificationRequest,
+)
 
 User = get_user_model()
 
@@ -168,6 +172,41 @@ class MemberAdminForm(W3CRMFormMixin, forms.ModelForm):
         }
 
 
+class MemberStaffForm(W3CRMFormMixin, forms.ModelForm):
+    """Staff form for editing administrative fields only (no personal info)."""
+
+    class Meta:
+        model = Member
+        fields = [
+            'role',
+            'family',
+            'joined_date',
+            'baptism_date',
+            'membership_status',
+            'notes',
+            'is_active',
+        ]
+        widgets = {
+            'joined_date': forms.DateInput(attrs={'type': 'date'}),
+            'baptism_date': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 4}),
+        }
+
+
+class ProfileModificationRequestForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for staff to request a member to update their personal information."""
+
+    class Meta:
+        model = ProfileModificationRequest
+        fields = ['message']
+        widgets = {
+            'message': forms.Textarea(attrs={
+                'rows': 4,
+                'placeholder': _('Ex: Veuillez mettre à jour votre numéro de téléphone...')
+            }),
+        }
+
+
 class FamilyForm(W3CRMFormMixin, forms.ModelForm):
     """Form for creating and editing families."""
 
@@ -226,6 +265,17 @@ class GroupMembershipForm(W3CRMFormMixin, forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def __init__(self, *args, group=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if group:
+            # Hide group field when adding via a specific group
+            self.fields.pop('group', None)
+            # Exclude members already in the group
+            existing = group.memberships.values_list('member_id', flat=True)
+            self.fields['member'].queryset = Member.objects.filter(
+                is_active=True
+            ).exclude(pk__in=existing)
+
 
 class DirectoryPrivacyForm(W3CRMFormMixin, forms.ModelForm):
     """Form for members to manage their privacy settings."""
@@ -280,3 +330,72 @@ class MemberSearchForm(W3CRMFormMixin, forms.Form):
             ], 1)
         ]
     )
+
+
+class DepartmentForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating/editing departments."""
+
+    class Meta:
+        model = Department
+        fields = ['name', 'description', 'leader', 'parent_department',
+                  'meeting_day', 'meeting_time', 'meeting_location']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'meeting_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['leader'].queryset = Member.objects.filter(
+            is_active=True,
+            role__in=['group_leader', 'deacon', 'pastor', 'admin'],
+        )
+        self.fields['leader'].required = False
+        self.fields['parent_department'].required = False
+
+
+class DepartmentTaskTypeForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating/editing task types within a department."""
+
+    class Meta:
+        model = DepartmentTaskType
+        fields = ['name', 'description', 'max_assignees']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+class DepartmentMembershipForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for adding a member to a department."""
+
+    class Meta:
+        model = DepartmentMembership
+        fields = ['member', 'role']
+
+    def __init__(self, *args, department=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if department:
+            existing = department.memberships.values_list('member_id', flat=True)
+            self.fields['member'].queryset = Member.objects.filter(
+                is_active=True
+            ).exclude(pk__in=existing)
+
+
+class DisciplinaryActionForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating disciplinary actions."""
+
+    class Meta:
+        model = DisciplinaryAction
+        fields = ['member', 'action_type', 'reason', 'start_date',
+                  'end_date', 'auto_suspend_membership', 'notes']
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'reason': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['member'].queryset = Member.objects.filter(is_active=True)
+        self.fields['end_date'].required = False

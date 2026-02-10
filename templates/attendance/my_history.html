@@ -39,7 +39,7 @@
                                         <td>{{ record.session.name }}</td>
                                         <td>{{ record.session.date|date:"d/m/Y" }}</td>
                                         <td>
-                                            {% if record.method == 'qr' %}
+                                            {% if record.method == 'qr_scan' %}
                                             <span class="badge bg-success">QR</span>
                                             {% else %}
                                             <span class="badge bg-info">Manuel</span>

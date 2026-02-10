@@ -19,4 +19,5 @@ frontend_urlpatterns = [
     path('success/', views_frontend.donation_success, name='donation_success'),
     path('history/', views_frontend.payment_history, name='payment_history'),
     path('recurring/', views_frontend.recurring_manage, name='recurring_manage'),
+    path('recurring/<uuid:pk>/cancel/', views_frontend.cancel_recurring, name='cancel_recurring'),
 ]

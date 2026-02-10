@@ -29,11 +29,15 @@
                             <span class="badge bg-danger">Inactif</span>
                             {% endif %}
                         </div>
-                        {% if can_edit %}
                         <div class="text-center mt-3">
-                            <a href="/members/{{ member.pk }}/edit/" class="btn btn-primary btn-sm">Modifier le profil</a>
+                            {% if is_own_profile %}
+                            <a href="/members/my-profile/" class="btn btn-primary btn-sm">Mon profil</a>
+                            {% endif %}
+                            {% if can_edit_admin_fields %}
+                            <a href="/members/{{ member.pk }}/edit/" class="btn btn-outline-primary btn-sm">Modifier (admin)</a>
+                            <a href="/members/{{ member.pk }}/request-modification/" class="btn btn-outline-warning btn-sm">Demander une modification</a>
+                            {% endif %}
                         </div>
-                        {% endif %}
                         <div class="c-details mt-4">
                             <ul class="list-unstyled">
                                 <li class="d-flex justify-content-between mb-2">

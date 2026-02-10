@@ -151,6 +151,13 @@ class AttendanceSession(BaseModel):
         verbose_name=_('Heure de fin')
     )
 
+    duration_minutes = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Durée (minutes)'),
+        help_text=_('Durée prévue de la session en minutes')
+    )
+
     opened_by = models.ForeignKey(
         'members.Member',
         on_delete=models.SET_NULL,

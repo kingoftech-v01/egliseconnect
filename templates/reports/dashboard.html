@@ -107,7 +107,105 @@
             </div>
         </div>
 
-        <!-- Quick Stats -->
+        <!-- Quick Action Buttons -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Actions rapides</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="/events/create/" class="btn btn-primary btn-sm">
+                                <i class="bi bi-calendar-plus me-1"></i>Creer un evenement
+                            </a>
+                            <a href="/attendance/sessions/create/" class="btn btn-info btn-sm">
+                                <i class="bi bi-qr-code me-1"></i>Creer une session
+                            </a>
+                            <a href="/communication/newsletters/create/" class="btn btn-success btn-sm">
+                                <i class="bi bi-envelope me-1"></i>Envoyer un bulletin
+                            </a>
+                            <a href="/members/register/" class="btn btn-warning btn-sm">
+                                <i class="bi bi-person-plus me-1"></i>Nouveau membre
+                            </a>
+                            <a href="/reports/export/members/" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-download me-1"></i>Exporter membres (CSV)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onboarding Pipeline Widget + Financial Summary -->
+        <div class="row">
+            <!-- Onboarding Pipeline Widget -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Pipeline d'adhesion</h4>
+                        <a href="/onboarding/admin/pipeline/" class="btn btn-outline-primary btn-xs">Voir le pipeline</a>
+                    </div>
+                    <div class="card-body">
+                        {% if onboarding_pipeline %}
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><span class="badge bg-secondary me-2">Inscrits</span></span>
+                                <strong>{{ onboarding_pipeline.registered }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><span class="badge bg-warning text-dark me-2">Formulaire soumis</span></span>
+                                <strong>{{ onboarding_pipeline.form_submitted }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><span class="badge bg-primary me-2">En formation</span></span>
+                                <strong>{{ onboarding_pipeline.in_training }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><span class="badge bg-info me-2">Interview planifiee</span></span>
+                                <strong>{{ onboarding_pipeline.interview_scheduled }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><strong>Total en cours</strong></span>
+                                <strong class="text-primary">{{ onboarding_pipeline.total_in_process }}</strong>
+                            </li>
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">Aucune donnee disponible.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Summary Widget -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Tendance financiere (6 mois)</h4>
+                        <a href="/reports/donations/" class="btn btn-outline-primary btn-xs">Rapport complet</a>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="financialTrendChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Member Growth Trend Chart -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Croissance des membres (12 mois)</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="memberGrowthChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats + Role Breakdown -->
         <div class="row">
             <div class="col-xl-6 col-lg-6">
                 <div class="card">
@@ -219,4 +317,68 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Financial Trend Chart
+var finCtx = document.getElementById('financialTrendChart');
+if (finCtx) {
+    var finData = {{ financial_summary.labels|safe }};
+    var finValues = {{ financial_summary.values|safe }};
+    new Chart(finCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: finData || [],
+            datasets: [{
+                label: 'Dons ($)',
+                data: finValues || [],
+                backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                borderColor: '#198754',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// Member Growth Trend Chart
+var growthCtx = document.getElementById('memberGrowthChart');
+if (growthCtx) {
+    var growthData = JSON.parse('{{ growth_data_json|escapejs }}');
+    new Chart(growthCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: growthData.labels || [],
+            datasets: [{
+                label: 'Nouveaux membres',
+                data: growthData.counts || [],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+</script>
 {% endblock %}

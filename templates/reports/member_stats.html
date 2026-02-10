@@ -9,6 +9,9 @@
             <li class="breadcrumb-item"><a href="/reports/">Tableau de bord</a></li>
             <li class="breadcrumb-item active"><a href="javascript:void(0)">Statistiques des membres</a></li>
         </ol>
+        <a href="/reports/export/members/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Exporter CSV
+        </a>
     </div>
     <div class="container-fluid">
         <!-- Stat Cards -->
@@ -70,6 +73,20 @@
                                 <i class="bi bi-person-plus"></i>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Growth Trend Chart -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Tendance de croissance (12 mois)</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="growthTrendChart" height="120"></canvas>
                     </div>
                 </div>
             </div>
@@ -144,4 +161,38 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var ctx = document.getElementById('growthTrendChart');
+if (ctx) {
+    var data = JSON.parse('{{ growth_data_json|escapejs }}');
+    new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: data.labels || [],
+            datasets: [{
+                label: 'Nouveaux membres',
+                data: data.counts || [],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+</script>
 {% endblock %}

@@ -21,13 +21,11 @@ class IsVolunteer(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role in [
-                Roles.VOLUNTEER,
-                Roles.GROUP_LEADER,
-                Roles.PASTOR,
-                Roles.TREASURER,
-                Roles.ADMIN,
-            ]
+            allowed = {
+                Roles.VOLUNTEER, Roles.GROUP_LEADER, Roles.DEACON,
+                Roles.PASTOR, Roles.TREASURER, Roles.ADMIN,
+            }
+            return bool(request.user.member_profile.all_roles & allowed)
 
         return request.user.is_staff
 
@@ -41,11 +39,26 @@ class IsGroupLeader(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role in [
-                Roles.GROUP_LEADER,
-                Roles.PASTOR,
-                Roles.ADMIN,
-            ]
+            allowed = {
+                Roles.GROUP_LEADER, Roles.DEACON,
+                Roles.PASTOR, Roles.ADMIN,
+            }
+            return bool(request.user.member_profile.all_roles & allowed)
+
+        return request.user.is_staff
+
+
+class IsDeacon(permissions.BasePermission):
+    """Requires deacon role or higher."""
+    message = "Vous devez être diacre pour accéder à cette ressource."
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        if hasattr(request.user, 'member_profile'):
+            allowed = {Roles.DEACON, Roles.PASTOR, Roles.ADMIN}
+            return bool(request.user.member_profile.all_roles & allowed)
 
         return request.user.is_staff
 
@@ -59,10 +72,8 @@ class IsPastor(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role in [
-                Roles.PASTOR,
-                Roles.ADMIN,
-            ]
+            allowed = {Roles.PASTOR, Roles.ADMIN}
+            return bool(request.user.member_profile.all_roles & allowed)
 
         return request.user.is_staff
 
@@ -76,16 +87,14 @@ class IsTreasurer(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role in [
-                Roles.TREASURER,
-                Roles.ADMIN,
-            ]
+            allowed = {Roles.TREASURER, Roles.PASTOR, Roles.ADMIN}
+            return bool(request.user.member_profile.all_roles & allowed)
 
         return request.user.is_staff
 
 
 class IsAdmin(permissions.BasePermission):
-    """Requires admin role or superuser."""
+    """Requires admin role, pastor role, or superuser."""
     message = "Vous devez être administrateur pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -93,7 +102,8 @@ class IsAdmin(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role == Roles.ADMIN
+            allowed = {Roles.PASTOR, Roles.ADMIN}
+            return bool(request.user.member_profile.all_roles & allowed)
 
         return request.user.is_superuser
 
@@ -107,13 +117,14 @@ class IsPastorOrAdmin(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role in Roles.STAFF_ROLES
+            allowed = set(Roles.STAFF_ROLES)
+            return bool(request.user.member_profile.all_roles & allowed)
 
         return request.user.is_staff or request.user.is_superuser
 
 
 class IsFinanceStaff(permissions.BasePermission):
-    """Requires finance access: treasurer, pastor, or admin."""
+    """Requires finance access: treasurer, pastor, admin, or delegated."""
     message = "Vous devez avoir accès aux finances pour accéder à cette ressource."
 
     def has_permission(self, request, view):
@@ -121,11 +132,14 @@ class IsFinanceStaff(permissions.BasePermission):
             return False
 
         if hasattr(request.user, 'member_profile'):
-            return request.user.member_profile.role in [
-                Roles.TREASURER,
-                Roles.PASTOR,
-                Roles.ADMIN,
-            ]
+            member = request.user.member_profile
+            if bool(member.all_roles & set(Roles.FINANCE_ROLES)):
+                return True
+            # Check finance delegation
+            from apps.donations.models import FinanceDelegation
+            return FinanceDelegation.objects.filter(
+                delegated_to=member, is_active=True, revoked_at__isnull=True
+            ).exists()
 
         return request.user.is_staff
 
@@ -141,7 +155,7 @@ class IsOwnerOrStaff(permissions.BasePermission):
             return True
 
         if hasattr(request.user, 'member_profile'):
-            if request.user.member_profile.role in Roles.STAFF_ROLES:
+            if bool(request.user.member_profile.all_roles & set(Roles.STAFF_ROLES)):
                 return True
 
         if hasattr(obj, 'user'):
@@ -165,7 +179,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             return True
 
         if hasattr(request.user, 'member_profile'):
-            if request.user.member_profile.role in Roles.STAFF_ROLES:
+            if bool(request.user.member_profile.all_roles & set(Roles.STAFF_ROLES)):
                 return True
 
         if hasattr(obj, 'user'):
@@ -192,7 +206,7 @@ class CanViewMember(permissions.BasePermission):
 
         member = user.member_profile
 
-        if member.role in [Roles.PASTOR, Roles.ADMIN]:
+        if bool(member.all_roles & {Roles.PASTOR, Roles.ADMIN}):
             return True
 
         # Always allow viewing own profile
@@ -219,7 +233,7 @@ class CanViewMember(permissions.BasePermission):
 
 
 def get_user_role(user):
-    """Get role string for user. Superusers are ADMIN, staff without profile are PASTOR."""
+    """Get primary role string for user. Superusers are ADMIN, staff without profile are PASTOR."""
     if user.is_superuser:
         return Roles.ADMIN
 
@@ -233,16 +247,12 @@ def get_user_role(user):
 
 
 def is_staff_member(user):
-    """Check if user has staff-level access (pastor, treasurer, or admin)."""
+    """Check if user has staff-level access (deacon, pastor, or admin)."""
     if user.is_staff or user.is_superuser:
         return True
 
     if hasattr(user, 'member_profile'):
-        return user.member_profile.role in [
-            Roles.PASTOR,
-            Roles.TREASURER,
-            Roles.ADMIN,
-        ]
+        return bool(user.member_profile.all_roles & set(Roles.STAFF_ROLES))
 
     return False
 
@@ -253,6 +263,6 @@ def can_manage_finances(user):
         return True
 
     if hasattr(user, 'member_profile'):
-        return user.member_profile.role in Roles.FINANCE_ROLES
+        return bool(user.member_profile.all_roles & set(Roles.FINANCE_ROLES))
 
     return False

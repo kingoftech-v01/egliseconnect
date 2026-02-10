@@ -1,0 +1,32 @@
+{% extends "account/base_auth.html" %}
+{% load custom_tags i18n %}
+
+{% block head_title %}Authentification a deux facteurs{% endblock %}
+
+{% block auth_title %}Authentification a deux facteurs{% endblock %}
+{% block auth_subtitle %}Votre compte est protege par l'authentification a deux facteurs. Entrez votre code.{% endblock %}
+
+{% block auth_form %}
+<form method="post" action="{% url 'mfa_authenticate' %}">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="mb-4">
+        <label class="mb-1 text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_class:"form-control" }}
+        {% for error in field.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+    </div>
+</form>
+<form id="logout-from-stage" method="post" action="{% url 'account_logout' %}">
+    <input type="hidden" name="next" value="{% url 'account_login' %}">
+    {% csrf_token %}
+    <div class="text-center">
+        <button type="submit" class="btn-link text-primary border-0 bg-transparent">Annuler</button>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}{% if family %}Modifier {{ family.name }}{% else %}Nouvelle famille{% endif %}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{% if family %}Modifier{% else %}Nouvelle famille{% endif %}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/families/">Familles</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{% if family %}Modifier{% else %}Cr\u00e9er{% endif %}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">
+                            {% if family %}Modifier : {{ family.name }}{% else %}Cr\u00e9er une famille{% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label" for="name">Nom de famille <span class="text-danger">*</span></label>
+                                <input type="text" name="name" id="name" class="form-control"
+                                       value="{{ form.name.value|default:'' }}" required placeholder="Ex: Famille Dupont">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="address">Adresse</label>
+                                <textarea name="address" id="address" class="form-control" rows="2">{{ form.address.value|default:'' }}</textarea>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="city">Ville</label>
+                                    <input type="text" name="city" id="city" class="form-control"
+                                           value="{{ form.city.value|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="province">Province</label>
+                                    <select name="province" id="province" class="form-select">
+                                        {% for value, label in form.province.field.choices %}
+                                        <option value="{{ value }}" {% if form.province.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="postal_code">Code postal</label>
+                                    <input type="text" name="postal_code" id="postal_code" class="form-control"
+                                           value="{{ form.postal_code.value|default:'' }}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="notes">Notes</label>
+                                <textarea name="notes" id="notes" class="form-control" rows="3">{{ form.notes.value|default:'' }}</textarea>
+                            </div>
+
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="/members/families/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>{% if family %}Enregistrer{% else %}Cr\u00e9er{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

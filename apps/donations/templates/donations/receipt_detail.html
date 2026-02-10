@@ -59,13 +59,16 @@
                                 </li>
                             </ul>
                         </div>
-                        {% if receipt.pdf_file %}
-                        <div class="mt-3">
-                            <a href="{{ receipt.pdf_file.url }}" class="btn btn-primary btn-sm" target="_blank" title="Télécharger le reçu PDF">
+                        <div class="mt-3 d-flex gap-2">
+                            <a href="/donations/receipts/{{ receipt.pk }}/pdf/" class="btn btn-primary btn-sm" title="Télécharger le reçu PDF">
                                 <i class="fas fa-download me-1"></i> Télécharger le PDF
                             </a>
+                            {% if receipt.pdf_file %}
+                            <a href="{{ receipt.pdf_file.url }}" class="btn btn-outline-primary btn-sm" target="_blank" title="Ouvrir le fichier PDF">
+                                <i class="fas fa-file-pdf me-1"></i> Fichier archivé
+                            </a>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>

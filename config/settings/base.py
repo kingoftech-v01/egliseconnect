@@ -56,6 +56,7 @@ LOCAL_APPS = [
     'apps.onboarding',
     'apps.attendance',
     'apps.payments',
+    'apps.worship',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -172,6 +173,9 @@ ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_FORMS = {
+    'signup': 'apps.core.allauth_forms.CustomSignupForm',
+}
 
 # allauth social account
 SOCIALACCOUNT_AUTO_SIGNUP = True
