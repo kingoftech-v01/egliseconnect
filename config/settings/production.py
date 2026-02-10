@@ -13,9 +13,16 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = True
+# SSL redirect is handled by nginx, not Django
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# CSRF trusted origins for reverse proxy
+CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
+    'CSRF_TRUSTED_ORIGINS',
+    default=['https://chms.jhpetitfrere.com', 'https://localhost']
+)
 
 
 DATABASES = {
@@ -29,7 +36,11 @@ CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])  # noqa: F40
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Use console backend if SMTP is not configured
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')  # noqa: F405
+
+# Make email verification optional
+ACCOUNT_EMAIL_VERIFICATION = env('ACCOUNT_EMAIL_VERIFICATION', default='optional')  # noqa: F405
 
 
 LOGGING = {
