@@ -4,6 +4,12 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from django.http import JsonResponse
+
+
+def health_check(request):
+    """Simple health check endpoint for container orchestration."""
+    return JsonResponse({'status': 'healthy'})
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -81,6 +87,8 @@ frontend_patterns = [
 
 
 urlpatterns = [
+    # Health check for container orchestration
+    path('health/', health_check, name='health_check'),
     # PWA routes (must be at root scope for service worker)
     path('sw.js', service_worker, name='service_worker'),
     path('manifest.json', manifest, name='manifest'),

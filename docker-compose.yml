@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: chms_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-egliseconnect}
+      POSTGRES_USER: ${DB_USER:-eglise_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - chms_postgres_data:/var/lib/postgresql/data
+    networks:
+      - chms_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-eglise_admin} -d ${DB_NAME:-egliseconnect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: chms_redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - chms_redis_data:/data
+    networks:
+      - chms_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    container_name: chms_web
+    command: gunicorn --bind 0.0.0.0:8000 --workers 4 --threads 2 --timeout 120 --access-logfile - --error-logfile - config.wsgi:application
+    volumes:
+      - chms_static_volume:/app/staticfiles
+      - chms_media_volume:/app/media
+      - chms_logs_volume:/app/logs
+    expose:
+      - "8000"
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${DB_USER:-eglise_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-egliseconnect}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - SECURE_SSL_REDIRECT=False
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-eglise_admin}
+      - REDIS_HOST=redis
+      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+      - ACCOUNT_EMAIL_VERIFICATION=optional
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chms_network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: chms_nginx
+    volumes:
+      - ./docker/production/nginx.conf:/etc/nginx/nginx.conf:ro
+      - chms_static_volume:/app/staticfiles:ro
+      - chms_media_volume:/app/media:ro
+    ports:
+      - "8082:80"
+    depends_on:
+      - web
+    networks:
+      - chms_network
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    container_name: chms_celery
+    command: celery -A config worker -l info --concurrency=4
+    volumes:
+      - chms_logs_volume:/app/logs
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${DB_USER:-eglise_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-egliseconnect}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-eglise_admin}
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chms_network
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    container_name: chms_celery_beat
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - chms_logs_volume:/app/logs
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${DB_USER:-eglise_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-egliseconnect}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-eglise_admin}
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chms_network
+    restart: unless-stopped
+
+networks:
+  chms_network:
+    driver: bridge
+
+volumes:
+  chms_postgres_data:
+  chms_redis_data:
+  chms_static_volume:
+  chms_media_volume:
+  chms_logs_volume:
