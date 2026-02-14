@@ -41,6 +41,10 @@ frontend_urlpatterns = [
     path('child/history/', views_frontend.child_checkin_history, name='child_checkin_history'),
 
     # P1: Kiosk
+    path('kiosks/', views_frontend.kiosk_list, name='kiosk_list'),
+    path('kiosks/create/', views_frontend.kiosk_create, name='kiosk_create'),
+    path('kiosks/<uuid:pk>/edit/', views_frontend.kiosk_edit, name='kiosk_edit'),
+    path('kiosks/<uuid:pk>/delete/', views_frontend.kiosk_delete, name='kiosk_delete'),
     path('kiosk/<uuid:kiosk_id>/', views_frontend.kiosk_home, name='kiosk_home'),
     path('kiosk/<uuid:kiosk_id>/search/', views_frontend.kiosk_search, name='kiosk_search'),
     path('kiosk/<uuid:kiosk_id>/checkin/', views_frontend.kiosk_checkin, name='kiosk_checkin'),

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Rapport demandes d'aide{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapport demandes d'aide</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Demandes d'aide</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- KPI -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">Total</h5>
+                    <h2 class="text-primary">{{ stats.total }}</h2>
+                </div></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">En attente</h5>
+                    <h2 class="text-warning">{{ stats.pending }}</h2>
+                </div></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">Resolues</h5>
+                    <h2 class="text-success">{{ stats.resolved }}</h2>
+                </div></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">Delai moyen</h5>
+                    <h2 class="text-info">{{ stats.avg_resolution_days|default:"0" }}j</h2>
+                </div></div>
+            </div>
+        </div>
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card"><div class="card-header"><h5 class="mb-0">Par statut</h5></div><div class="card-body"><canvas id="statusChart" height="300"></canvas></div></div>
+            </div>
+            <div class="col-md-6">
+                <div class="card"><div class="card-header"><h5 class="mb-0">Par urgence</h5></div><div class="card-body"><canvas id="urgencyChart" height="300"></canvas></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var statusData = {{ status_chart_json|safe }};
+var urgencyData = {{ urgency_chart_json|safe }};
+var colors = ['#0d6efd','#198754','#ffc107','#dc3545','#6c757d','#6f42c1'];
+function makeChart(id, data, type) {
+    var el = document.getElementById(id);
+    if (el) new Chart(el.getContext('2d'), { type: type||'doughnut', data: { labels: data.labels, datasets: [{ data: data.values, backgroundColor: colors }] }, options: { responsive: true, maintainAspectRatio: false } });
+}
+makeChart('statusChart', statusData);
+makeChart('urgencyChart', urgencyData);
+</script>
+{% endblock %}

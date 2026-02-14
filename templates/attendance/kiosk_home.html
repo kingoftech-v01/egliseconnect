@@ -7,92 +7,325 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body { background: #1a1a2e; color: #fff; min-height: 100vh; overflow: hidden; }
-        .kiosk-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
-        .kiosk-title { font-size: 2.5rem; margin-bottom: 0.5rem; }
-        .kiosk-subtitle { font-size: 1.2rem; opacity: 0.7; margin-bottom: 3rem; }
-        .kiosk-btn { font-size: 1.5rem; padding: 1.5rem 3rem; border-radius: 1rem; margin: 0.5rem; min-width: 300px; }
-        .search-container { max-width: 600px; width: 100%; }
-        .search-input { font-size: 1.5rem; padding: 1rem 1.5rem; border-radius: 1rem; }
-        .member-result { cursor: pointer; padding: 1rem; border-radius: 0.5rem; transition: background 0.2s; }
-        .member-result:hover { background: rgba(255,255,255,0.1); }
-        .success-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,128,0,0.9); display: none; z-index: 9999; }
-        .success-overlay.show { display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        #idle-timer { position: fixed; bottom: 1rem; right: 1rem; opacity: 0.5; font-size: 0.9rem; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #e2e8f0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+        .kiosk-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        /* Top bar */
+        .kiosk-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+        .kiosk-topbar .session-badge {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-size: 0.95rem;
+        }
+        /* Main content */
+        .kiosk-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .church-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+        }
+        .kiosk-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.5px;
+        }
+        .kiosk-subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 2.5rem;
+        }
+        /* Action cards */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            max-width: 750px;
+            width: 100%;
+        }
+        .action-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1.25rem;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .action-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .action-card .icon-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.75rem;
+        }
+        .action-card .card-label {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+        .action-card .card-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+        .ic-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .ic-green { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .ic-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        /* Search panel */
+        .search-panel {
+            max-width: 550px;
+            width: 100%;
+        }
+        .search-panel .form-control {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            font-size: 1.25rem;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+        }
+        .search-panel .form-control::placeholder { color: #64748b; }
+        .search-panel .form-control:focus {
+            background: rgba(255,255,255,0.12);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+            color: #fff;
+        }
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .result-item:hover { background: rgba(255,255,255,0.08); }
+        .result-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(59,130,246,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: #60a5fa;
+            flex-shrink: 0;
+        }
+        .result-name { font-weight: 600; font-size: 1.1rem; }
+        .result-sub { font-size: 0.85rem; color: #94a3b8; }
+        .back-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            border-radius: 0.75rem;
+            padding: 0.5rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        /* Family screen */
+        .family-member-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 0.5rem;
+        }
+        .family-member-row input[type=checkbox] {
+            width: 1.5rem;
+            height: 1.5rem;
+            accent-color: #22c55e;
+        }
+        /* Flash notification bar — doesn't cover camera */
+        .flash-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center; justify-content: center; gap: 0.75rem;
+            padding: 1rem 2rem;
+            font-size: 1.3rem; font-weight: 700;
+            animation: slideDown 0.15s ease;
+        }
+        .flash-bar.show { display: flex; }
+        .flash-bar .flash-icon {
+            width: 44px; height: 44px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; flex-shrink: 0;
+        }
+        @keyframes slideDown {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(0); }
+        }
+        /* Bottom bar */
+        .kiosk-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            color: #475569;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 600px) {
+            .action-grid { grid-template-columns: 1fr; max-width: 320px; }
+            .kiosk-title { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
-    <!-- Success Overlay -->
-    <div id="success-overlay" class="success-overlay">
-        <i class="bi bi-check-circle" style="font-size: 8rem;"></i>
-        <h1 id="success-name" class="mt-3"></h1>
-        <p class="fs-4">Presence enregistree!</p>
+    <!-- Flash notification bar -->
+    <div id="flash-bar" class="flash-bar">
+        <div class="flash-icon"><i class="bi bi-check-lg"></i></div>
+        <span id="flash-text"></span>
     </div>
 
-    <div class="kiosk-container" id="main-screen">
-        <h1 class="kiosk-title">EgliseConnect</h1>
-        <p class="kiosk-subtitle">{{ kiosk.name }} - {{ kiosk.location }}</p>
-
-        <!-- Session Info -->
-        {% if kiosk.session %}
-        <div class="alert alert-info mb-4 text-center" style="max-width: 600px;">
-            <strong>{{ kiosk.session.name }}</strong> - {{ kiosk.session.date|date:"d/m/Y" }}
-        </div>
-        {% endif %}
-
-        <!-- Action Buttons -->
-        <div id="action-buttons" class="text-center">
-            <button class="kiosk-btn btn btn-primary d-block" onclick="showSearch('member')">
-                <i class="bi bi-person-check me-2"></i>Enregistrement individuel
-            </button>
-            <button class="kiosk-btn btn btn-success d-block" onclick="showSearch('family')">
-                <i class="bi bi-people me-2"></i>Enregistrement famille
-            </button>
-            <button class="kiosk-btn btn btn-warning d-block" onclick="showQRScanner()">
-                <i class="bi bi-qr-code-scan me-2"></i>Scanner QR
-            </button>
+    <div class="kiosk-wrapper">
+        <!-- Top Bar -->
+        <div class="kiosk-topbar">
+            <a href="/attendance/kiosks/" class="back-btn"><i class="bi bi-arrow-left me-1"></i> Tableau de bord</a>
+            {% if kiosk.session %}
+            <span class="session-badge"><i class="bi bi-calendar-check me-1"></i> {{ kiosk.session.name }} - {{ kiosk.session.date|date:"d/m/Y" }}</span>
+            {% else %}
+            {% for s in sessions %}
+            {% if forloop.first %}
+            <span class="session-badge"><i class="bi bi-calendar-check me-1"></i> {{ s.name }} - {{ s.date|date:"d/m/Y" }}</span>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+            <span style="color: #475569; font-size: 0.9rem;" id="clock"></span>
         </div>
 
-        <!-- Search Screen -->
-        <div id="search-screen" class="search-container d-none">
-            <button class="btn btn-outline-light mb-3" onclick="showMain()"><i class="bi bi-arrow-left me-1"></i>Retour</button>
-            <input type="text" id="search-input" class="form-control search-input" placeholder="Entrez votre nom..." autocomplete="off">
-            <div id="search-results" class="mt-3"></div>
+        <!-- Main -->
+        <div class="kiosk-main">
+            <!-- Home screen -->
+            <div id="home-screen">
+                <div class="text-center">
+                    <div class="church-logo"><i class="bi bi-building"></i></div>
+                    <h1 class="kiosk-title">EgliseConnect</h1>
+                    <p class="kiosk-subtitle">{{ kiosk.name }}{% if kiosk.location %} &middot; {{ kiosk.location }}{% endif %}</p>
+                </div>
+                <div class="action-grid">
+                    <div class="action-card" onclick="showSearch('member')">
+                        <div class="icon-circle ic-blue"><i class="bi bi-person-check"></i></div>
+                        <div class="card-label">Individuel</div>
+                        <div class="card-desc">Enregistrement par nom</div>
+                    </div>
+                    <div class="action-card" onclick="showSearch('family')">
+                        <div class="icon-circle ic-green"><i class="bi bi-people"></i></div>
+                        <div class="card-label">Famille</div>
+                        <div class="card-desc">Toute la famille</div>
+                    </div>
+                    <div class="action-card" onclick="showQRScanner()">
+                        <div class="icon-circle ic-amber"><i class="bi bi-qr-code-scan"></i></div>
+                        <div class="card-label">Scanner QR</div>
+                        <div class="card-desc">Code personnel</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search screen -->
+            <div id="search-screen" class="search-panel d-none">
+                <button class="back-btn mb-3" onclick="showHome()"><i class="bi bi-arrow-left me-1"></i> Retour</button>
+                <h3 id="search-title" class="mb-3">Rechercher un membre</h3>
+                <input type="text" id="search-input" class="form-control mb-3" placeholder="Entrez votre nom..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+
+            <!-- Family members selection -->
+            <div id="family-screen" class="search-panel d-none">
+                <button class="back-btn mb-3" onclick="showSearch('family')"><i class="bi bi-arrow-left me-1"></i> Retour</button>
+                <h3 id="family-name" class="mb-3"></h3>
+                <div id="family-members"></div>
+                <button class="btn btn-success btn-lg w-100 mt-3" style="border-radius:0.75rem;padding:1rem;" onclick="submitFamilyCheckin()">
+                    <i class="bi bi-check-all me-2"></i> Enregistrer la selection
+                </button>
+            </div>
+
+            <!-- QR Scanner -->
+            <div id="qr-screen" class="search-panel d-none">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <button class="back-btn" onclick="stopQRAndGoHome()"><i class="bi bi-arrow-left me-1"></i> Retour</button>
+                    <h3 class="mb-0">Scanner QR</h3>
+                    <span id="scan-counter" class="session-badge" style="display:none;"><i class="bi bi-check2-all me-1"></i><span id="scan-count">0</span> enregistres</span>
+                </div>
+                <div id="kiosk-qr-reader" style="width:100%;max-width:400px;margin:0 auto;border-radius:1rem;overflow:hidden;"></div>
+                <p class="text-center mt-3" style="color:#64748b;">Placez le code QR devant la camera</p>
+            </div>
         </div>
 
-        <!-- Family Members Selection -->
-        <div id="family-screen" class="search-container d-none">
-            <button class="btn btn-outline-light mb-3" onclick="showSearch('family')"><i class="bi bi-arrow-left me-1"></i>Retour</button>
-            <h3 id="family-name" class="mb-3"></h3>
-            <div id="family-members"></div>
-            <button class="btn btn-success btn-lg w-100 mt-3" onclick="submitFamilyCheckin()">
-                <i class="bi bi-check-all me-2"></i>Enregistrer la selection
-            </button>
-        </div>
-
-        <!-- QR Scanner -->
-        <div id="qr-screen" class="search-container d-none">
-            <button class="btn btn-outline-light mb-3" onclick="showMain()"><i class="bi bi-arrow-left me-1"></i>Retour</button>
-            <div id="kiosk-qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+        <!-- Bottom Bar -->
+        <div class="kiosk-bottom">
+            <a href="/attendance/kiosk/{{ kiosk.pk }}/admin/" style="color:#475569;text-decoration:none;"><i class="bi bi-gear"></i></a>
+            <span>Retour automatique dans <span id="idle-countdown">{{ kiosk.auto_timeout_seconds }}</span>s</span>
         </div>
     </div>
 
-    <div id="idle-timer">Retour automatique dans <span id="idle-countdown">{{ kiosk.auto_timeout_seconds }}</span>s</div>
-
-    <!-- Admin PIN access -->
-    <div style="position: fixed; bottom: 1rem; left: 1rem;">
-        <a href="/attendance/kiosk/{{ kiosk.pk }}/admin/" class="btn btn-sm btn-outline-secondary opacity-25"><i class="bi bi-gear"></i></a>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
     var kioskId = '{{ kiosk.pk }}';
+    var qrScanner = null;
     var timeoutSeconds = {{ kiosk.auto_timeout_seconds }};
     var idleTimer = null;
     var countdown = timeoutSeconds;
     var searchMode = 'member';
     var selectedFamilyId = null;
 
+    // Clock
+    function updateClock() {
+        var now = new Date();
+        document.getElementById('clock').textContent = now.toLocaleTimeString('fr-CA', {hour:'2-digit', minute:'2-digit'});
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    // Idle timer
     function resetIdleTimer() {
         countdown = timeoutSeconds;
         document.getElementById('idle-countdown').textContent = countdown;
@@ -100,45 +333,97 @@
         idleTimer = setInterval(function() {
             countdown--;
             document.getElementById('idle-countdown').textContent = countdown;
-            if (countdown <= 0) {
-                clearInterval(idleTimer);
-                showMain();
-            }
+            // Don't auto-return to home while QR scanner is active
+            if (countdown <= 0 && !qrScanner) { clearInterval(idleTimer); showHome(); }
         }, 1000);
     }
-
     document.addEventListener('click', resetIdleTimer);
     document.addEventListener('keydown', resetIdleTimer);
     document.addEventListener('touchstart', resetIdleTimer);
     resetIdleTimer();
 
-    function showMain() {
-        document.getElementById('action-buttons').classList.remove('d-none');
+    // Navigation
+    function hideAll() {
+        document.getElementById('home-screen').classList.add('d-none');
         document.getElementById('search-screen').classList.add('d-none');
         document.getElementById('family-screen').classList.add('d-none');
         document.getElementById('qr-screen').classList.add('d-none');
+    }
+    function showHome() {
+        stopQRScanner();
+        hideAll();
+        document.getElementById('home-screen').classList.remove('d-none');
         resetIdleTimer();
     }
-
     function showSearch(mode) {
         searchMode = mode;
-        document.getElementById('action-buttons').classList.add('d-none');
+        hideAll();
         document.getElementById('search-screen').classList.remove('d-none');
-        document.getElementById('family-screen').classList.add('d-none');
-        document.getElementById('qr-screen').classList.add('d-none');
         document.getElementById('search-input').value = '';
         document.getElementById('search-results').innerHTML = '';
+        document.getElementById('search-title').textContent = mode === 'family' ? 'Rechercher une famille' : 'Rechercher un membre';
         document.getElementById('search-input').placeholder = mode === 'family' ? 'Nom de famille...' : 'Votre nom...';
         document.getElementById('search-input').focus();
         resetIdleTimer();
     }
-
     function showQRScanner() {
-        document.getElementById('action-buttons').classList.add('d-none');
+        hideAll();
         document.getElementById('qr-screen').classList.remove('d-none');
         resetIdleTimer();
+        startQRScanner();
+    }
+    function stopQRAndGoHome() {
+        stopQRScanner();
+        showHome();
+    }
+    // Debounce: track recently scanned codes (5-second window)
+    var recentScans = {};
+    var scanCounter = 0;
+
+    function startQRScanner() {
+        if (qrScanner) return;
+        qrScanner = new Html5Qrcode('kiosk-qr-reader');
+        qrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 30, qrbox: { width: 250, height: 250 } },
+            function(decodedText) {
+                // Debounce: skip if same code scanned within 5 seconds
+                var now = Date.now();
+                if (recentScans[decodedText] && (now - recentScans[decodedText]) < 5000) return;
+                recentScans[decodedText] = now;
+
+                // DO NOT stop the scanner — keep running for continuous mass attendance
+                var formData = new FormData();
+                formData.append('qr_code', decodedText);
+                fetch('/attendance/kiosk/' + kioskId + '/checkin/', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        scanCounter++;
+                        updateScanCounter();
+                        showFlash(data.member_name || data.message, 'success');
+                    } else if (data.warning) {
+                        showFlash(data.member_name || data.message, 'warning');
+                    } else {
+                        showFlash(data.error || 'Code QR invalide', 'error');
+                    }
+                }).catch(function() { showFlash('Erreur de connexion', 'error'); });
+            },
+            function() { /* ignore scan errors */ }
+        ).catch(function(err) {
+            document.getElementById('kiosk-qr-reader').innerHTML =
+                '<p style="text-align:center;color:#f87171;padding:2rem;">Camera non disponible.<br><small>' + err + '</small></p>';
+        });
+    }
+    function stopQRScanner() {
+        if (qrScanner) {
+            var s = qrScanner;
+            qrScanner = null;
+            s.stop().then(function(){ s.clear(); }).catch(function(){});
+        }
     }
 
+    // Search
     var searchTimeout = null;
     document.getElementById('search-input').addEventListener('input', function() {
         resetIdleTimer();
@@ -153,20 +438,25 @@
                 var html = '';
                 data.results.forEach(function(item) {
                     if (searchMode === 'family') {
-                        var membersHtml = item.members.map(function(m) { return m.name; }).join(', ');
-                        html += '<div class="member-result border-bottom" onclick="selectFamily(\'' + item.id + '\', \'' + item.name + '\', ' + JSON.stringify(item.members).replace(/"/g, '&quot;') + ')">';
-                        html += '<h5>' + item.name + '</h5><small class="text-muted">' + membersHtml + '</small></div>';
+                        var membersText = item.members.map(function(m) { return m.name; }).join(', ');
+                        html += '<div class="result-item" onclick=\'selectFamily("' + item.id + '","' + item.name.replace(/'/g,"\\'") + '",' + JSON.stringify(item.members) + ')\'>';
+                        html += '<div class="result-avatar"><i class="bi bi-people"></i></div>';
+                        html += '<div><div class="result-name">' + item.name + '</div><div class="result-sub">' + membersText + '</div></div>';
+                        html += '</div>';
                     } else {
-                        html += '<div class="member-result border-bottom" onclick="checkinMember(\'' + item.id + '\')">';
-                        html += '<h5>' + item.full_name + '</h5><small class="text-muted">' + item.member_number + '</small></div>';
+                        html += '<div class="result-item" onclick="checkinMember(\'' + item.id + '\')">';
+                        html += '<div class="result-avatar"><i class="bi bi-person"></i></div>';
+                        html += '<div><div class="result-name">' + item.full_name + '</div><div class="result-sub">' + (item.member_number || '') + '</div></div>';
+                        html += '</div>';
                     }
                 });
-                if (!html) html = '<p class="text-muted text-center mt-3">Aucun resultat</p>';
+                if (!html) html = '<p style="text-align:center;color:#64748b;margin-top:2rem;">Aucun resultat</p>';
                 document.getElementById('search-results').innerHTML = html;
             });
         }, 300);
     });
 
+    // Individual check-in
     function checkinMember(memberId) {
         var formData = new FormData();
         formData.append('member_id', memberId);
@@ -176,27 +466,29 @@
             if (data.success || data.warning) {
                 showSuccess(data.member_name || data.message);
             } else {
-                alert(data.error || 'Erreur');
+                showSuccess(data.error || 'Erreur', true);
             }
-        });
+        }).catch(function() { showSuccess('Erreur de connexion', true); });
     }
 
+    // Family selection
     function selectFamily(familyId, familyName, members) {
         selectedFamilyId = familyId;
-        document.getElementById('search-screen').classList.add('d-none');
+        hideAll();
         document.getElementById('family-screen').classList.remove('d-none');
         document.getElementById('family-name').textContent = 'Famille ' + familyName;
         var html = '';
         members.forEach(function(m) {
-            html += '<div class="form-check form-check-lg p-3 border-bottom">';
-            html += '<input class="form-check-input family-member-cb" type="checkbox" value="' + m.id + '" id="member-' + m.id + '" checked style="width: 2rem; height: 2rem;">';
-            html += '<label class="form-check-label fs-4 ms-3" for="member-' + m.id + '">' + m.name + '</label>';
+            html += '<div class="family-member-row">';
+            html += '<input type="checkbox" class="family-member-cb" value="' + m.id + '" id="fm-' + m.id + '" checked>';
+            html += '<label for="fm-' + m.id + '" style="font-size:1.1rem;cursor:pointer;">' + m.name + '</label>';
             html += '</div>';
         });
         document.getElementById('family-members').innerHTML = html;
         resetIdleTimer();
     }
 
+    // Family check-in
     function submitFamilyCheckin() {
         var formData = new FormData();
         formData.append('family_id', selectedFamilyId);
@@ -207,27 +499,65 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                var names = data.checked_in.join(', ') || 'Deja enregistres';
-                showSuccess(names);
+                var names = data.checked_in ? data.checked_in.join(', ') : 'Enregistre';
+                showSuccess(names || 'Deja enregistres');
             } else {
-                alert(data.error || 'Erreur');
+                showSuccess(data.error || 'Erreur', true);
             }
-        });
+        }).catch(function() { showSuccess('Erreur de connexion', true); });
     }
 
-    function showSuccess(name) {
-        document.getElementById('success-name').textContent = name;
-        var overlay = document.getElementById('success-overlay');
-        overlay.classList.add('show');
-        // Play success sound (item 23)
-        try {
-            var audio = new Audio('data:audio/wav;base64,UklGRl9vT19teleWQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU');
-            audio.play().catch(function(){});
-        } catch(e) {}
-        setTimeout(function() {
-            overlay.classList.remove('show');
-            showMain();
-        }, 3000);
+    // Scan counter
+    function updateScanCounter() {
+        var badge = document.getElementById('scan-counter');
+        document.getElementById('scan-count').textContent = scanCounter;
+        badge.style.display = 'inline-block';
+    }
+
+    // Flash bar (0.5s) — does NOT cover camera, does NOT stop scanner
+    var flashTimer = null;
+    function showFlash(text, type) {
+        var bar = document.getElementById('flash-bar');
+        var icon = bar.querySelector('.flash-icon');
+        var label = document.getElementById('flash-text');
+        if (type === 'warning') {
+            bar.style.background = '#b45309';
+            icon.innerHTML = '<i class="bi bi-exclamation-lg"></i>';
+            icon.style.background = 'rgba(255,255,255,0.2)';
+            icon.style.color = '#fff';
+            label.textContent = text + ' — deja enregistre(e)';
+            label.style.color = '#fff';
+        } else if (type === 'error') {
+            bar.style.background = '#b91c1c';
+            icon.innerHTML = '<i class="bi bi-x-lg"></i>';
+            icon.style.background = 'rgba(255,255,255,0.2)';
+            icon.style.color = '#fff';
+            label.textContent = text;
+            label.style.color = '#fff';
+        } else {
+            bar.style.background = '#15803d';
+            icon.innerHTML = '<i class="bi bi-check-lg"></i>';
+            icon.style.background = 'rgba(255,255,255,0.2)';
+            icon.style.color = '#fff';
+            label.textContent = text;
+            label.style.color = '#fff';
+        }
+        if (flashTimer) clearTimeout(flashTimer);
+        bar.classList.remove('show');
+        void bar.offsetWidth; // restart animation
+        bar.classList.add('show');
+        flashTimer = setTimeout(function() { bar.classList.remove('show'); }, 500);
+    }
+
+    // Legacy showSuccess for non-QR flows (search/family check-in)
+    function showSuccess(text, isError) {
+        if (isError) {
+            showFlash(text, 'error');
+        } else {
+            showFlash(text, 'success');
+        }
+        // Navigate home after a brief pause for non-QR flows
+        setTimeout(function() { showHome(); }, 600);
     }
     </script>
 </body>

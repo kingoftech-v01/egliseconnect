@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Rapports sauvegardes{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapports sauvegardes</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapports sauvegardes</a></li>
+        </ol>
+        <a href="/reports/saved/create/" class="btn btn-primary btn-sm ms-auto"><i class="fas fa-plus me-1"></i>Nouveau</a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Cree par</th>
+                                        <th>Date de creation</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for report in saved_reports %}
+                                    <tr>
+                                        <td><strong>{{ report.name }}</strong></td>
+                                        <td><span class="badge bg-secondary">{{ report.get_report_type_display }}</span></td>
+                                        <td>{{ report.created_by.full_name|default:"-" }}</td>
+                                        <td>{{ report.created_at|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <a href="/reports/saved/{{ report.pk }}/preview/" class="btn btn-sm btn-outline-success" title="Apercu"><i class="fas fa-eye"></i></a>
+                                            <a href="/reports/saved/{{ report.pk }}/edit/" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            <a href="/reports/saved/{{ report.pk }}/delete/" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center text-muted py-4">Aucun rapport sauvegarde.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

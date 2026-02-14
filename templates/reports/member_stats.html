@@ -17,61 +17,53 @@
         <!-- Stat Cards -->
         <div class="row">
             <div class="col-xl-3 col-sm-6">
-                <div class="card chart-grd same-card">
-                    <div class="card-body depostit-card p-0">
-                        <div class="depostit-card-media d-flex justify-content-between pb-0">
-                            <div>
-                                <h6>Total des membres</h6>
-                                <h3>{{ stats.total }}</h3>
-                            </div>
-                            <div class="icon-box bg-primary-light">
-                                <i class="bi bi-people"></i>
-                            </div>
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-primary">{{ stats.total }}</h2>
+                            <span class="text-muted">Total des membres</span>
+                        </div>
+                        <div class="icon-box bg-primary-light rounded-circle">
+                            <i class="fas fa-users text-primary" style="font-size:1.5rem;"></i>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6">
-                <div class="card chart-grd same-card">
-                    <div class="card-body depostit-card p-0">
-                        <div class="depostit-card-media d-flex justify-content-between pb-0">
-                            <div>
-                                <h6>Actifs</h6>
-                                <h3>{{ stats.active }}</h3>
-                            </div>
-                            <div class="icon-box bg-success-light">
-                                <i class="bi bi-person-check"></i>
-                            </div>
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-success">{{ stats.active }}</h2>
+                            <span class="text-muted">Actifs</span>
+                        </div>
+                        <div class="icon-box bg-success-light rounded-circle">
+                            <i class="fas fa-user-check text-success" style="font-size:1.5rem;"></i>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6">
-                <div class="card chart-grd same-card">
-                    <div class="card-body depostit-card p-0">
-                        <div class="depostit-card-media d-flex justify-content-between pb-0">
-                            <div>
-                                <h6>Inactifs</h6>
-                                <h3>{{ stats.inactive }}</h3>
-                            </div>
-                            <div class="icon-box bg-danger-light">
-                                <i class="bi bi-person-x"></i>
-                            </div>
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-danger">{{ stats.inactive }}</h2>
+                            <span class="text-muted">Inactifs</span>
+                        </div>
+                        <div class="icon-box bg-danger-light rounded-circle">
+                            <i class="fas fa-user-times text-danger" style="font-size:1.5rem;"></i>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6">
-                <div class="card chart-grd same-card">
-                    <div class="card-body depostit-card p-0">
-                        <div class="depostit-card-media d-flex justify-content-between pb-0">
-                            <div>
-                                <h6>Nouveaux ce mois</h6>
-                                <h3>{{ stats.new_this_month }}</h3>
-                            </div>
-                            <div class="icon-box bg-info-light">
-                                <i class="bi bi-person-plus"></i>
-                            </div>
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="mb-0 text-info">{{ stats.new_this_month }}</h2>
+                            <span class="text-muted">Nouveaux ce mois</span>
+                        </div>
+                        <div class="icon-box bg-info-light rounded-circle">
+                            <i class="fas fa-user-plus text-info" style="font-size:1.5rem;"></i>
                         </div>
                     </div>
                 </div>

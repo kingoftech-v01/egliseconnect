@@ -22,6 +22,17 @@ def getdata(json_data, args):
 register.filter('getdata', getdata)
 
 
+@register.filter(name='dictkey')
+def dictkey(d, key):
+    """Look up a dictionary value by variable key.
+
+    Usage: {{ mydict|dictkey:var }}
+    """
+    if isinstance(d, dict):
+        return d.get(key)
+    return None
+
+
 @register.filter(name='add_class')
 def add_class(field, css_class):
     """Add CSS class to a form field widget."""

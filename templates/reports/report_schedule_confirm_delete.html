@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Supprimer le rapport planifie{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Supprimer</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/schedules/">Rapports planifies</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Supprimer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Etes-vous sur de vouloir supprimer le rapport planifie "{{ schedule.name }}" ?</h5>
+                        <p class="text-muted">Cette action est irreversible.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Supprimer</button>
+                            <a href="/reports/schedules/" class="btn btn-secondary ms-2">Annuler</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

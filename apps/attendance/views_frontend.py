@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.core.constants import Roles, CheckInMethod, AttendanceSessionType
@@ -750,6 +751,7 @@ def kiosk_search(request, kiosk_id):
     return JsonResponse({'results': results})
 
 
+@csrf_exempt
 def kiosk_checkin(request, kiosk_id):
     """Process a check-in from the kiosk."""
     if request.method != 'POST':
@@ -762,7 +764,13 @@ def kiosk_checkin(request, kiosk_id):
     session_id = request.POST.get('session_id', '') or str(kiosk.session_id or '')
 
     if not session_id:
-        return JsonResponse({'error': 'Aucune session active'}, status=400)
+        today_session = AttendanceSession.objects.filter(
+            date=timezone.now().date(), is_open=True
+        ).first()
+        if today_session:
+            session_id = str(today_session.pk)
+        else:
+            return JsonResponse({'error': 'Aucune session active'}, status=400)
 
     try:
         session = AttendanceSession.objects.get(pk=session_id, is_open=True)
@@ -813,6 +821,7 @@ def kiosk_checkin(request, kiosk_id):
         })
 
 
+@csrf_exempt
 def kiosk_family_checkin(request, kiosk_id):
     """Check in entire family at kiosk."""
     if request.method != 'POST':
@@ -825,7 +834,13 @@ def kiosk_family_checkin(request, kiosk_id):
     member_ids_raw = request.POST.getlist('member_ids', [])
 
     if not session_id:
-        return JsonResponse({'error': 'Aucune session active'}, status=400)
+        today_session = AttendanceSession.objects.filter(
+            date=timezone.now().date(), is_open=True
+        ).first()
+        if today_session:
+            session_id = str(today_session.pk)
+        else:
+            return JsonResponse({'error': 'Aucune session active'}, status=400)
 
     try:
         session = AttendanceSession.objects.get(pk=session_id, is_open=True)
@@ -954,6 +969,100 @@ def kiosk_admin(request, kiosk_id):
         'page_title': _('Administration kiosque'),
     }
     return render(request, 'attendance/kiosk_admin.html', context)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Kiosk List
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def kiosk_list(request):
+    """List all kiosk configurations."""
+    if not hasattr(request.user, 'member_profile'):
+        return redirect('/')
+    if request.user.member_profile.role not in [Roles.ADMIN, Roles.PASTOR]:
+        messages.error(request, _('Accès refusé.'))
+        return redirect('/')
+
+    kiosks = KioskConfig.objects.select_related('session').all()
+    context = {
+        'kiosks': kiosks,
+        'page_title': _('Kiosques'),
+    }
+    return render(request, 'attendance/kiosk_list.html', context)
+
+
+@login_required
+def kiosk_create(request):
+    """Create a new kiosk configuration."""
+    if not hasattr(request.user, 'member_profile'):
+        return redirect('/')
+    if request.user.member_profile.role not in [Roles.ADMIN, Roles.PASTOR]:
+        messages.error(request, _('Accès refusé.'))
+        return redirect('/')
+
+    from .forms import KioskConfigForm
+    if request.method == 'POST':
+        form = KioskConfigForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Kiosque créé avec succès.'))
+            return redirect('/attendance/kiosks/')
+    else:
+        form = KioskConfigForm()
+
+    return render(request, 'attendance/kiosk_form.html', {
+        'form': form,
+        'page_title': _('Nouveau kiosque'),
+    })
+
+
+@login_required
+def kiosk_edit(request, pk):
+    """Edit an existing kiosk configuration."""
+    if not hasattr(request.user, 'member_profile'):
+        return redirect('/')
+    if request.user.member_profile.role not in [Roles.ADMIN, Roles.PASTOR]:
+        messages.error(request, _('Accès refusé.'))
+        return redirect('/')
+
+    kiosk = get_object_or_404(KioskConfig, pk=pk)
+    from .forms import KioskConfigForm
+    if request.method == 'POST':
+        form = KioskConfigForm(request.POST, instance=kiosk)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Kiosque modifié avec succès.'))
+            return redirect('/attendance/kiosks/')
+    else:
+        form = KioskConfigForm(instance=kiosk)
+
+    return render(request, 'attendance/kiosk_form.html', {
+        'form': form,
+        'kiosk': kiosk,
+        'page_title': _('Modifier le kiosque'),
+    })
+
+
+@login_required
+def kiosk_delete(request, pk):
+    """Delete a kiosk configuration."""
+    if not hasattr(request.user, 'member_profile'):
+        return redirect('/')
+    if request.user.member_profile.role not in [Roles.ADMIN, Roles.PASTOR]:
+        messages.error(request, _('Accès refusé.'))
+        return redirect('/')
+
+    kiosk = get_object_or_404(KioskConfig, pk=pk)
+    if request.method == 'POST':
+        kiosk.delete()
+        messages.success(request, _('Kiosque supprimé.'))
+        return redirect('/attendance/kiosks/')
+
+    return render(request, 'attendance/kiosk_confirm_delete.html', {
+        'kiosk': kiosk,
+        'page_title': _('Supprimer le kiosque'),
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Kiosques{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Kiosques</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Kiosques</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Liste des kiosques</h4>
+                                <a href="/attendance/kiosks/create/" class="btn btn-primary btn-sm">
+                                    <i class="fa fa-plus me-1"></i> Nouveau kiosque
+                                </a>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Emplacement</th>
+                                        <th>Session courante</th>
+                                        <th>Delai d'inactivite</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for kiosk in kiosks %}
+                                    <tr>
+                                        <td>{{ kiosk.name }}</td>
+                                        <td>{{ kiosk.location|default:"-" }}</td>
+                                        <td>
+                                            {% if kiosk.session %}
+                                                <span class="badge bg-success">{{ kiosk.session.name }}</span>
+                                            {% else %}
+                                                <span class="text-muted">Aucune</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ kiosk.auto_timeout_seconds }}s</td>
+                                        <td>
+                                            <a href="/attendance/kiosk/{{ kiosk.pk }}/" class="btn btn-sm btn-primary" title="Ouvrir le kiosque">
+                                                <i class="bi bi-display"></i>
+                                            </a>
+                                            <a href="/attendance/kiosks/{{ kiosk.pk }}/edit/" class="btn btn-sm btn-outline-warning" title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="/attendance/kiosks/{{ kiosk.pk }}/delete/" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">Aucun kiosque configure.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

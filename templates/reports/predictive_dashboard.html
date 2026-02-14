@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Analyses predictives{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Analyses predictives</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Previsions</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Tendances et projections</h5></div>
+                    <div class="card-body">
+                        <canvas id="predictChart" height="350"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var rawData = {{ data_json|safe }};
+var ctx = document.getElementById('predictChart');
+if (ctx && rawData.labels) {
+    new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: rawData.labels || [],
+            datasets: [
+                { label: 'Reel', data: rawData.actual || [], borderColor: '#0d6efd', tension: 0.3, pointRadius: 3 },
+                { label: 'Predit', data: rawData.predicted || [], borderColor: '#ffc107', borderDash: [5,5], tension: 0.3, pointRadius: 3 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    });
+}
+</script>
+{% endblock %}

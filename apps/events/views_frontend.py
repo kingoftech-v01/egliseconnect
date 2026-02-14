@@ -264,15 +264,19 @@ def event_create(request):
             event = form.save()
             # Auto-create attendance session for the event
             from apps.attendance.models import AttendanceSession
-            from apps.core.constants import AttendanceSessionType
+            from apps.core.constants import AttendanceSessionType, EventType
+            session_type_map = {
+                EventType.WORSHIP: AttendanceSessionType.WORSHIP,
+                EventType.TRAINING: AttendanceSessionType.LESSON,
+            }
             AttendanceSession.objects.create(
                 name=event.title,
-                session_type=AttendanceSessionType.EVENT,
+                session_type=session_type_map.get(event.event_type, AttendanceSessionType.EVENT),
                 date=event.start_datetime.date(),
                 start_time=event.start_datetime.time(),
                 end_time=event.end_datetime.time() if event.end_datetime else None,
                 event=event,
-                opened_by=request.user.member_profile,
+                opened_by=getattr(request.user, 'member_profile', None),
             )
             # Generate recurring instances if applicable
             if event.is_recurring and event.recurrence_frequency:

@@ -88,10 +88,14 @@ class RecurrenceService:
             )
             # Auto-create attendance session for child event
             from apps.attendance.models import AttendanceSession
-            from apps.core.constants import AttendanceSessionType
+            from apps.core.constants import AttendanceSessionType, EventType
+            session_type_map = {
+                EventType.WORSHIP: AttendanceSessionType.WORSHIP,
+                EventType.TRAINING: AttendanceSessionType.LESSON,
+            }
             AttendanceSession.objects.create(
                 name=instance.title,
-                session_type=AttendanceSessionType.EVENT,
+                session_type=session_type_map.get(instance.event_type, AttendanceSessionType.EVENT),
                 date=current_start.date(),
                 start_time=current_start.time(),
                 end_time=current_end.time() if current_end else None,

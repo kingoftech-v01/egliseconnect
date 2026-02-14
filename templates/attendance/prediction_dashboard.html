@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Predictions de presence{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Predictions de presence</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/sessions/">Presences</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Predictions</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+
+        <!-- Prediction Cards -->
+        <div class="row">
+            {% for stype, label in type_display.items %}
+            {% with pred=predictions|dictkey:stype rec=recommendations|dictkey:stype %}
+            <div class="col-xl-3 col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary">
+                        <h5 class="mb-0 text-white">
+                            <i class="fas fa-{% if stype == 'worship' %}church{% elif stype == 'event' %}calendar-alt{% elif stype == 'lesson' %}book-open{% else %}users{% endif %} me-2"></i>{{ label }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if pred.sample_size > 0 %}
+                        <div class="text-center mb-3">
+                            <h1 class="mb-0 text-primary">{{ pred.predicted }}</h1>
+                            <small class="text-muted">personnes attendues</small>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Minimum</span>
+                                <strong>{{ pred.min_attendance }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Maximum</span>
+                                <strong>{{ pred.max_attendance }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Sessions analysees</span>
+                                <strong>{{ pred.sample_size }}</strong>
+                            </li>
+                        </ul>
+                        {% else %}
+                        <p class="text-muted text-center py-3 mb-0">Pas assez de donnees pour predire.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+
+        <!-- Recommendations -->
+        <div class="row">
+            {% for stype, label in type_display.items %}
+            {% with rec=recommendations|dictkey:stype %}
+            {% if rec.recommendations %}
+            <div class="col-xl-6 col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Recommandations — {{ label }}</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for item in rec.recommendations %}
+                            <li class="list-group-item">
+                                <i class="fas fa-check-circle text-success me-2"></i>{{ item }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Tendances des dons{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Tendances des dons</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Tendances des dons</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+
+        <!-- KPI Cards -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Taux de retention</h5>
+                        <h2 class="{% if data.retention_rate >= 70 %}text-success{% elif data.retention_rate >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.retention_rate }}%</h2>
+                        <p class="text-muted mb-0">{{ data.retained_count }} donateurs retenus</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Donateurs actuels</h5>
+                        <h2 class="text-primary">{{ data.current_donor_count }}</h2>
+                        <p class="text-muted mb-0">Cette annee</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Donateurs precedents</h5>
+                        <h2 class="text-info">{{ data.prev_donor_count }}</h2>
+                        <p class="text-muted mb-0">L'annee derniere</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Donateurs perdus</h5>
+                        <h2 class="text-danger">{{ data.lapsed_count }}</h2>
+                        <p class="text-muted mb-0">N'ont pas donne cette annee</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Don moyen par mois</h5></div>
+                    <div class="card-body">
+                        <canvas id="avgGiftChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Frequence des dons</h5></div>
+                    <div class="card-body">
+                        <canvas id="freqChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var rawData = {{ data_json|safe }};
+
+// Average gift chart
+var avgCtx = document.getElementById('avgGiftChart');
+if (avgCtx) {
+    new Chart(avgCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: rawData.avg_gift_labels || [],
+            datasets: [{
+                label: 'Don moyen ($)',
+                data: rawData.avg_gift_values || [],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13,110,253,0.1)',
+                fill: true, tension: 0.3, pointRadius: 4,
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+}
+
+// Frequency chart
+var freqCtx = document.getElementById('freqChart');
+if (freqCtx) {
+    var freq = rawData.frequency_distribution || {};
+    new Chart(freqCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(freq),
+            datasets: [{ data: Object.values(freq), backgroundColor: ['#6c757d','#0d6efd','#198754','#ffc107','#dc3545'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+</script>
+{% endblock %}

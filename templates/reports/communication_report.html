@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Rapport communication{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapport communication</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Communication</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">Emails envoyes</h5>
+                    <h2 class="text-primary">{{ comm_stats.emails_sent|default:"0" }}</h2>
+                </div></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">SMS envoyes</h5>
+                    <h2 class="text-info">{{ comm_stats.sms_sent|default:"0" }}</h2>
+                </div></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">Notifications push</h5>
+                    <h2 class="text-success">{{ comm_stats.push_sent|default:"0" }}</h2>
+                </div></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card"><div class="card-body">
+                    <h5 class="card-title">Bulletins</h5>
+                    <h2 class="text-warning">{{ comm_stats.newsletters_count|default:"0" }}</h2>
+                </div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

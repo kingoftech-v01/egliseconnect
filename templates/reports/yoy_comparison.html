@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Comparaison annuelle{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Comparaison annuelle</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Comparaison annuelle</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+
+        <!-- Year selector -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <form method="get" class="d-flex align-items-center gap-3">
+                            <label class="form-label mb-0">Annee :</label>
+                            <select name="year" class="form-select" style="max-width:150px;" onchange="this.form.submit()">
+                                {% for y in available_years %}
+                                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Comparison Cards -->
+        <div class="row">
+            {% with data.members as m %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white py-2"><h6 class="mb-0">Membres</h6></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year }}</small>
+                                <h4 class="mb-0">{{ m.current }}</h4>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year|add:"-1" }}</small>
+                                <h4 class="mb-0 text-muted">{{ m.previous }}</h4>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            {% if m.change_pct > 0 %}
+                            <span class="badge bg-success">+{{ m.change_pct }}%</span>
+                            {% elif m.change_pct < 0 %}
+                            <span class="badge bg-danger">{{ m.change_pct }}%</span>
+                            {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+
+            {% with data.donations as d %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white py-2"><h6 class="mb-0">Dons ($)</h6></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year }}</small>
+                                <h4 class="mb-0">{{ d.current|floatformat:0 }} $</h4>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year|add:"-1" }}</small>
+                                <h4 class="mb-0 text-muted">{{ d.previous|floatformat:0 }} $</h4>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            {% if d.change_pct > 0 %}
+                            <span class="badge bg-success">+{{ d.change_pct }}%</span>
+                            {% elif d.change_pct < 0 %}
+                            <span class="badge bg-danger">{{ d.change_pct }}%</span>
+                            {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+
+            {% with data.donation_count as dc %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white py-2"><h6 class="mb-0">Nombre de dons</h6></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year }}</small>
+                                <h4 class="mb-0">{{ dc.current }}</h4>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year|add:"-1" }}</small>
+                                <h4 class="mb-0 text-muted">{{ dc.previous }}</h4>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            {% if dc.change_pct > 0 %}
+                            <span class="badge bg-success">+{{ dc.change_pct }}%</span>
+                            {% elif dc.change_pct < 0 %}
+                            <span class="badge bg-danger">{{ dc.change_pct }}%</span>
+                            {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+
+            {% with data.events as e %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card">
+                    <div class="card-header bg-warning py-2"><h6 class="mb-0">Evenements</h6></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year }}</small>
+                                <h4 class="mb-0">{{ e.current }}</h4>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year|add:"-1" }}</small>
+                                <h4 class="mb-0 text-muted">{{ e.previous }}</h4>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            {% if e.change_pct > 0 %}
+                            <span class="badge bg-success">+{{ e.change_pct }}%</span>
+                            {% elif e.change_pct < 0 %}
+                            <span class="badge bg-danger">{{ e.change_pct }}%</span>
+                            {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+
+            {% with data.volunteers as v %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white py-2"><h6 class="mb-0">Benevoles</h6></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year }}</small>
+                                <h4 class="mb-0">{{ v.current }}</h4>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted d-block">{{ current_year|add:"-1" }}</small>
+                                <h4 class="mb-0 text-muted">{{ v.previous }}</h4>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            {% if v.change_pct > 0 %}
+                            <span class="badge bg-success">+{{ v.change_pct }}%</span>
+                            {% elif v.change_pct < 0 %}
+                            <span class="badge bg-danger">{{ v.change_pct }}%</span>
+                            {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        </div>
+
+        <!-- YoY Bar Chart -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">{{ current_year }} vs {{ current_year|add:"-1" }}</h5></div>
+                    <div class="card-body">
+                        <canvas id="yoyChart" height="350"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var rawData = {{ data_json|safe }};
+var ctx = document.getElementById('yoyChart');
+if (ctx && rawData.members) {
+    var labels = ['Membres', 'Nombre de dons', 'Evenements', 'Benevoles'];
+    var currentData = [
+        rawData.members.current,
+        rawData.donation_count.current,
+        rawData.events.current,
+        rawData.volunteers.current
+    ];
+    var prevData = [
+        rawData.members.previous,
+        rawData.donation_count.previous,
+        rawData.events.previous,
+        rawData.volunteers.previous
+    ];
+    new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: '' + rawData.year, data: currentData, backgroundColor: '#0d6efd', borderRadius: 4 },
+                { label: '' + rawData.prev_year, data: prevData, backgroundColor: '#adb5bd', borderRadius: 4 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    });
+}
+</script>
+{% endblock %}

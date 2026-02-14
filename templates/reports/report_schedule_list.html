@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Rapports planifies{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Rapports planifies</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rapports planifies</a></li>
+        </ol>
+        <a href="/reports/schedules/create/" class="btn btn-primary btn-sm ms-auto"><i class="fas fa-plus me-1"></i>Nouveau</a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Frequence</th>
+                                        <th>Statut</th>
+                                        <th>Dernier envoi</th>
+                                        <th>Prochain envoi</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in schedules %}
+                                    <tr>
+                                        <td><strong>{{ schedule.name }}</strong></td>
+                                        <td><span class="badge bg-secondary">{{ schedule.get_report_type_display }}</span></td>
+                                        <td>{{ schedule.get_frequency_display }}</td>
+                                        <td>
+                                            {% if schedule.is_active %}
+                                            <span class="badge bg-success">Actif</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Inactif</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ schedule.last_sent_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                                        <td>{{ schedule.next_run_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                                        <td>
+                                            <a href="/reports/schedules/{{ schedule.pk }}/edit/" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                            <a href="/reports/schedules/{{ schedule.pk }}/delete/" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Aucun rapport planifie.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

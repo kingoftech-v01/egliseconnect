@@ -18,6 +18,7 @@
         maxReconnectAttempts: 10,
         reconnectDelay: 1000,
         isConnected: false,
+        wasEverConnected: false,
 
         /**
          * Initialize WebSocket connection for notifications.
@@ -54,6 +55,7 @@
          */
         onOpen: function() {
             this.isConnected = true;
+            this.wasEverConnected = true;
             this.reconnectAttempts = 0;
             this.reconnectDelay = 1000;
         },
@@ -87,6 +89,11 @@
          */
         onClose: function(event) {
             this.isConnected = false;
+
+            // Don't retry if the server doesn't support WebSockets
+            if (!this.wasEverConnected) {
+                return;
+            }
 
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
                 this.reconnectAttempts++;

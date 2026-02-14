@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Alertes d'absence{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Alertes d'absence</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/sessions/">Presences</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Alertes</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">{{ page_title }}</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th class="text-center">Absences consecutives</th>
+                                        <th>Derniere presence</th>
+                                        <th>Alerte envoyee</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alert in alerts %}
+                                    <tr{% if not alert.acknowledged_by %} class="table-warning"{% endif %}>
+                                        <td>
+                                            <strong>{{ alert.member.full_name }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-{% if alert.consecutive_absences >= 5 %}danger{% elif alert.consecutive_absences >= 3 %}warning text-dark{% else %}secondary{% endif %}">
+                                                {{ alert.consecutive_absences }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if alert.last_attendance_date %}
+                                                {{ alert.last_attendance_date|date:"d/m/Y" }}
+                                            {% else %}
+                                                <span class="text-muted">Jamais</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if alert.alert_sent %}
+                                                <span class="badge bg-success">Oui</span>
+                                                {% if alert.alert_sent_at %}
+                                                <br><small class="text-muted">{{ alert.alert_sent_at|date:"d/m/Y H:i" }}</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">Non</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if alert.acknowledged_by %}
+                                                <span class="badge bg-success">Reconnu</span>
+                                                <br><small class="text-muted">par {{ alert.acknowledged_by.full_name }}</small>
+                                                <br><small class="text-muted">{{ alert.acknowledged_at|date:"d/m/Y H:i" }}</small>
+                                                {% if alert.notes %}
+                                                <br><small class="text-info"><i class="fas fa-sticky-note me-1"></i>{{ alert.notes|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">En attente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if not alert.acknowledged_by %}
+                                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#ackModal{{ alert.pk }}">
+                                                <i class="fas fa-check me-1"></i>Reconnaitre
+                                            </button>
+
+                                            <!-- Acknowledge Modal -->
+                                            <div class="modal fade" id="ackModal{{ alert.pk }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-sm">
+                                                    <div class="modal-content">
+                                                        <form method="post" action="/attendance/alerts/{{ alert.pk }}/acknowledge/">
+                                                            {% csrf_token %}
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Reconnaitre l'alerte</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <p class="mb-2"><strong>{{ alert.member.full_name }}</strong> — {{ alert.consecutive_absences }} absences</p>
+                                                                <div class="mb-0">
+                                                                    <label for="notes-{{ alert.pk }}" class="form-label">Notes (optionnel)</label>
+                                                                    <textarea name="notes" id="notes-{{ alert.pk }}" class="form-control" rows="3" placeholder="Raison, suivi prevu..."></textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                                <button type="submit" class="btn btn-sm btn-success">Confirmer</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">Aucune alerte d'absence.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

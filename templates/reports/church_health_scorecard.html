@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Tableau de sante{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Tableau de sante de l'eglise</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Tableau de sante</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+
+        <!-- Composite Score -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-4">
+                        <h5 class="text-muted mb-2">Score global de sante</h5>
+                        <h1 class="display-3 fw-bold {% if data.composite_score >= 70 %}text-success{% elif data.composite_score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.composite_score }}%</h1>
+                        <p class="text-muted">Base sur les 30 derniers jours &mdash; {{ data.total_members }} membres actifs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dimension Scores -->
+        <div class="row">
+            <div class="col-xl-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0"><i class="fas fa-users me-2 text-primary"></i>Presence</h5>
+                            <h3 class="mb-0 {% if data.attendance_score >= 70 %}text-success{% elif data.attendance_score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.attendance_score }}%</h3>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if data.attendance_score >= 70 %}bg-success{% elif data.attendance_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ data.attendance_score }}%;"></div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">{{ data.events_this_month }} evenements ce mois</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0"><i class="fas fa-hand-holding-usd me-2 text-success"></i>Dons</h5>
+                            <h3 class="mb-0 {% if data.giving_score >= 70 %}text-success{% elif data.giving_score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.giving_score }}%</h3>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if data.giving_score >= 70 %}bg-success{% elif data.giving_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ data.giving_score }}%;"></div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">{{ data.donors_this_month }} donateurs ce mois</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0"><i class="fas fa-hands-helping me-2 text-info"></i>Volontariat</h5>
+                            <h3 class="mb-0 {% if data.volunteering_score >= 70 %}text-success{% elif data.volunteering_score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.volunteering_score }}%</h3>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if data.volunteering_score >= 70 %}bg-success{% elif data.volunteering_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ data.volunteering_score }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0"><i class="fas fa-user-plus me-2 text-warning"></i>Nouveaux membres</h5>
+                            <h3 class="mb-0 {% if data.new_member_score >= 70 %}text-success{% elif data.new_member_score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.new_member_score }}%</h3>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if data.new_member_score >= 70 %}bg-success{% elif data.new_member_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ data.new_member_score }}%;"></div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">{{ data.new_members_this_month }} ce mois</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0"><i class="fas fa-chart-line me-2 text-danger"></i>Engagement</h5>
+                            <h3 class="mb-0 {% if data.engagement_score >= 70 %}text-success{% elif data.engagement_score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ data.engagement_score }}%</h3>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if data.engagement_score >= 70 %}bg-success{% elif data.engagement_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ data.engagement_score }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

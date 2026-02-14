@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Pipeline d'integration{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Pipeline d'integration</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Pipeline</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Statistiques du pipeline</h5></div>
+                    <div class="card-body">
+                        <canvas id="pipelineChart" height="350"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funnel Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Etape</th>
+                                        <th class="text-center">Nombre</th>
+                                        <th class="text-center">% du total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td><span class="badge bg-secondary">Inscrits</span></td><td class="text-center">{{ data.registered }}</td><td class="text-center">{{ data.registered_pct|default:"0" }}%</td></tr>
+                                    <tr><td><span class="badge bg-info">Formulaire soumis</span></td><td class="text-center">{{ data.form_submitted }}</td><td class="text-center">{{ data.form_submitted_pct|default:"0" }}%</td></tr>
+                                    <tr><td><span class="badge bg-warning">En revision</span></td><td class="text-center">{{ data.in_review }}</td><td class="text-center">{{ data.in_review_pct|default:"0" }}%</td></tr>
+                                    <tr><td><span class="badge bg-primary">En formation</span></td><td class="text-center">{{ data.in_training }}</td><td class="text-center">{{ data.in_training_pct|default:"0" }}%</td></tr>
+                                    <tr class="table-success"><td><span class="badge bg-success">Actifs</span></td><td class="text-center"><strong>{{ data.active }}</strong></td><td class="text-center"><strong>{{ data.active_pct|default:"0" }}%</strong></td></tr>
+                                    <tr class="table-danger"><td><span class="badge bg-danger">Refuses/Expires</span></td><td class="text-center">{{ data.rejected }}</td><td class="text-center">{{ data.rejected_pct|default:"0" }}%</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var rawData = {{ data_json|safe }};
+var ctx = document.getElementById('pipelineChart');
+if (ctx) {
+    new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Inscrits', 'Soumis', 'Revision', 'Formation', 'Actifs', 'Refuses'],
+            datasets: [{
+                label: 'Nombre',
+                data: [rawData.registered||0, rawData.form_submitted||0, rawData.in_review||0, rawData.in_training||0, rawData.active||0, rawData.rejected||0],
+                backgroundColor: ['#6c757d','#17a2b8','#ffc107','#0d6efd','#198754','#dc3545'],
+                borderRadius: 4,
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+}
+</script>
+{% endblock %}

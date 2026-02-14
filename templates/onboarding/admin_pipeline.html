@@ -2,6 +2,7 @@
 {% load static custom_tags %}
 {% block title %}Pipeline d'integration - Administration{% endblock %}
 {% block content %}
+<style>.pipeline-card{transition:box-shadow .15s,transform .15s;cursor:pointer}.pipeline-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.12);transform:translateY(-1px)}</style>
 <div class="content-body">
     <div class="page-titles">
         <ol class="breadcrumb">
@@ -87,30 +88,27 @@
         </div>
 
         <!-- Kanban Columns -->
-        <div class="row">
+        <div class="row align-items-start">
             <!-- Column 1: Inscrits -->
             <div class="col-xl-3 col-lg-6">
                 <div class="card">
-                    <div class="card-header bg-secondary bg-opacity-10">
-                        <h4 class="heading mb-0">
+                    <div class="card-header bg-secondary">
+                        <h4 class="heading mb-0 text-white">
                             <i class="fas fa-user-plus me-2"></i>Inscrits
-                            <span class="badge bg-secondary ms-2">{{ registered_list|length }}</span>
+                            <span class="badge bg-light text-dark ms-2">{{ registered_list|length }}</span>
                         </h4>
                     </div>
-                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                    <div class="card-body p-2" style="max-height:350px; overflow-y:auto;">
                         {% for member in registered_list %}
-                        <div class="card mb-2 border">
-                            <div class="card-body p-3">
-                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
-                                <small class="text-muted d-block mb-2">Inscrit le {{ member.registered_date|date:"d/m/Y" }}</small>
+                        <a href="/onboarding/admin/review/{{ member.pk }}/" class="card mb-2 border text-decoration-none pipeline-card">
+                            <div class="card-body py-2 px-3">
+                                <h6 class="mb-0 text-dark">{{ member.first_name }} {{ member.last_name }}</h6>
+                                <small class="text-muted">Inscrit le {{ member.registration_date|date:"d/m/Y" }}</small>
                                 {% if member.days_remaining is not None and member.days_remaining < 7 %}
-                                <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>{{ member.days_remaining }}j restants</small>
+                                <br><small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>{{ member.days_remaining }}j restants</small>
                                 {% endif %}
-                                <div class="mt-2">
-                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-primary btn-xs">Voir</a>
-                                </div>
                             </div>
-                        </div>
+                        </a>
                         {% empty %}
                         <p class="text-muted text-center py-3 mb-0">Aucun inscrit</p>
                         {% endfor %}
@@ -121,23 +119,20 @@
             <!-- Column 2: Formulaires soumis -->
             <div class="col-xl-3 col-lg-6">
                 <div class="card">
-                    <div class="card-header bg-warning bg-opacity-10">
+                    <div class="card-header bg-warning">
                         <h4 class="heading mb-0">
                             <i class="fas fa-file-alt me-2"></i>Formulaires soumis
-                            <span class="badge bg-warning text-dark ms-2">{{ submitted_list|length }}</span>
+                            <span class="badge bg-light text-dark ms-2">{{ submitted_list|length }}</span>
                         </h4>
                     </div>
-                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                    <div class="card-body p-2" style="max-height:350px; overflow-y:auto;">
                         {% for member in submitted_list %}
-                        <div class="card mb-2 border">
-                            <div class="card-body p-3">
-                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
-                                <small class="text-muted d-block mb-2">Soumis le {{ member.submitted_date|date:"d/m/Y" }}</small>
-                                <div class="mt-2">
-                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-warning btn-xs">Examiner</a>
-                                </div>
+                        <a href="/onboarding/admin/review/{{ member.pk }}/" class="card mb-2 border text-decoration-none pipeline-card">
+                            <div class="card-body py-2 px-3">
+                                <h6 class="mb-0 text-dark">{{ member.first_name }} {{ member.last_name }}</h6>
+                                <small class="text-muted">Soumis le {{ member.submitted_date|date:"d/m/Y" }}</small>
                             </div>
-                        </div>
+                        </a>
                         {% empty %}
                         <p class="text-muted text-center py-3 mb-0">Aucun formulaire en attente</p>
                         {% endfor %}
@@ -148,26 +143,23 @@
             <!-- Column 3: En formation -->
             <div class="col-xl-3 col-lg-6">
                 <div class="card">
-                    <div class="card-header bg-primary bg-opacity-10">
-                        <h4 class="heading mb-0">
+                    <div class="card-header bg-primary">
+                        <h4 class="heading mb-0 text-white">
                             <i class="fas fa-graduation-cap me-2"></i>En formation
-                            <span class="badge bg-primary ms-2">{{ training_list|length }}</span>
+                            <span class="badge bg-light text-dark ms-2">{{ training_list|length }}</span>
                         </h4>
                     </div>
-                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                    <div class="card-body p-2" style="max-height:350px; overflow-y:auto;">
                         {% for member in training_list %}
-                        <div class="card mb-2 border">
-                            <div class="card-body p-3">
-                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
-                                <div class="progress mb-2" style="height: 6px;">
+                        <a href="/onboarding/admin/review/{{ member.pk }}/" class="card mb-2 border text-decoration-none pipeline-card">
+                            <div class="card-body py-2 px-3">
+                                <h6 class="mb-0 text-dark">{{ member.first_name }} {{ member.last_name }}</h6>
+                                <div class="progress my-1" style="height: 6px;">
                                     <div class="progress-bar bg-primary" role="progressbar" style="width: {{ member.progress_percent }}%;" aria-valuenow="{{ member.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                                 <small class="text-muted">{{ member.completed_lessons }}/{{ member.total_lessons }} lecons</small>
-                                <div class="mt-2">
-                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-primary btn-xs">Voir</a>
-                                </div>
                             </div>
-                        </div>
+                        </a>
                         {% empty %}
                         <p class="text-muted text-center py-3 mb-0">Personne en formation</p>
                         {% endfor %}
@@ -178,26 +170,23 @@
             <!-- Column 4: Interview -->
             <div class="col-xl-3 col-lg-6">
                 <div class="card">
-                    <div class="card-header bg-info bg-opacity-10">
-                        <h4 class="heading mb-0">
+                    <div class="card-header bg-info">
+                        <h4 class="heading mb-0 text-white">
                             <i class="fas fa-comments me-2"></i>Interview
-                            <span class="badge bg-info ms-2">{{ interview_list|length }}</span>
+                            <span class="badge bg-light text-dark ms-2">{{ interview_list|length }}</span>
                         </h4>
                     </div>
-                    <div class="card-body p-2" style="max-height:500px; overflow-y:auto;">
+                    <div class="card-body p-2" style="max-height:350px; overflow-y:auto;">
                         {% for member in interview_list %}
-                        <div class="card mb-2 border">
-                            <div class="card-body p-3">
-                                <h6 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h6>
+                        <a href="/onboarding/admin/review/{{ member.pk }}/" class="card mb-2 border text-decoration-none pipeline-card">
+                            <div class="card-body py-2 px-3">
+                                <h6 class="mb-0 text-dark">{{ member.first_name }} {{ member.last_name }}</h6>
                                 {% if member.interview_date %}
-                                <small class="text-muted d-block mb-1">{{ member.interview_date|date:"d/m/Y H:i" }}</small>
+                                <small class="text-muted d-block">{{ member.interview_date|date:"d/m/Y H:i" }}</small>
                                 {% endif %}
                                 <span class="badge bg-{{ member.interview_badge|default:'secondary' }}">{{ member.interview_status_display|default:"En attente" }}</span>
-                                <div class="mt-2">
-                                    <a href="/onboarding/admin/review/{{ member.pk }}/" class="btn btn-outline-info btn-xs">Voir</a>
-                                </div>
                             </div>
-                        </div>
+                        </a>
                         {% empty %}
                         <p class="text-muted text-center py-3 mb-0">Aucun entretien prevu</p>
                         {% endfor %}

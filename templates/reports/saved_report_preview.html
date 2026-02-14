@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Apercu - {{ report.name }}{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ report.name }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/saved/">Rapports sauvegardes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Apercu</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ report.name }}</h5>
+                        <span class="badge bg-secondary">{{ report.get_report_type_display }}</span>
+                    </div>
+                    <div class="card-body">
+                        {% if preview_data.rows %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        {% for col in preview_data.columns %}
+                                        <th>{{ col }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in preview_data.rows %}
+                                    <tr>
+                                        {% for cell in row %}
+                                        <td>{{ cell }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-4">Aucune donnee pour ce rapport.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

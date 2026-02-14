@@ -52,6 +52,57 @@
         </div>
     </div>
 
+    <!-- Summary Stats Row -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary">
+                    <h5 class="mb-0 text-white">{% trans "Formations" %}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Total" %}<strong>{{ training.total }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Completees" %}<strong class="text-success">{{ training.completed }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "En cours" %}<strong class="text-primary">{{ training.in_progress }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Taux" %}<strong>{{ training.completion_rate }}%</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info">
+                    <h5 class="mb-0 text-white">{% trans "Interviews" %}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Total" %}<strong>{{ interviews.total }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Reussies" %}<strong class="text-success">{{ interviews.passed }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Echouees" %}<strong class="text-danger">{{ interviews.failed }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Absents" %}<strong class="text-warning">{{ interviews.no_show }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "En attente" %}<strong class="text-info">{{ interviews.pending }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Taux de reussite" %}<strong>{{ interviews.pass_rate }}%</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h5 class="mb-0 text-white">{% trans "Presences (30 jours)" %}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Sessions" %}<strong>{{ attendance.total_sessions }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Check-ins" %}<strong>{{ attendance.total_checkins }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Moy./session" %}<strong>{{ attendance.avg_attendance }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">{% trans "Alertes actives" %}<strong class="text-danger">{{ attendance.active_alerts }}</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Charts Row -->
     <div class="row">
         <!-- Pipeline Bar Chart -->
@@ -73,7 +124,11 @@
                     <h5 class="mb-0">{% trans "Inscriptions mensuelles" %}</h5>
                 </div>
                 <div class="card-body">
+                    {% if monthly %}
                     <canvas id="monthlyChart" height="300"></canvas>
+                    {% else %}
+                    <p class="text-muted text-center py-5 mb-0">{% trans "Aucune donnee disponible." %}</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -81,14 +136,14 @@
 
     <!-- Pipeline Breakdown Table -->
     <div class="row">
-        <div class="col-md-8">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">{% trans "Details du pipeline" %}</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table mb-0">
                             <thead>
                                 <tr>
                                     <th>{% trans "Etape" %}</th>
@@ -131,49 +186,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <!-- Training Stats -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">{% trans "Formations" %}</h5>
-                </div>
-                <div class="card-body">
-                    <p>{% trans "Total" %}: <strong>{{ training.total }}</strong></p>
-                    <p>{% trans "Completees" %}: <strong class="text-success">{{ training.completed }}</strong></p>
-                    <p>{% trans "En cours" %}: <strong class="text-primary">{{ training.in_progress }}</strong></p>
-                    <p>{% trans "Taux" %}: <strong>{{ training.completion_rate }}%</strong></p>
-                </div>
-            </div>
-
-            <!-- Interview Stats -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">{% trans "Interviews" %}</h5>
-                </div>
-                <div class="card-body">
-                    <p>{% trans "Total" %}: <strong>{{ interviews.total }}</strong></p>
-                    <p>{% trans "Reussies" %}: <strong class="text-success">{{ interviews.passed }}</strong></p>
-                    <p>{% trans "Echouees" %}: <strong class="text-danger">{{ interviews.failed }}</strong></p>
-                    <p>{% trans "Absents" %}: <strong class="text-warning">{{ interviews.no_show }}</strong></p>
-                    <p>{% trans "En attente" %}: <strong class="text-info">{{ interviews.pending }}</strong></p>
-                    <p>{% trans "Taux de reussite" %}: <strong>{{ interviews.pass_rate }}%</strong></p>
-                </div>
-            </div>
-
-            <!-- Attendance Stats -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">{% trans "Presences (30 jours)" %}</h5>
-                </div>
-                <div class="card-body">
-                    <p>{% trans "Sessions" %}: <strong>{{ attendance.total_sessions }}</strong></p>
-                    <p>{% trans "Check-ins" %}: <strong>{{ attendance.total_checkins }}</strong></p>
-                    <p>{% trans "Moy./session" %}: <strong>{{ attendance.avg_attendance }}</strong></p>
-                    <p>{% trans "Alertes actives" %}: <strong class="text-danger">{{ attendance.active_alerts }}</strong></p>
                 </div>
             </div>
         </div>
