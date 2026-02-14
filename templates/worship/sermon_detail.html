@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/sermons/">Predications</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Detail</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ sermon.title }}</h4>
+                        {% if is_staff %}
+                        <div class="d-flex gap-1">
+                            <a href="/worship/sermons/{{ sermon.pk }}/edit/" class="btn btn-warning btn-sm"><i class="fas fa-edit me-1"></i> Modifier</a>
+                            <a href="/worship/sermons/{{ sermon.pk }}/delete/" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush mb-3">
+                            <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Date</span><span>{{ sermon.date|date:"d/m/Y" }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Predicateur</span><span>{{ sermon.speaker.full_name|default:"-" }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Reference</span><span>{{ sermon.scripture_reference|default:"-" }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Serie</span><span>{{ sermon.series.title|default:"-" }}</span></li>
+                            {% if sermon.duration_minutes %}
+                            <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Duree</span><span>{{ sermon.duration_minutes }} min</span></li>
+                            {% endif %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="fw-bold">Statut</span>
+                                <span>
+                                    {% if sermon.status == 'draft' %}<span class="badge badge-secondary">Brouillon</span>
+                                    {% elif sermon.status == 'published' %}<span class="badge badge-success">Publie</span>
+                                    {% elif sermon.status == 'archived' %}<span class="badge badge-info">Archive</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+                        </ul>
+                        {% if sermon.audio_url %}
+                        <div class="mb-3">
+                            <strong>Audio:</strong> <a href="{{ sermon.audio_url }}" target="_blank">{{ sermon.audio_url }}</a>
+                        </div>
+                        {% endif %}
+                        {% if sermon.video_url %}
+                        <div class="mb-3">
+                            <strong>Video:</strong> <a href="{{ sermon.video_url }}" target="_blank">{{ sermon.video_url }}</a>
+                            {% if 'youtube.com' in sermon.video_url or 'youtu.be' in sermon.video_url %}
+                            <div class="mt-2 ratio ratio-16x9">
+                                <iframe src="{{ sermon.video_url }}" allowfullscreen></iframe>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% if sermon.notes %}
+                        <div class="mt-3">
+                            <strong>Notes / Plan:</strong>
+                            <div class="mt-2 p-3 bg-light rounded" style="white-space: pre-wrap;">{{ sermon.notes }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

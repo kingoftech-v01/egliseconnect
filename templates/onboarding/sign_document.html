@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Signer - {{ document.title }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Signer un document</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/documents/">Documents</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Signer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ document.title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="border rounded p-4 mb-4 bg-light" style="max-height:400px;overflow-y:auto;">
+                            {{ document.content|linebreaksbr }}
+                        </div>
+
+                        {% if existing_signature %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Document signe par <strong>{{ existing_signature.signature_text }}</strong>
+                            le {{ existing_signature.signed_at|date:"d/m/Y a H:i" }}.
+                        </div>
+                        {% else %}
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label">{{ form.signature_text.label }}</label>
+                                {{ form.signature_text }}
+                                <small class="form-text text-muted">Tapez votre nom complet pour confirmer votre signature.</small>
+                            </div>
+                            <div class="mb-3 form-check">
+                                {{ form.agree }}
+                                <label class="form-check-label" for="{{ form.agree.id_for_label }}">
+                                    {{ form.agree.label }}
+                                </label>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/documents/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-pen me-2"></i>Signer le document
+                                </button>
+                            </div>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

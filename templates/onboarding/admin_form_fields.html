@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Champs de formulaire{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Champs de formulaire personnalises</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Champs</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Champs personnalises</h4>
+                                <div>
+                                    <a href="/onboarding/admin/form-fields/export/" class="btn btn-outline-success btn-sm me-2">
+                                        <i class="fas fa-download me-1"></i>Exporter CSV
+                                    </a>
+                                    <a href="/onboarding/admin/form-fields/create/" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i>Nouveau champ
+                                    </a>
+                                </div>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Ordre</th>
+                                        <th>Libelle</th>
+                                        <th>Type</th>
+                                        <th>Obligatoire</th>
+                                        <th>Conditionnel</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for field in fields %}
+                                    <tr>
+                                        <td>{{ field.order }}</td>
+                                        <td><strong>{{ field.label }}</strong></td>
+                                        <td><span class="badge bg-info">{{ field.get_field_type_display }}</span></td>
+                                        <td>
+                                            {% if field.is_required %}
+                                            <span class="badge bg-danger">Oui</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Non</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if field.conditional_field %}
+                                            <span class="text-muted small">Si "{{ field.conditional_field.label }}" = "{{ field.conditional_value }}"</span>
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/onboarding/admin/form-fields/{{ field.pk }}/edit/" class="btn btn-outline-warning btn-xs">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="post" action="/onboarding/admin/form-fields/{{ field.pk }}/delete/" class="d-inline" onsubmit="return confirm('Supprimer ce champ?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-xs">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-list-alt mb-2" style="font-size:2rem;"></i>
+                                            <p>Aucun champ personnalise.</p>
+                                            <a href="/onboarding/admin/form-fields/create/" class="btn btn-primary btn-sm">Creer un champ</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

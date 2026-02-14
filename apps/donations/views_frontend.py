@@ -14,15 +14,27 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.constants import Roles, PaymentMethod
+from apps.core.constants import Roles, PaymentMethod, PledgeStatus
+from apps.core.export import export_queryset_csv, export_queryset_excel, export_queryset_pdf
 
-from .models import Donation, DonationCampaign, TaxReceipt, FinanceDelegation
+from .models import (
+    Donation, DonationCampaign, TaxReceipt, FinanceDelegation,
+    Pledge, PledgeFulfillment, GivingStatement, GivingGoal,
+    DonationImport, DonationImportRow, MatchingCampaign, CryptoDonation,
+)
 from .forms import (
     DonationForm,
     DonationEditForm,
     PhysicalDonationForm,
     DonationCampaignForm,
     DonationFilterForm,
+    PledgeForm,
+    MemberPledgeForm,
+    GivingGoalForm,
+    ImportUploadForm,
+    KioskDonationForm,
+    CryptoDonationForm,
+    StatementGenerateForm,
 )
 
 
@@ -850,3 +862,698 @@ def revoke_finance_access(request, pk):
         )
 
     return redirect('/donations/delegations/')
+
+
+# ==============================================================================
+# Export views (CSV, Excel, PDF) for all donation list views
+# ==============================================================================
+
+DONATION_EXPORT_FIELDS = [
+    lambda d: d.donation_number,
+    lambda d: d.member.full_name,
+    lambda d: d.date.isoformat(),
+    lambda d: str(d.amount),
+    lambda d: d.get_donation_type_display(),
+    lambda d: d.get_payment_method_display(),
+    lambda d: d.campaign.name if d.campaign else '',
+    lambda d: d.notes,
+]
+
+DONATION_EXPORT_HEADERS = [
+    'Numero', 'Membre', 'Date', 'Montant', 'Type',
+    'Mode de paiement', 'Campagne', 'Notes',
+]
+
+
+def _get_filtered_donations(request):
+    """Apply filters from DonationFilterForm to donations queryset."""
+    form = DonationFilterForm(request.GET)
+    donations = Donation.objects.all().select_related('member', 'campaign')
+
+    if form.is_valid():
+        if form.cleaned_data.get('date_from'):
+            donations = donations.filter(date__gte=form.cleaned_data['date_from'])
+        if form.cleaned_data.get('date_to'):
+            donations = donations.filter(date__lte=form.cleaned_data['date_to'])
+        if form.cleaned_data.get('donation_type'):
+            donations = donations.filter(donation_type=form.cleaned_data['donation_type'])
+        if form.cleaned_data.get('payment_method'):
+            donations = donations.filter(payment_method=form.cleaned_data['payment_method'])
+        if form.cleaned_data.get('campaign'):
+            donations = donations.filter(campaign=form.cleaned_data['campaign'])
+        if form.cleaned_data.get('member'):
+            search = form.cleaned_data['member']
+            donations = donations.filter(
+                Q(member__first_name__icontains=search) |
+                Q(member__last_name__icontains=search) |
+                Q(member__member_number__icontains=search)
+            )
+
+    return donations.order_by('-date', '-created_at')
+
+
+@login_required
+def donation_export_excel(request):
+    """Export donations to Excel .xlsx - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Vous n'avez pas acces a cette page."))
+        return redirect('/')
+
+    donations = _get_filtered_donations(request)
+    return export_queryset_excel(
+        donations,
+        DONATION_EXPORT_FIELDS,
+        'dons_export',
+        headers=DONATION_EXPORT_HEADERS,
+    )
+
+
+@login_required
+def donation_export_pdf(request):
+    """Export donations to PDF - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Vous n'avez pas acces a cette page."))
+        return redirect('/')
+
+    donations = _get_filtered_donations(request)
+    return export_queryset_pdf(
+        donations,
+        DONATION_EXPORT_FIELDS,
+        'dons_export',
+        headers=DONATION_EXPORT_HEADERS,
+    )
+
+
+# ==============================================================================
+# Pledge views
+# ==============================================================================
+
+
+@login_required
+def pledge_list(request):
+    """List pledges - finance staff see all, members see own."""
+    is_finance = _is_finance_staff(request.user)
+
+    if is_finance:
+        pledges = Pledge.objects.all().select_related('member', 'campaign')
+    elif hasattr(request.user, 'member_profile'):
+        pledges = Pledge.objects.filter(
+            member=request.user.member_profile
+        ).select_related('campaign')
+    else:
+        messages.error(request, _("Vous devez avoir un profil membre."))
+        return redirect('frontend:members:member_create')
+
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        pledges = pledges.filter(status=status_filter)
+
+    paginator = Paginator(pledges, 20)
+    page = request.GET.get('page', 1)
+    pledges_page = paginator.get_page(page)
+
+    context = {
+        'pledges': pledges_page,
+        'is_finance': is_finance,
+        'status_filter': status_filter,
+        'status_choices': PledgeStatus.CHOICES,
+        'page_title': _('Engagements'),
+    }
+    return render(request, 'donations/pledge_list.html', context)
+
+
+@login_required
+def pledge_detail(request, pk):
+    """Display pledge details."""
+    pledge = get_object_or_404(Pledge, pk=pk)
+
+    can_view = False
+    is_finance = False
+
+    if request.user.is_staff:
+        can_view = True
+        is_finance = True
+    elif hasattr(request.user, 'member_profile'):
+        member = request.user.member_profile
+        if pledge.member == member:
+            can_view = True
+        if member.role in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
+            can_view = True
+            is_finance = True
+
+    if not can_view:
+        messages.error(request, _("Vous n'avez pas acces a cet engagement."))
+        return redirect('/')
+
+    fulfillments = pledge.fulfillments.all().select_related('donation')
+
+    context = {
+        'pledge': pledge,
+        'fulfillments': fulfillments,
+        'is_finance': is_finance,
+        'page_title': f'Engagement - {pledge.member.full_name}',
+    }
+    return render(request, 'donations/pledge_detail.html', context)
+
+
+@login_required
+def pledge_create(request):
+    """Create a new pledge."""
+    is_finance = _is_finance_staff(request.user)
+
+    if is_finance:
+        FormClass = PledgeForm
+    else:
+        FormClass = MemberPledgeForm
+
+    if request.method == 'POST':
+        form = FormClass(request.POST)
+        if form.is_valid():
+            pledge = form.save(commit=False)
+            if not is_finance and hasattr(request.user, 'member_profile'):
+                pledge.member = request.user.member_profile
+            pledge.save()
+            messages.success(request, _('Engagement cree avec succes.'))
+            return redirect('/donations/pledges/%s/' % pledge.pk)
+    else:
+        form = FormClass()
+
+    context = {
+        'form': form,
+        'form_title': _('Nouvel engagement'),
+        'submit_text': _('Creer'),
+        'page_title': _('Nouvel engagement'),
+    }
+    return render(request, 'donations/pledge_form.html', context)
+
+
+@login_required
+def pledge_update(request, pk):
+    """Update an existing pledge - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    pledge = get_object_or_404(Pledge, pk=pk)
+
+    if request.method == 'POST':
+        form = PledgeForm(request.POST, instance=pledge)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Engagement mis a jour.'))
+            return redirect('/donations/pledges/%s/' % pledge.pk)
+    else:
+        form = PledgeForm(instance=pledge)
+
+    context = {
+        'form': form,
+        'pledge': pledge,
+        'form_title': _('Modifier l\'engagement'),
+        'submit_text': _('Enregistrer'),
+        'page_title': _('Modifier l\'engagement'),
+    }
+    return render(request, 'donations/pledge_form.html', context)
+
+
+@login_required
+def pledge_delete(request, pk):
+    """Delete a pledge - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    pledge = get_object_or_404(Pledge, pk=pk)
+
+    if request.method == 'POST':
+        pledge.delete()
+        messages.success(request, _('Engagement supprime.'))
+        return redirect('/donations/pledges/')
+
+    context = {
+        'pledge': pledge,
+        'page_title': _('Supprimer l\'engagement'),
+    }
+    return render(request, 'donations/pledge_delete.html', context)
+
+
+# ==============================================================================
+# Giving Statement views
+# ==============================================================================
+
+
+@login_required
+def statement_list(request):
+    """List giving statements."""
+    is_finance = _is_finance_staff(request.user)
+
+    if is_finance:
+        statements = GivingStatement.objects.all().select_related('member')
+    elif hasattr(request.user, 'member_profile'):
+        statements = GivingStatement.objects.filter(
+            member=request.user.member_profile
+        )
+    else:
+        messages.error(request, _("Vous devez avoir un profil membre."))
+        return redirect('frontend:members:member_create')
+
+    paginator = Paginator(statements, 20)
+    page = request.GET.get('page', 1)
+    statements_page = paginator.get_page(page)
+
+    context = {
+        'statements': statements_page,
+        'is_finance': is_finance,
+        'page_title': _('Releves de dons'),
+    }
+    return render(request, 'donations/statement_list.html', context)
+
+
+@login_required
+def statement_generate(request):
+    """Generate giving statements - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    if request.method == 'POST':
+        form = StatementGenerateForm(request.POST)
+        if form.is_valid():
+            from .services_statement import StatementService
+
+            year = form.cleaned_data['year']
+            period = form.cleaned_data['period']
+            member_id = form.cleaned_data.get('member')
+
+            if member_id:
+                from apps.members.models import Member
+                try:
+                    member = Member.objects.get(pk=member_id)
+                    statement = StatementService.generate_statement(member, year, period)
+                    messages.success(
+                        request,
+                        _('Releve genere pour %(name)s.') % {'name': member.full_name}
+                    )
+                except Member.DoesNotExist:
+                    messages.error(request, _('Membre introuvable.'))
+            else:
+                generated = StatementService.bulk_generate(year, period)
+                messages.success(
+                    request,
+                    _('%(count)d releve(s) genere(s).') % {'count': len(generated)}
+                )
+
+            return redirect('/donations/statements/')
+    else:
+        form = StatementGenerateForm(initial={
+            'year': timezone.now().year,
+            'period': 'annual',
+        })
+
+    context = {
+        'form': form,
+        'page_title': _('Generer des releves'),
+    }
+    return render(request, 'donations/statement_generate.html', context)
+
+
+@login_required
+def statement_download(request, pk):
+    """Download a giving statement PDF."""
+    statement = get_object_or_404(GivingStatement, pk=pk)
+
+    can_view = False
+    if request.user.is_staff:
+        can_view = True
+    elif hasattr(request.user, 'member_profile'):
+        member = request.user.member_profile
+        if statement.member == member:
+            can_view = True
+        elif member.role in [Roles.TREASURER, Roles.ADMIN]:
+            can_view = True
+
+    if not can_view:
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    if statement.pdf_file:
+        response = HttpResponse(
+            statement.pdf_file.read(),
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = (
+            f'attachment; filename="releve_{statement.year}_{statement.period}.pdf"'
+        )
+        return response
+
+    # Generate on the fly
+    from .services_statement import StatementService
+    donations = Donation.objects.filter(
+        member=statement.member,
+        date__gte=statement.start_date,
+        date__lte=statement.end_date,
+        is_active=True,
+    )
+    pdf_content = StatementService._generate_pdf(statement, donations)
+    if pdf_content:
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'attachment; filename="releve_{statement.year}_{statement.period}.pdf"'
+        )
+        return response
+
+    messages.error(request, _('Impossible de generer le PDF.'))
+    return redirect('/donations/statements/')
+
+
+# ==============================================================================
+# Giving Goal views
+# ==============================================================================
+
+
+@login_required
+def goal_create(request):
+    """Create or update a giving goal for the current member."""
+    if not hasattr(request.user, 'member_profile'):
+        messages.error(request, _("Vous devez avoir un profil membre."))
+        return redirect('frontend:members:member_create')
+
+    member = request.user.member_profile
+    current_year = timezone.now().year
+
+    # Try to find existing goal for this year
+    existing = GivingGoal.objects.filter(member=member, year=current_year).first()
+
+    if request.method == 'POST':
+        form = GivingGoalForm(request.POST, instance=existing)
+        if form.is_valid():
+            goal = form.save(commit=False)
+            goal.member = member
+            goal.save()
+            messages.success(request, _('Objectif de dons enregistre.'))
+            return redirect('/donations/history/')
+    else:
+        form = GivingGoalForm(instance=existing, initial={
+            'year': current_year,
+        })
+
+    context = {
+        'form': form,
+        'existing': existing,
+        'page_title': _('Objectif de dons'),
+    }
+    return render(request, 'donations/goal_form.html', context)
+
+
+@login_required
+def goal_report(request):
+    """Giving goal summary report for finance staff."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    year = request.GET.get('year', timezone.now().year)
+    try:
+        year = int(year)
+    except (ValueError, TypeError):
+        year = timezone.now().year
+
+    goals = GivingGoal.objects.filter(
+        year=year
+    ).select_related('member').order_by('member__last_name')
+
+    context = {
+        'goals': goals,
+        'year': year,
+        'page_title': _('Rapport des objectifs de dons'),
+    }
+    return render(request, 'donations/goal_report.html', context)
+
+
+# ==============================================================================
+# Import Wizard views
+# ==============================================================================
+
+
+@login_required
+def import_upload(request):
+    """Upload a donation import file - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    if request.method == 'POST':
+        form = ImportUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            donation_import = DonationImport.objects.create(
+                file=form.cleaned_data['file'],
+                imported_by=request.user.member_profile if hasattr(request.user, 'member_profile') else None,
+            )
+
+            from .services_import import DonationImportService
+            row_count, errors = DonationImportService.parse_file(donation_import)
+
+            if errors:
+                for error in errors:
+                    messages.warning(request, error)
+
+            if row_count > 0:
+                messages.info(
+                    request,
+                    _('%(count)d ligne(s) detectee(s). Validation en cours...') % {'count': row_count}
+                )
+                DonationImportService.validate_rows(donation_import)
+                return redirect('/donations/imports/%s/preview/' % donation_import.pk)
+            else:
+                messages.error(request, _('Aucune donnee trouvee dans le fichier.'))
+    else:
+        form = ImportUploadForm()
+
+    context = {
+        'form': form,
+        'page_title': _('Importer des dons'),
+    }
+    return render(request, 'donations/import_upload.html', context)
+
+
+@login_required
+def import_preview(request, pk):
+    """Preview import rows before confirming."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    donation_import = get_object_or_404(DonationImport, pk=pk)
+    rows = donation_import.rows.all()
+
+    valid_count = rows.filter(status='valid').count()
+    invalid_count = rows.filter(status='invalid').count()
+    duplicate_count = rows.filter(status='duplicate').count()
+
+    context = {
+        'donation_import': donation_import,
+        'rows': rows[:100],
+        'valid_count': valid_count,
+        'invalid_count': invalid_count,
+        'duplicate_count': duplicate_count,
+        'page_title': _('Apercu de l\'import'),
+    }
+    return render(request, 'donations/import_preview.html', context)
+
+
+@login_required
+def import_confirm(request, pk):
+    """Confirm and execute the import."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    donation_import = get_object_or_404(DonationImport, pk=pk)
+
+    if request.method == 'POST':
+        from .services_import import DonationImportService
+        imported, skipped = DonationImportService.import_rows(donation_import)
+        messages.success(
+            request,
+            _('Import termine: %(imported)d importe(s), %(skipped)d ignore(s).') % {
+                'imported': imported,
+                'skipped': skipped,
+            }
+        )
+        return redirect('/donations/imports/')
+
+    return redirect('/donations/imports/%s/preview/' % pk)
+
+
+@login_required
+def import_history(request):
+    """List previous imports."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    imports = DonationImport.objects.all().select_related('imported_by')
+
+    paginator = Paginator(imports, 20)
+    page = request.GET.get('page', 1)
+    imports_page = paginator.get_page(page)
+
+    context = {
+        'imports': imports_page,
+        'page_title': _('Historique des imports'),
+    }
+    return render(request, 'donations/import_history.html', context)
+
+
+# ==============================================================================
+# Analytics Dashboard
+# ==============================================================================
+
+
+@login_required
+def analytics_dashboard(request):
+    """Giving analytics dashboard with charts - finance staff only."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    year = request.GET.get('year', timezone.now().year)
+    try:
+        year = int(year)
+    except (ValueError, TypeError):
+        year = timezone.now().year
+
+    from .services_analytics import GivingAnalyticsService
+    data = GivingAnalyticsService.dashboard_summary(year)
+
+    # Prepare Chart.js data
+    monthly_labels = []
+    monthly_amounts = []
+    for item in data['monthly_trends']:
+        monthly_labels.append(item['period'].strftime('%b %Y'))
+        monthly_amounts.append(float(item['total'] or 0))
+
+    # YoY data
+    yoy_current = []
+    yoy_previous = []
+    for item in data['yoy_comparison']['current_data']:
+        yoy_current.append(float(item['total'] or 0))
+    for item in data['yoy_comparison']['previous_data']:
+        yoy_previous.append(float(item['total'] or 0))
+
+    import json
+    context = {
+        'year': year,
+        'data': data,
+        'monthly_labels_json': json.dumps(monthly_labels),
+        'monthly_amounts_json': json.dumps(monthly_amounts),
+        'yoy_current_json': json.dumps(yoy_current),
+        'yoy_previous_json': json.dumps(yoy_previous),
+        'page_title': _('Tableau de bord des dons'),
+    }
+    return render(request, 'donations/analytics_dashboard.html', context)
+
+
+# ==============================================================================
+# Kiosk Mode
+# ==============================================================================
+
+
+@login_required
+def kiosk_donation(request):
+    """Simplified kiosk UI for in-church giving."""
+    if not _is_finance_staff(request.user):
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    if request.method == 'POST':
+        form = KioskDonationForm(request.POST)
+        if form.is_valid():
+            donation = form.save(commit=False)
+            if hasattr(request.user, 'member_profile'):
+                donation.recorded_by = request.user.member_profile
+            donation.save()
+            messages.success(
+                request,
+                _('Don enregistre: %(number)s - %(amount)s$') % {
+                    'number': donation.donation_number,
+                    'amount': donation.amount,
+                }
+            )
+            return redirect('/donations/kiosk/')
+    else:
+        form = KioskDonationForm()
+
+    context = {
+        'form': form,
+        'page_title': _('Kiosque de dons'),
+    }
+    return render(request, 'donations/kiosk.html', context)
+
+
+# ==============================================================================
+# Crypto Donation views
+# ==============================================================================
+
+
+@login_required
+def crypto_donate(request):
+    """Crypto donation page (Coinbase Commerce integration)."""
+    if not hasattr(request.user, 'member_profile'):
+        messages.error(request, _("Vous devez avoir un profil membre."))
+        return redirect('frontend:members:member_create')
+
+    member = request.user.member_profile
+
+    if request.method == 'POST':
+        form = CryptoDonationForm(request.POST)
+        if form.is_valid():
+            crypto_donation = form.save(commit=False)
+            crypto_donation.member = member
+            crypto_donation.save()
+
+            # In production: create Coinbase Commerce charge here
+            # and redirect to payment page
+
+            messages.success(
+                request,
+                _('Don crypto initie. Statut: en attente de confirmation.')
+            )
+            return redirect('/donations/crypto/%s/' % crypto_donation.pk)
+    else:
+        form = CryptoDonationForm()
+
+    # Get church wallet addresses from settings
+    wallet_addresses = {
+        'BTC': getattr(settings, 'CRYPTO_BTC_ADDRESS', ''),
+        'ETH': getattr(settings, 'CRYPTO_ETH_ADDRESS', ''),
+    }
+
+    context = {
+        'form': form,
+        'wallet_addresses': wallet_addresses,
+        'page_title': _('Don en cryptomonnaie'),
+    }
+    return render(request, 'donations/crypto_donate.html', context)
+
+
+@login_required
+def crypto_detail(request, pk):
+    """Display crypto donation status."""
+    crypto = get_object_or_404(CryptoDonation, pk=pk)
+
+    can_view = False
+    if request.user.is_staff:
+        can_view = True
+    elif hasattr(request.user, 'member_profile'):
+        if crypto.member == request.user.member_profile:
+            can_view = True
+
+    if not can_view:
+        messages.error(request, _("Acces refuse."))
+        return redirect('/')
+
+    context = {
+        'crypto': crypto,
+        'page_title': _('Don crypto'),
+    }
+    return render(request, 'donations/crypto_detail.html', context)

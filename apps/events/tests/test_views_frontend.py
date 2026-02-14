@@ -6,7 +6,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.core.constants import RSVPStatus, EventType, Roles
-from apps.members.tests.factories import UserFactory, MemberWithUserFactory
+from apps.members.tests.factories import UserFactory, MemberWithUserFactory, MemberFactory
 from apps.events.tests.factories import EventFactory, EventRSVPFactory
 
 pytestmark = pytest.mark.django_db
@@ -452,3 +452,80 @@ class TestEventDelete:
         client.force_login(admin_user)
         response = client.get(f'/events/{uuid.uuid4()}/delete/')
         assert response.status_code == 404
+
+
+class TestEventCreateAutoSession:
+    """Test that creating an event auto-creates an AttendanceSession."""
+
+    def test_event_create_auto_creates_attendance_session(self, client):
+        from apps.attendance.models import AttendanceSession
+        member = MemberWithUserFactory(role=Roles.ADMIN)
+        client.force_login(member.user)
+        start = timezone.now() + timedelta(days=7)
+        end = start + timedelta(hours=2)
+        response = client.post('/events/create/', {
+            'title': 'Culte du dimanche',
+            'event_type': 'worship',
+            'start_datetime': start.strftime('%Y-%m-%dT%H:%M'),
+            'end_datetime': end.strftime('%Y-%m-%dT%H:%M'),
+            'location': 'Sanctuaire',
+        })
+        assert response.status_code == 302
+        from apps.events.models import Event
+        event = Event.objects.get(title='Culte du dimanche')
+        session = AttendanceSession.objects.filter(event=event).first()
+        assert session is not None
+        assert session.name == 'Culte du dimanche'
+        assert session.session_type == 'event'
+        assert session.date == start.date()
+
+    def test_recurring_event_creates_sessions_for_children(self, client):
+        from apps.attendance.models import AttendanceSession
+        member = MemberWithUserFactory(role=Roles.ADMIN)
+        client.force_login(member.user)
+        start = timezone.now() + timedelta(days=7)
+        end = start + timedelta(hours=2)
+        response = client.post('/events/create/', {
+            'title': 'Culte hebdomadaire',
+            'event_type': 'worship',
+            'start_datetime': start.strftime('%Y-%m-%dT%H:%M'),
+            'end_datetime': end.strftime('%Y-%m-%dT%H:%M'),
+            'location': 'Sanctuaire',
+            'is_recurring': True,
+            'recurrence_frequency': 'weekly',
+        })
+        assert response.status_code == 302
+        from apps.events.models import Event
+        parent = Event.objects.get(title='Culte hebdomadaire', parent_event__isnull=True)
+        children = Event.objects.filter(parent_event=parent)
+        # Parent should have a session
+        assert AttendanceSession.objects.filter(event=parent).exists()
+        # Each child should also have a session
+        for child in children:
+            assert AttendanceSession.objects.filter(event=child).exists()
+
+
+class TestEventKioskAttendanceRecord:
+    """Test that kiosk check-in also creates AttendanceRecord."""
+
+    def test_event_kiosk_creates_attendance_record(self, client):
+        from apps.attendance.models import AttendanceSession, AttendanceRecord
+        from apps.core.constants import AttendanceSessionType
+        event = EventFactory()
+        # Create a linked attendance session
+        session = AttendanceSession.objects.create(
+            name=event.title,
+            session_type=AttendanceSessionType.EVENT,
+            date=event.start_datetime.date(),
+            event=event,
+            is_open=True,
+        )
+        member = MemberFactory()
+        response = client.post(f'/events/{event.pk}/kiosk/', {
+            'member_id': str(member.pk),
+        })
+        assert response.status_code == 200
+        # RSVP should exist
+        assert event.rsvps.filter(member=member).exists()
+        # AttendanceRecord should also exist
+        assert AttendanceRecord.objects.filter(session=session, member=member).exists()

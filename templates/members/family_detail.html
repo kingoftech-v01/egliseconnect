@@ -66,8 +66,19 @@
                 <div class="card">
                     <div class="card-body p-0">
                         <div class="table-responsive active-projects style-1">
-                            <div class="tbl-caption">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
                                 <h4 class="heading mb-0">Membres de la famille</h4>
+                                <div class="d-flex gap-2">
+                                    <a href="/members/families/{{ family.pk }}/dashboard/" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-tachometer-alt me-1"></i>Tableau de bord
+                                    </a>
+                                    <form method="post" action="/members/families/{{ family.pk }}/sync-address/" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm" onclick="return confirm('Synchroniser l\'adresse vers tous les membres?')">
+                                            <i class="fas fa-sync me-1"></i>Sync adresses
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                             <table id="family-members-table" class="table">
                                 <thead>
@@ -98,6 +109,54 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Children -->
+                {% if children %}
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Enfants ({{ children|length }})</h4>
+                                <a href="/members/families/{{ family.pk }}/children/create/" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Ajouter
+                                </a>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Age</th>
+                                        <th>Allergies</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for child in children %}
+                                    <tr>
+                                        <td>{{ child.full_name }}</td>
+                                        <td>{% if child.age is not None %}{{ child.age }} ans{% else %}-{% endif %}</td>
+                                        <td>{{ child.allergies|default:"-"|truncatewords:5 }}</td>
+                                        <td>
+                                            <a href="/members/children/{{ child.pk }}/edit/" class="btn btn-outline-primary btn-sm" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            <a href="/members/children/{{ child.pk }}/delete/" class="btn btn-outline-danger btn-sm" title="Supprimer"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-3">
+                        <p class="text-muted mb-2">Aucun enfant enregistre.</p>
+                        <a href="/members/families/{{ family.pk }}/children/create/" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Ajouter un enfant
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

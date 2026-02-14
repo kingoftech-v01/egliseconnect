@@ -393,10 +393,33 @@ class CheckInMethod:
     """How a member was checked in."""
     QR_SCAN = 'qr_scan'
     MANUAL = 'manual'
+    NFC = 'nfc'
+    KIOSK = 'kiosk'
+    GEO = 'geo'
 
     CHOICES = [
         (QR_SCAN, _('Scan QR')),
         (MANUAL, _('Manuel')),
+        (NFC, _('NFC/Tap')),
+        (KIOSK, _('Kiosque')),
+        (GEO, _('Géolocalisation')),
+    ]
+
+
+class VisitorSource:
+    """How a visitor heard about the church."""
+    WALK_IN = 'walk_in'
+    REFERRAL = 'referral'
+    ONLINE = 'online'
+    EVENT = 'event'
+    OTHER = 'other'
+
+    CHOICES = [
+        (WALK_IN, _('Visite spontanée')),
+        (REFERRAL, _('Référence')),
+        (ONLINE, _('En ligne')),
+        (EVENT, _('Événement')),
+        (OTHER, _('Autre')),
     ]
 
 
@@ -537,4 +560,637 @@ class ModificationRequestStatus:
         (PENDING, _('En attente')),
         (COMPLETED, _('Complété')),
         (CANCELLED, _('Annulé')),
+    ]
+
+
+# ─── New constants for TODO implementations ───────────────────────────────────
+
+
+class PledgeStatus:
+    """Pledge/commitment tracking states."""
+    ACTIVE = 'active'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+    PAUSED = 'paused'
+
+    CHOICES = [
+        (ACTIVE, _('Actif')),
+        (COMPLETED, _('Complété')),
+        (CANCELLED, _('Annulé')),
+        (PAUSED, _('En pause')),
+    ]
+
+
+class PledgeFrequency:
+    """Pledge payment frequency."""
+    WEEKLY = 'weekly'
+    BIWEEKLY = 'biweekly'
+    MONTHLY = 'monthly'
+    QUARTERLY = 'quarterly'
+    ANNUALLY = 'annually'
+    ONE_TIME = 'one_time'
+
+    CHOICES = [
+        (WEEKLY, _('Hebdomadaire')),
+        (BIWEEKLY, _('Aux deux semaines')),
+        (MONTHLY, _('Mensuel')),
+        (QUARTERLY, _('Trimestriel')),
+        (ANNUALLY, _('Annuel')),
+        (ONE_TIME, _('Unique')),
+    ]
+
+
+class CareType:
+    """Pastoral care visit types."""
+    HOSPITAL_VISIT = 'hospital_visit'
+    HOME_VISIT = 'home_visit'
+    PHONE_CALL = 'phone_call'
+    COUNSELING = 'counseling'
+    PRAYER_MEETING = 'prayer_meeting'
+    OTHER = 'other'
+
+    CHOICES = [
+        (HOSPITAL_VISIT, _('Visite à l\'hôpital')),
+        (HOME_VISIT, _('Visite à domicile')),
+        (PHONE_CALL, _('Appel téléphonique')),
+        (COUNSELING, _('Counseling')),
+        (PRAYER_MEETING, _('Rencontre de prière')),
+        (OTHER, _('Autre')),
+    ]
+
+
+class CareStatus:
+    """Pastoral care case states."""
+    OPEN = 'open'
+    FOLLOW_UP = 'follow_up'
+    CLOSED = 'closed'
+
+    CHOICES = [
+        (OPEN, _('Ouvert')),
+        (FOLLOW_UP, _('Suivi')),
+        (CLOSED, _('Fermé')),
+    ]
+
+
+class PrayerRequestStatus:
+    """Prayer request lifecycle states."""
+    ACTIVE = 'active'
+    ANSWERED = 'answered'
+    CLOSED = 'closed'
+
+    CHOICES = [
+        (ACTIVE, _('Active')),
+        (ANSWERED, _('Exaucée')),
+        (CLOSED, _('Fermée')),
+    ]
+
+
+class BackgroundCheckStatus:
+    """Background check verification states."""
+    NOT_REQUIRED = 'not_required'
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    EXPIRED = 'expired'
+    FAILED = 'failed'
+
+    CHOICES = [
+        (NOT_REQUIRED, _('Non requis')),
+        (PENDING, _('En attente')),
+        (APPROVED, _('Approuvé')),
+        (EXPIRED, _('Expiré')),
+        (FAILED, _('Échoué')),
+    ]
+
+
+class GroupLifecycleStage:
+    """Small group lifecycle stages."""
+    LAUNCHING = 'launching'
+    ACTIVE = 'active'
+    MULTIPLYING = 'multiplying'
+    CLOSED = 'closed'
+
+    CHOICES = [
+        (LAUNCHING, _('En lancement')),
+        (ACTIVE, _('Actif')),
+        (MULTIPLYING, _('En multiplication')),
+        (CLOSED, _('Fermé')),
+    ]
+
+
+class DocumentStatus:
+    """Digital document signing states."""
+    PENDING = 'pending'
+    SIGNED = 'signed'
+    EXPIRED = 'expired'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (SIGNED, _('Signé')),
+        (EXPIRED, _('Expiré')),
+    ]
+
+
+class BenevolenceStatus:
+    """Benevolence fund request states."""
+    SUBMITTED = 'submitted'
+    REVIEWING = 'reviewing'
+    APPROVED = 'approved'
+    DENIED = 'denied'
+    DISBURSED = 'disbursed'
+
+    CHOICES = [
+        (SUBMITTED, _('Soumise')),
+        (REVIEWING, _('En révision')),
+        (APPROVED, _('Approuvée')),
+        (DENIED, _('Refusée')),
+        (DISBURSED, _('Déboursée')),
+    ]
+
+
+class MealTrainStatus:
+    """Meal train coordination states."""
+    ACTIVE = 'active'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (ACTIVE, _('Actif')),
+        (COMPLETED, _('Complété')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class SermonStatus:
+    """Sermon publication states."""
+    DRAFT = 'draft'
+    PUBLISHED = 'published'
+    ARCHIVED = 'archived'
+
+    CHOICES = [
+        (DRAFT, _('Brouillon')),
+        (PUBLISHED, _('Publié')),
+        (ARCHIVED, _('Archivé')),
+    ]
+
+
+class SongKey:
+    """Musical key options for songs."""
+    C = 'C'
+    C_SHARP = 'C#'
+    D = 'D'
+    D_SHARP = 'D#'
+    E = 'E'
+    F = 'F'
+    F_SHARP = 'F#'
+    G = 'G'
+    G_SHARP = 'G#'
+    A = 'A'
+    A_SHARP = 'A#'
+    B = 'B'
+
+    CHOICES = [
+        (C, 'C'), (C_SHARP, 'C#'), (D, 'D'), (D_SHARP, 'D#'),
+        (E, 'E'), (F, 'F'), (F_SHARP, 'F#'), (G, 'G'),
+        (G_SHARP, 'G#'), (A, 'A'), (A_SHARP, 'A#'), (B, 'B'),
+    ]
+
+
+class SwapRequestStatus:
+    """Volunteer swap request states."""
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (APPROVED, _('Approuvé')),
+        (REJECTED, _('Rejeté')),
+    ]
+
+
+class RecurrenceFrequency:
+    """Event recurrence frequency."""
+    DAILY = 'daily'
+    WEEKLY = 'weekly'
+    BIWEEKLY = 'biweekly'
+    MONTHLY = 'monthly'
+    YEARLY = 'yearly'
+
+    CHOICES = [
+        (DAILY, _('Quotidien')),
+        (WEEKLY, _('Hebdomadaire')),
+        (BIWEEKLY, _('Aux deux semaines')),
+        (MONTHLY, _('Mensuel')),
+        (YEARLY, _('Annuel')),
+    ]
+
+
+class BookingStatus:
+    """Room booking status."""
+    PENDING = 'pending'
+    CONFIRMED = 'confirmed'
+    CANCELLED = 'cancelled'
+    REJECTED = 'rejected'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (CONFIRMED, _('Confirmée')),
+        (CANCELLED, _('Annulée')),
+        (REJECTED, _('Rejetée')),
+    ]
+
+
+class VolunteerSignupStatus:
+    """Event volunteer signup status."""
+    PENDING = 'pending'
+    CONFIRMED = 'confirmed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (CONFIRMED, _('Confirmé')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class VirtualPlatform:
+    """Virtual event platform options."""
+    ZOOM = 'zoom'
+    GOOGLE_MEET = 'google_meet'
+    TEAMS = 'teams'
+    YOUTUBE = 'youtube'
+    FACEBOOK = 'facebook'
+    OTHER = 'other'
+
+    CHOICES = [
+        (ZOOM, _('Zoom')),
+        (GOOGLE_MEET, _('Google Meet')),
+        (TEAMS, _('Microsoft Teams')),
+        (YOUTUBE, _('YouTube Live')),
+        (FACEBOOK, _('Facebook Live')),
+        (OTHER, _('Autre')),
+    ]
+
+
+class AutomationTrigger:
+    """Communication automation trigger types."""
+    MEMBER_CREATED = 'member_created'
+    FIRST_VISIT = 'first_visit'
+    BIRTHDAY = 'birthday'
+    ANNIVERSARY = 'anniversary'
+    DONATION_RECEIVED = 'donation_received'
+    EVENT_RSVP = 'event_rsvp'
+    CUSTOM = 'custom'
+
+    CHOICES = [
+        (MEMBER_CREATED, _('Nouveau membre créé')),
+        (FIRST_VISIT, _('Première visite')),
+        (BIRTHDAY, _('Anniversaire')),
+        (ANNIVERSARY, _('Anniversaire d\'adhésion')),
+        (DONATION_RECEIVED, _('Don reçu')),
+        (EVENT_RSVP, _('Inscription événement')),
+        (CUSTOM, _('Personnalisé')),
+    ]
+
+
+class ReportFrequency:
+    """Scheduled report frequency."""
+    DAILY = 'daily'
+    WEEKLY = 'weekly'
+    MONTHLY = 'monthly'
+    QUARTERLY = 'quarterly'
+
+    CHOICES = [
+        (DAILY, _('Quotidien')),
+        (WEEKLY, _('Hebdomadaire')),
+        (MONTHLY, _('Mensuel')),
+        (QUARTERLY, _('Trimestriel')),
+    ]
+
+
+class ReportType:
+    """Available report types for scheduled and saved reports."""
+    MEMBER_STATS = 'member_stats'
+    DONATION_SUMMARY = 'donation_summary'
+    EVENT_ATTENDANCE = 'event_attendance'
+    VOLUNTEER_HOURS = 'volunteer_hours'
+    HELP_REQUESTS = 'help_requests'
+    COMMUNICATION = 'communication'
+    CUSTOM = 'custom'
+
+    CHOICES = [
+        (MEMBER_STATS, _('Statistiques des membres')),
+        (DONATION_SUMMARY, _('Sommaire des dons')),
+        (EVENT_ATTENDANCE, _('Presence aux evenements')),
+        (VOLUNTEER_HOURS, _('Heures de benevolat')),
+        (HELP_REQUESTS, _('Demandes d\'aide')),
+        (COMMUNICATION, _('Communications')),
+        (CUSTOM, _('Personnalise')),
+    ]
+
+
+class PaymentPlanStatus:
+    """Payment plan lifecycle states."""
+    ACTIVE = 'active'
+    COMPLETED = 'completed'
+    DEFAULTED = 'defaulted'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (ACTIVE, _('Actif')),
+        (COMPLETED, _('Complété')),
+        (DEFAULTED, _('En défaut')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class CustomFieldType:
+    """Custom field data types for church-configurable forms."""
+    TEXT = 'text'
+    TEXTAREA = 'textarea'
+    NUMBER = 'number'
+    DATE = 'date'
+    DROPDOWN = 'dropdown'
+    CHECKBOX = 'checkbox'
+    FILE = 'file'
+
+    CHOICES = [
+        (TEXT, _('Texte court')),
+        (TEXTAREA, _('Texte long')),
+        (NUMBER, _('Nombre')),
+        (DATE, _('Date')),
+        (DROPDOWN, _('Liste déroulante')),
+        (CHECKBOX, _('Case à cocher')),
+        (FILE, _('Fichier')),
+    ]
+
+
+class OnboardingTrack:
+    """Multi-track onboarding paths."""
+    NEW_BELIEVER = 'new_believer'
+    TRANSFER = 'transfer'
+    YOUTH = 'youth'
+    FAMILY = 'family'
+    DEFAULT = 'default'
+
+    CHOICES = [
+        (NEW_BELIEVER, _('Nouveau croyant')),
+        (TRANSFER, _('Transfert d\'église')),
+        (YOUTH, _('Jeunesse')),
+        (FAMILY, _('Famille')),
+        (DEFAULT, _('Standard')),
+    ]
+
+
+class SMSStatus:
+    """SMS delivery states."""
+    PENDING = 'pending'
+    SENT = 'sent'
+    DELIVERED = 'delivered'
+    FAILED = 'failed'
+    UNDELIVERED = 'undelivered'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (SENT, _('Envoyé')),
+        (DELIVERED, _('Livré')),
+        (FAILED, _('Échec')),
+        (UNDELIVERED, _('Non livré')),
+    ]
+
+
+class ABTestStatus:
+    """A/B test lifecycle states."""
+    DRAFT = 'draft'
+    RUNNING = 'running'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (DRAFT, _('Brouillon')),
+        (RUNNING, _('En cours')),
+        (COMPLETED, _('Terminé')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class AutomationStepChannel:
+    """Channel for an automation step."""
+    EMAIL = 'email'
+    SMS = 'sms'
+    PUSH = 'push'
+    IN_APP = 'in_app'
+
+    CHOICES = [
+        (EMAIL, _('Courriel')),
+        (SMS, _('SMS')),
+        (PUSH, _('Notification push')),
+        (IN_APP, _('Notification in-app')),
+    ]
+
+
+class AutomationStatus:
+    """Automation enrollment states."""
+    ACTIVE = 'active'
+    PAUSED = 'paused'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (ACTIVE, _('Actif')),
+        (PAUSED, _('En pause')),
+        (COMPLETED, _('Complété')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class EmailTemplateCategory:
+    """Email template categories."""
+    WELCOME = 'welcome'
+    EVENT_REMINDER = 'event_reminder'
+    BIRTHDAY = 'birthday'
+    GIVING_RECEIPT = 'giving_receipt'
+    FOLLOW_UP = 'follow_up'
+    GENERAL = 'general'
+
+    CHOICES = [
+        (WELCOME, _('Bienvenue')),
+        (EVENT_REMINDER, _('Rappel d\'événement')),
+        (BIRTHDAY, _('Anniversaire')),
+        (GIVING_RECEIPT, _('Reçu de don')),
+        (FOLLOW_UP, _('Suivi')),
+        (GENERAL, _('Général')),
+    ]
+
+
+class SkillProficiency:
+    """Volunteer skill proficiency levels."""
+    BEGINNER = 'beginner'
+    INTERMEDIATE = 'intermediate'
+    ADVANCED = 'advanced'
+    EXPERT = 'expert'
+
+    CHOICES = [
+        (BEGINNER, _('Débutant')),
+        (INTERMEDIATE, _('Intermédiaire')),
+        (ADVANCED, _('Avancé')),
+        (EXPERT, _('Expert')),
+    ]
+
+
+class MilestoneType:
+    """Volunteer milestone trigger types."""
+    HOURS = 'hours'
+    YEARS = 'years'
+
+    CHOICES = [
+        (HOURS, _('Heures de service')),
+        (YEARS, _('Années de service')),
+    ]
+
+
+class DayOfWeek:
+    """Days of the week."""
+    MONDAY = 0
+    TUESDAY = 1
+    WEDNESDAY = 2
+    THURSDAY = 3
+    FRIDAY = 4
+    SATURDAY = 5
+    SUNDAY = 6
+
+    CHOICES = [
+        (MONDAY, _('Lundi')),
+        (TUESDAY, _('Mardi')),
+        (WEDNESDAY, _('Mercredi')),
+        (THURSDAY, _('Jeudi')),
+        (FRIDAY, _('Vendredi')),
+        (SATURDAY, _('Samedi')),
+        (SUNDAY, _('Dimanche')),
+    ]
+
+
+class MentorAssignmentStatus:
+    """Mentor/buddy assignment states."""
+    ACTIVE = 'active'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (ACTIVE, _('Actif')),
+        (COMPLETED, _('Complété')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class WelcomeStepChannel:
+    """Welcome sequence step delivery channel."""
+    EMAIL = 'email'
+    SMS = 'sms'
+    BOTH = 'both'
+
+    CHOICES = [
+        (EMAIL, _('Courriel')),
+        (SMS, _('SMS')),
+        (BOTH, _('Courriel et SMS')),
+    ]
+
+
+class DocumentType:
+    """Onboarding document types."""
+    COVENANT = 'covenant'
+    POLICY = 'policy'
+    CONSENT = 'consent'
+    WAIVER = 'waiver'
+    OTHER = 'other'
+
+    CHOICES = [
+        (COVENANT, _('Alliance')),
+        (POLICY, _('Politique')),
+        (CONSENT, _('Consentement')),
+        (WAIVER, _('Décharge')),
+        (OTHER, _('Autre')),
+    ]
+
+
+class AchievementTrigger:
+    """Gamification achievement trigger types."""
+    FORM_SUBMITTED = 'form_submitted'
+    TRAINING_STARTED = 'training_started'
+    LESSON_COMPLETED = 'lesson_completed'
+    TRAINING_COMPLETED = 'training_completed'
+    INTERVIEW_PASSED = 'interview_passed'
+    BECAME_ACTIVE = 'became_active'
+    FIRST_ATTENDANCE = 'first_attendance'
+    MENTOR_ASSIGNED = 'mentor_assigned'
+    DOCUMENT_SIGNED = 'document_signed'
+    CUSTOM = 'custom'
+
+    CHOICES = [
+        (FORM_SUBMITTED, _('Formulaire soumis')),
+        (TRAINING_STARTED, _('Formation commencée')),
+        (LESSON_COMPLETED, _('Leçon complétée')),
+        (TRAINING_COMPLETED, _('Formation complétée')),
+        (INTERVIEW_PASSED, _('Interview réussie')),
+        (BECAME_ACTIVE, _('Devenu membre actif')),
+        (FIRST_ATTENDANCE, _('Première présence')),
+        (MENTOR_ASSIGNED, _('Mentor assigné')),
+        (DOCUMENT_SIGNED, _('Document signé')),
+        (CUSTOM, _('Personnalisé')),
+    ]
+
+
+class VisitorFollowUpStatus:
+    """Visitor follow-up assignment states."""
+    PENDING = 'pending'
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (IN_PROGRESS, _('En cours')),
+        (COMPLETED, _('Complété')),
+        (CANCELLED, _('Annulé')),
+    ]
+
+
+class SongRequestStatus:
+    """Song request lifecycle states."""
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    DECLINED = 'declined'
+    SCHEDULED = 'scheduled'
+
+    CHOICES = [
+        (PENDING, _('En attente')),
+        (APPROVED, _('Approuvée')),
+        (DECLINED, _('Refusée')),
+        (SCHEDULED, _('Planifiée')),
+    ]
+
+
+class LiveStreamPlatform:
+    """Live streaming platform choices."""
+    YOUTUBE = 'youtube'
+    FACEBOOK = 'facebook'
+    OTHER = 'other'
+
+    CHOICES = [
+        (YOUTUBE, _('YouTube Live')),
+        (FACEBOOK, _('Facebook Live')),
+        (OTHER, _('Autre')),
+    ]
+
+
+class RehearsalAttendeeStatus:
+    """Rehearsal RSVP states."""
+    INVITED = 'invited'
+    CONFIRMED = 'confirmed'
+    DECLINED = 'declined'
+
+    CHOICES = [
+        (INVITED, _('Invité')),
+        (CONFIRMED, _('Confirmé')),
+        (DECLINED, _('Décliné')),
     ]

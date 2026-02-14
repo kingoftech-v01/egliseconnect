@@ -1,5 +1,6 @@
 """Reports serializers."""
 from rest_framework import serializers
+from .models import ReportSchedule, SavedReport
 
 
 class MemberStatsSerializer(serializers.Serializer):
@@ -89,3 +90,28 @@ class VolunteerReportSerializer(serializers.Serializer):
     no_shows = serializers.IntegerField()
     by_position = serializers.ListField()
     top_volunteers = serializers.ListField()
+
+
+# ---------------------------------------------------------------------------
+# New serializers for ReportSchedule and SavedReport
+# ---------------------------------------------------------------------------
+
+class ReportScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportSchedule
+        fields = [
+            'id', 'name', 'report_type', 'frequency', 'is_active',
+            'last_sent_at', 'next_run_at', 'created_by', 'filters_json',
+            'template_name', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'last_sent_at']
+
+
+class SavedReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedReport
+        fields = [
+            'id', 'name', 'report_type', 'filters_json', 'columns_json',
+            'created_by', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

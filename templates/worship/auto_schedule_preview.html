@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/{{ service.pk }}/">{{ service }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Auto-planification</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                {% if conflicts %}
+                <div class="card border-warning mb-3">
+                    <div class="card-header bg-warning-light">
+                        <h4 class="heading mb-0 text-warning"><i class="fas fa-exclamation-triangle me-1"></i> Conflits detectes</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            {% for conflict in conflicts %}
+                            <li>{{ conflict }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Auto-planification</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>L'auto-planification va assigner automatiquement les membres eligibles aux sections qui n'ont pas encore de membres assignes.</p>
+                        <p class="text-muted small">L'algorithme utilise une rotation equitable basee sur le nombre d'assignations precedentes et les preferences des volontaires.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-magic me-1"></i> Generer les assignations</button>
+                                <a href="/worship/services/{{ service.pk }}/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

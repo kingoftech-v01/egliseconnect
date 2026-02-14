@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+        <form method="post" action="/members/engagement/recalculate/" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary btn-sm" onclick="return confirm('Recalculer tous les scores?')">
+                <i class="fas fa-sync me-1"></i>Recalculer
+            </button>
+        </form>
+    </div>
+    <div class="container-fluid">
+        <!-- Stats Summary -->
+        <div class="row mb-4">
+            <div class="col-xl-4 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-auto">
+                            <p class="text-muted mb-1">Total evalue</p>
+                            <h3 class="mb-0">{{ total_count }}</h3>
+                        </div>
+                        <div class="icon-box bg-primary-light rounded-circle">
+                            <i class="fas fa-users text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-auto">
+                            <p class="text-muted mb-1">A risque (score &lt; 30)</p>
+                            <h3 class="mb-0 text-danger">{{ at_risk_count }}</h3>
+                        </div>
+                        <div class="icon-box bg-danger-light rounded-circle">
+                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scores Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Scores d'engagement</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Presence</th>
+                                        <th>Dons</th>
+                                        <th>Benevolat</th>
+                                        <th>Groupes</th>
+                                        <th>Total</th>
+                                        <th>Niveau</th>
+                                        <th>Mis a jour</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for score in scores %}
+                                    <tr>
+                                        <td><a href="/members/{{ score.member.pk }}/">{{ score.member.full_name }}</a></td>
+                                        <td>{{ score.attendance_score|floatformat:0 }}</td>
+                                        <td>{{ score.giving_score|floatformat:0 }}</td>
+                                        <td>{{ score.volunteering_score|floatformat:0 }}</td>
+                                        <td>{{ score.group_score|floatformat:0 }}</td>
+                                        <td>
+                                            {% if score.total_score >= 70 %}
+                                            <span class="badge bg-success">{{ score.total_score|floatformat:0 }}</span>
+                                            {% elif score.total_score >= 40 %}
+                                            <span class="badge bg-warning">{{ score.total_score|floatformat:0 }}</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">{{ score.total_score|floatformat:0 }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ score.level }}</td>
+                                        <td>{{ score.calculated_at|date:"d/m/Y" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">Aucun score calcule. Cliquez sur "Recalculer" pour generer les scores.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                {% if scores.has_other_pages %}
+                <nav aria-label="Pagination des scores">
+                    <ul class="pagination justify-content-center">
+                        {% if scores.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ scores.previous_page_number }}">Precedent</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Precedent</span>
+                        </li>
+                        {% endif %}
+
+                        {% for num in scores.paginator.page_range %}
+                        {% if scores.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > scores.number|add:'-3' and num < scores.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if scores.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ scores.next_page_number }}">Suivant</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Suivant</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

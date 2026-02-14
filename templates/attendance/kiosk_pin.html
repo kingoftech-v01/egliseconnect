@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Administration kiosque{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row justify-content-center mt-5">
+            <div class="col-xl-4 col-lg-6 col-md-8">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4 class="heading mb-0"><i class="bi bi-shield-lock me-2"></i>Administration kiosque</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted text-center mb-4">Entrez le PIN d'administration pour acceder a la configuration du kiosque <strong>{{ kiosk.name }}</strong>.</p>
+                        <form method="post" action="/attendance/kiosk/{{ kiosk.pk }}/admin/">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="verify_pin">
+                            <div class="mb-3">
+                                <label class="form-label" for="admin-pin">PIN</label>
+                                <input type="password" name="admin_pin" id="admin-pin" class="form-control form-control-lg text-center"
+                                    inputmode="numeric" autocomplete="off" required placeholder="PIN">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Verifier</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

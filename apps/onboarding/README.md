@@ -10,7 +10,7 @@ The onboarding app manages the full member integration pipeline — from initial
 - **Profile Form**: Mandatory form that must be completed within a configurable deadline (default 30 days)
 - **Admin Review**: Approve, reject, or request changes on submitted applications
 - **Training Courses**: Configurable multi-lesson courses with PDF materials and notes
-- **Lesson Scheduling**: Per-member lesson scheduling with date, location, and attendance tracking
+- **Lesson Scheduling**: Per-member lesson scheduling with date, location, and attendance tracking. Scheduling a lesson automatically creates a linked AttendanceSession
 - **Interview System**: Propose, counter-propose, confirm, and record final interview results
 - **Invitation Codes**: HMAC-signed codes with role assignment, expiration, max uses, and skip-onboarding option
 - **Automated Reminders**: Celery tasks for form deadlines (7d/3d/1d), lessons (5d/3d/1d/same day), and interviews (5d/3d/1d/same day)

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/songs/">Chants</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Rotation</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-end gap-2">
+                            <div>
+                                <label class="form-label small mb-0">Non joues depuis (semaines)</label>
+                                <select name="weeks" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="4" {% if weeks == 4 %}selected{% endif %}>4 semaines</option>
+                                    <option value="6" {% if weeks == 6 %}selected{% endif %}>6 semaines</option>
+                                    <option value="8" {% if weeks == 8 %}selected{% endif %}>8 semaines</option>
+                                    <option value="12" {% if weeks == 12 %}selected{% endif %}>12 semaines</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Chants a remettre en rotation</h4>
+                        <span class="badge badge-info">{{ suggestions|length }} chant{{ suggestions|length|pluralize:"s" }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Artiste</th>
+                                        <th>Tonalite</th>
+                                        <th>Derniere utilisation</th>
+                                        <th>Fois jouee</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for song in suggestions %}
+                                    <tr>
+                                        <td><a href="/worship/songs/{{ song.pk }}/" class="fw-bold">{{ song.title }}</a></td>
+                                        <td>{{ song.artist|default:"-" }}</td>
+                                        <td>{{ song.song_key|default:"-" }}</td>
+                                        <td>{{ song.last_played|date:"d/m/Y"|default:"Jamais" }}</td>
+                                        <td>{{ song.play_count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center py-4">Tous les chants sont en rotation reguliere.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

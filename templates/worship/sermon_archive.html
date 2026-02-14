@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/sermons/">Predications</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Archives</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-end gap-2 flex-wrap">
+                            {% for field in filter_form %}
+                            <div>
+                                <label class="form-label small mb-0">{{ field.label }}</label>
+                                {{ field }}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                            <a href="/worship/sermons/archive/" class="btn btn-outline-secondary btn-sm">Reinitialiser</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            {% for sermon in sermons %}
+            <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ sermon.title }}</h5>
+                        <p class="text-muted small mb-1">{{ sermon.date|date:"d/m/Y" }} - {{ sermon.speaker.full_name|default:"" }}</p>
+                        {% if sermon.scripture_reference %}<p class="small"><i class="fas fa-book me-1"></i> {{ sermon.scripture_reference }}</p>{% endif %}
+                        {% if sermon.series %}<span class="badge badge-info">{{ sermon.series.title }}</span>{% endif %}
+                        <div class="mt-2">
+                            {% if sermon.audio_url %}<a href="{{ sermon.audio_url }}" class="btn btn-outline-primary btn-xs me-1" target="_blank"><i class="fas fa-headphones"></i> Audio</a>{% endif %}
+                            {% if sermon.video_url %}<a href="{{ sermon.video_url }}" class="btn btn-outline-danger btn-xs" target="_blank"><i class="fas fa-video"></i> Video</a>{% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="/worship/sermons/{{ sermon.pk }}/" class="btn btn-primary btn-sm">Voir</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-4"><p class="text-muted">Aucune predication archivee.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Sequences de bienvenue{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Sequences de bienvenue</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Sequences</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Sequences automatisees</h4>
+                                <a href="/onboarding/admin/welcome-sequences/create/" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Nouvelle sequence
+                                </a>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Description</th>
+                                        <th>Statut</th>
+                                        <th>Etapes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for seq in sequences %}
+                                    <tr>
+                                        <td>
+                                            <a href="/onboarding/admin/welcome-sequences/{{ seq.pk }}/">
+                                                <strong>{{ seq.name }}</strong>
+                                            </a>
+                                        </td>
+                                        <td>{{ seq.description|truncatewords:10|default:"-" }}</td>
+                                        <td>
+                                            {% if seq.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ seq.steps.count }}</td>
+                                        <td>
+                                            <a href="/onboarding/admin/welcome-sequences/{{ seq.pk }}/" class="btn btn-outline-primary btn-xs">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="fas fa-envelope-open-text mb-2" style="font-size:2rem;"></i>
+                                            <p>Aucune sequence de bienvenue.</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

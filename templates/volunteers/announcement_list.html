@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Filter by position -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label">Filtrer par poste</label>
+                        <select name="position" class="form-select">
+                            <option value="">Tous les postes</option>
+                            {% for pos in positions %}
+                            <option value="{{ pos.pk }}" {% if selected_position == pos.pk|slugify %}selected{% endif %}>{{ pos.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        {% if request.user.member_profile.role in 'admin,pastor,deacon' %}
+                        <a href="/volunteers/announcements/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouvelle annonce
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% for announcement in announcements %}
+                    <div class="card-body border-bottom">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5>{{ announcement.title }}</h5>
+                                <span class="badge badge-info">{{ announcement.position.name }}</span>
+                                <small class="text-muted ms-2">par {{ announcement.author.full_name }} - {{ announcement.sent_at|date:"d/m/Y H:i"|default:announcement.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-0">{{ announcement.body }}</p>
+                    </div>
+                    {% empty %}
+                    <div class="card-body text-center text-muted">Aucune annonce.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

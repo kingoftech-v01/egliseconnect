@@ -1,18 +1,28 @@
-"""Attendance models: QR codes, check-in sessions, absence alerts."""
+"""Attendance models: QR codes, check-in sessions, absence alerts,
+child check-in, kiosk, NFC, geo-fence, visitor tracking, streaks."""
 import hmac
 import hashlib
+import random
+import string
 import uuid
 from io import BytesIO
 
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
-from apps.core.constants import AttendanceSessionType, CheckInMethod
+from apps.core.constants import (
+    AttendanceSessionType, CheckInMethod, VisitorSource,
+)
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Helper functions
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def generate_secure_qr_code():
     """Generate a unique, non-guessable QR code string."""
@@ -38,6 +48,15 @@ def generate_qr_image(code):
     img.save(buffer, format='PNG')
     return ContentFile(buffer.getvalue(), name=f'qr_{code[:8]}.png')
 
+
+def generate_security_code():
+    """Generate a random 6-digit numeric security code for child check-in."""
+    return ''.join(random.choices(string.digits, k=6))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Original Models
+# ═══════════════════════════════════════════════════════════════════════════════
 
 class MemberQRCode(BaseModel):
     """Unique rotating QR code for each member."""
@@ -223,6 +242,14 @@ class AttendanceRecord(BaseModel):
         verbose_name=_('Méthode')
     )
 
+    # P2 item 37: Check-out time tracking
+    checked_out_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Sorti à'),
+        help_text=_('Heure de sortie (check-out)')
+    )
+
     notes = models.TextField(
         blank=True,
         verbose_name=_('Notes')
@@ -236,6 +263,24 @@ class AttendanceRecord(BaseModel):
 
     def __str__(self):
         return f'{self.member.full_name} @ {self.session.name}'
+
+    @property
+    def duration_minutes(self):
+        """Calculate duration in minutes if both check-in and check-out exist."""
+        if self.checked_in_at and self.checked_out_at:
+            delta = self.checked_out_at - self.checked_in_at
+            return int(delta.total_seconds() / 60)
+        return None
+
+    @property
+    def is_early_departure(self):
+        """Check if the member left before the session ended."""
+        if not self.checked_out_at or not self.session.end_time:
+            return False
+        from datetime import datetime
+        session_end = datetime.combine(self.session.date, self.session.end_time)
+        session_end = timezone.make_aware(session_end) if timezone.is_naive(session_end) else session_end
+        return self.checked_out_at < session_end
 
 
 class AbsenceAlert(BaseModel):
@@ -278,6 +323,12 @@ class AbsenceAlert(BaseModel):
         verbose_name=_('Reconnu par')
     )
 
+    acknowledged_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Reconnu le')
+    )
+
     notes = models.TextField(
         blank=True,
         verbose_name=_('Notes')
@@ -290,3 +341,356 @@ class AbsenceAlert(BaseModel):
 
     def __str__(self):
         return f'{self.member.full_name} - {self.consecutive_absences} absences'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P1: Child Check-In / Check-Out (items 1-6)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ChildCheckIn(BaseModel):
+    """Tracks child check-in/check-out with security codes and medical info."""
+
+    child = models.ForeignKey(
+        'members.Child',
+        on_delete=models.CASCADE,
+        related_name='checkins',
+        verbose_name=_('Enfant')
+    )
+
+    parent_member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='child_checkins',
+        verbose_name=_('Parent / tuteur')
+    )
+
+    session = models.ForeignKey(
+        AttendanceSession,
+        on_delete=models.CASCADE,
+        related_name='child_checkins',
+        verbose_name=_('Session')
+    )
+
+    check_in_time = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Heure d'arrivée")
+    )
+
+    check_out_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Heure de sortie')
+    )
+
+    security_code = models.CharField(
+        max_length=6,
+        unique=True,
+        db_index=True,
+        verbose_name=_('Code de sécurité'),
+        help_text=_('Code à 6 chiffres pour le retrait sécurisé')
+    )
+
+    checked_out_by = models.ForeignKey(
+        'members.Member',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='child_checkouts',
+        verbose_name=_('Retiré par')
+    )
+
+    class Meta:
+        verbose_name = _("Enregistrement enfant")
+        verbose_name_plural = _("Enregistrements enfants")
+        ordering = ['-check_in_time']
+
+    def __str__(self):
+        return f'{self.child.full_name} @ {self.session.name}'
+
+    def save(self, *args, **kwargs):
+        if not self.security_code:
+            self.security_code = generate_security_code()
+            # Ensure uniqueness
+            while ChildCheckIn.all_objects.filter(
+                security_code=self.security_code
+            ).exists():
+                self.security_code = generate_security_code()
+        super().save(*args, **kwargs)
+
+    @property
+    def is_checked_out(self):
+        return self.check_out_time is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P1: Kiosk Self-Check-In (items 7-13)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class KioskConfig(BaseModel):
+    """Configuration for a self-check-in kiosk device."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_('Nom du kiosque'),
+        help_text=_("Ex: Kiosque entrée principale")
+    )
+
+    location = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=_('Emplacement')
+    )
+
+    admin_pin = models.CharField(
+        max_length=10,
+        verbose_name=_("PIN d'administration"),
+        help_text=_('Code PIN pour accéder à la configuration')
+    )
+
+    auto_timeout_seconds = models.PositiveIntegerField(
+        default=30,
+        verbose_name=_("Délai d'inactivité (secondes)"),
+        help_text=_("Retour à l'écran d'accueil après inactivité")
+    )
+
+    session = models.ForeignKey(
+        AttendanceSession,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='kiosks',
+        verbose_name=_('Session courante')
+    )
+
+    class Meta:
+        verbose_name = _('Configuration kiosque')
+        verbose_name_plural = _('Configurations kiosques')
+
+    def __str__(self):
+        return f'{self.name} ({self.location})'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P2: NFC / Tap Check-In (items 28-32)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class NFCTag(BaseModel):
+    """NFC tag assigned to a member for tap check-in."""
+
+    member = models.OneToOneField(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='nfc_tag',
+        verbose_name=_('Membre')
+    )
+
+    tag_id = models.CharField(
+        max_length=100,
+        unique=True,
+        db_index=True,
+        verbose_name=_('Identifiant NFC'),
+        help_text=_('Identifiant unique du tag NFC')
+    )
+
+    registered_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Enregistré le')
+    )
+
+    class Meta:
+        verbose_name = _('Tag NFC')
+        verbose_name_plural = _('Tags NFC')
+
+    def __str__(self):
+        return f'NFC {self.member.full_name} ({self.tag_id[:8]}...)'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P2: Attendance-Based Engagement Scoring (items 33-36)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AttendanceStreak(BaseModel):
+    """Tracks consecutive attendance streaks for members."""
+
+    member = models.OneToOneField(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='attendance_streak',
+        verbose_name=_('Membre')
+    )
+
+    current_streak = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Série actuelle'),
+        help_text=_('Semaines consécutives avec présence')
+    )
+
+    longest_streak = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Plus longue série')
+    )
+
+    last_attendance_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Dernière présence')
+    )
+
+    class Meta:
+        verbose_name = _('Série de présence')
+        verbose_name_plural = _('Séries de présence')
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.current_streak} sem.'
+
+    def update_streak(self, attendance_date):
+        """Update streak based on new attendance."""
+        from datetime import timedelta
+        if self.last_attendance_date is None:
+            self.current_streak = 1
+        else:
+            days_diff = (attendance_date - self.last_attendance_date).days
+            if days_diff <= 7:
+                # Within a week, continue streak
+                if days_diff >= 1:
+                    self.current_streak += 1
+            else:
+                # Streak broken
+                self.current_streak = 1
+        self.last_attendance_date = attendance_date
+        if self.current_streak > self.longest_streak:
+            self.longest_streak = self.current_streak
+        self.save()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P3: Geo-Fenced Check-In (items 43-46)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class GeoFence(BaseModel):
+    """Geographic fence for location-based automatic check-in."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_('Nom'),
+        help_text=_("Ex: Église principale")
+    )
+
+    latitude = models.FloatField(
+        verbose_name=_('Latitude'),
+        validators=[MinValueValidator(-90.0), MaxValueValidator(90.0)]
+    )
+
+    longitude = models.FloatField(
+        verbose_name=_('Longitude'),
+        validators=[MinValueValidator(-180.0), MaxValueValidator(180.0)]
+    )
+
+    radius_meters = models.PositiveIntegerField(
+        default=100,
+        verbose_name=_('Rayon (mètres)'),
+        help_text=_('Rayon de la zone de check-in automatique')
+    )
+
+    class Meta:
+        verbose_name = _('Zone géographique')
+        verbose_name_plural = _('Zones géographiques')
+
+    def __str__(self):
+        return f'{self.name} ({self.latitude:.4f}, {self.longitude:.4f})'
+
+    def is_within_fence(self, lat, lng):
+        """Check if given coordinates are within this geo-fence."""
+        import math
+        # Haversine formula
+        R = 6371000  # Earth radius in meters
+        phi1 = math.radians(self.latitude)
+        phi2 = math.radians(lat)
+        delta_phi = math.radians(lat - self.latitude)
+        delta_lambda = math.radians(lng - self.longitude)
+
+        a = (math.sin(delta_phi / 2) ** 2 +
+             math.cos(phi1) * math.cos(phi2) *
+             math.sin(delta_lambda / 2) ** 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R * c
+
+        return distance <= self.radius_meters
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P3: Visitor Follow-Up (items 50-54)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class VisitorInfo(BaseModel):
+    """Information about a first-time visitor for follow-up."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_('Nom complet')
+    )
+
+    email = models.EmailField(
+        blank=True,
+        verbose_name=_('Courriel')
+    )
+
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_('Téléphone')
+    )
+
+    source = models.CharField(
+        max_length=20,
+        choices=VisitorSource.CHOICES,
+        default=VisitorSource.WALK_IN,
+        verbose_name=_('Source')
+    )
+
+    session = models.ForeignKey(
+        AttendanceSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='visitors',
+        verbose_name=_('Session')
+    )
+
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_('Notes')
+    )
+
+    follow_up_assigned_to = models.ForeignKey(
+        'members.Member',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='attendance_visitor_followups',
+        verbose_name=_('Suivi assigné à')
+    )
+
+    follow_up_completed = models.BooleanField(
+        default=False,
+        verbose_name=_('Suivi complété')
+    )
+
+    follow_up_completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Suivi complété le')
+    )
+
+    welcome_sent = models.BooleanField(
+        default=False,
+        verbose_name=_('Bienvenue envoyée')
+    )
+
+    class Meta:
+        verbose_name = _('Visiteur')
+        verbose_name_plural = _('Visiteurs')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.name} ({self.get_source_display()})'

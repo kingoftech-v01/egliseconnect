@@ -191,9 +191,15 @@ class TestRecurringDonation:
         assert recurring.amount_display == '100.00 USD'
 
     def test_ordering_newest_first(self):
+        from django.utils import timezone
+        from datetime import timedelta
         member = MemberFactory()
         r1 = RecurringDonationFactory(member=member)
         r2 = RecurringDonationFactory(member=member)
+        # Ensure deterministic ordering by setting distinct created_at values
+        earlier = timezone.now() - timedelta(hours=1)
+        RecurringDonation.objects.filter(pk=r1.pk).update(created_at=earlier)
+        RecurringDonation.objects.filter(pk=r2.pk).update(created_at=timezone.now())
         donations = list(RecurringDonation.objects.filter(member=member))
         assert donations[0] == r2
         assert donations[1] == r1

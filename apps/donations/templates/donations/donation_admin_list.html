@@ -65,7 +65,13 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-end gap-2">
                             <a href="/donations/admin/export/?{{ request.GET.urlencode }}" class="btn btn-success btn-sm">
-                                <i class="fas fa-file-csv me-1"></i> Exporter CSV
+                                <i class="fas fa-file-csv me-1"></i> CSV
+                            </a>
+                            <a href="/donations/admin/export/excel/?{{ request.GET.urlencode }}" class="btn btn-success btn-sm">
+                                <i class="fas fa-file-excel me-1"></i> Excel
+                            </a>
+                            <a href="/donations/admin/export/pdf/?{{ request.GET.urlencode }}" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf me-1"></i> PDF
                             </a>
                             <a href="{% url 'frontend:donations:donation_record' %}" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus me-1"></i> Enregistrer un don

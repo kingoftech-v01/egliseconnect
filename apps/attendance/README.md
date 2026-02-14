@@ -14,6 +14,8 @@ The attendance app provides a complete QR-code-based check-in system for church 
 - **Inactivity Tracking**: Celery tasks automatically mark members as inactive/expired based on attendance
 - **Absence Alerts**: Automatic alerts when members miss 3+ worship sessions in 30 days
 - **Onboarding Integration**: QR check-ins at training lessons automatically mark lesson attendance
+- **Continuous QR Scanning**: Batch scanning mode with AJAX endpoint -- scan multiple QR codes without page reloads, with green/red visual feedback and sound
+- **Auto Session Creation**: Events and scheduled lessons automatically create linked AttendanceSession records
 
 ## File Structure
 
@@ -173,6 +175,7 @@ Base path: `/attendance/`
 | `/attendance/my-qr/` | `my_qr` | `attendance:my_qr` | All members (with valid membership) |
 | `/attendance/scanner/` | `scanner` | `attendance:scanner` | Admin, Pastor, Group Leader |
 | `/attendance/scanner/checkin/` | `process_checkin` | `attendance:process_checkin` | Admin, Pastor, Group Leader |
+| `/attendance/scanner/checkin-ajax/` | `process_checkin_ajax` | `attendance:process_checkin_ajax` | Admin, Pastor, Group Leader |
 | `/attendance/sessions/` | `session_list` | `attendance:session_list` | Admin, Pastor |
 | `/attendance/sessions/create/` | `create_session` | `attendance:create_session` | Admin, Pastor |
 | `/attendance/sessions/<uuid>/` | `session_detail` | `attendance:session_detail` | Admin, Pastor |

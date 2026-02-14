@@ -22,10 +22,24 @@
                             {% if event.is_cancelled %}
                             <span class="badge badge-danger light">Annulé</span>
                             {% endif %}
+                            {% if event.is_hybrid %}
+                            <span class="badge badge-info light">Hybride</span>
+                            {% endif %}
+                            {% if event.campus %}
+                            <span class="badge badge-light">{{ event.campus }}</span>
+                            {% endif %}
                         </div>
-                        {% if request.user.member_profile.role == 'admin' or request.user.member_profile.role == 'pastor' %}
-                        <div class="d-flex gap-2">
+                        {% if is_staff %}
+                        <div class="d-flex gap-2 flex-wrap">
                             <a href="/events/{{ event.pk }}/edit/" class="btn btn-warning btn-sm"><i class="fas fa-edit me-1"></i>Modifier</a>
+                            {% if not event.is_cancelled %}
+                            <form method="post" action="/events/{{ event.pk }}/cancel/" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Annuler cet événement?')">
+                                    <i class="fas fa-ban me-1"></i>Annuler
+                                </button>
+                            </form>
+                            {% endif %}
                             <a href="/events/{{ event.pk }}/delete/" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i>Supprimer</a>
                         </div>
                         {% endif %}
@@ -76,6 +90,15 @@
                                         {% endif %}
                                     </p>
                                 </li>
+                                {% if event.virtual_url %}
+                                <li>
+                                    <span>Réunion virtuelle</span>
+                                    <p>
+                                        {% if event.virtual_platform %}<span class="badge badge-primary light">{{ event.get_virtual_platform_display }}</span>{% endif %}
+                                        <a href="{{ event.virtual_url }}" target="_blank" rel="noopener noreferrer">Rejoindre</a>
+                                    </p>
+                                </li>
+                                {% endif %}
                                 {% if event.organizer %}
                                 <li>
                                     <span>Organisateur</span>
@@ -96,6 +119,85 @@
                                     </p>
                                 </li>
                             </ul>
+                        </div>
+
+                        <!-- Add to Calendar buttons -->
+                        <div class="mt-4">
+                            <h5 class="mb-3">Ajouter au calendrier</h5>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{{ google_calendar_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-google me-1"></i> Google Calendar
+                                </a>
+                                <a href="/events/{{ event.pk }}/ics/" class="btn btn-outline-dark btn-sm">
+                                    <i class="fab fa-apple me-1"></i> Apple Calendar (.ics)
+                                </a>
+                                <a href="{{ outlook_calendar_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm">
+                                    <i class="fab fa-microsoft me-1"></i> Outlook
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Volunteer Needs -->
+                        {% if volunteer_needs %}
+                        <div class="mt-4">
+                            <h5 class="mb-3">Besoins de bénévoles</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr><th>Poste</th><th>Requis</th><th>Inscrits</th><th>Action</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for need in volunteer_needs %}
+                                        <tr>
+                                            <td>{{ need.position_name }}</td>
+                                            <td>{{ need.required_count }}</td>
+                                            <td>
+                                                {{ need.filled_count }} / {{ need.required_count }}
+                                                {% if need.is_filled %}<span class="badge badge-success light">Complet</span>{% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not need.is_filled %}
+                                                <form method="post" action="/events/{{ event.pk }}/volunteers/{{ need.pk }}/signup/" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-success btn-xs">S'inscrire</button>
+                                                </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <a href="/events/{{ event.pk }}/volunteers/" class="btn btn-outline-primary btn-sm">Voir tous les bénévoles</a>
+                        </div>
+                        {% endif %}
+
+                        <!-- Photos -->
+                        {% if photos %}
+                        <div class="mt-4">
+                            <h5 class="mb-3">Photos</h5>
+                            <div class="row g-2">
+                                {% for photo in photos|slice:":4" %}
+                                <div class="col-3">
+                                    <img src="{{ photo.image.url }}" class="img-fluid rounded" alt="{{ photo.caption }}">
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <a href="/events/{{ event.pk }}/photos/" class="btn btn-outline-primary btn-sm mt-2">Voir toutes les photos</a>
+                        </div>
+                        {% endif %}
+
+                        <!-- Links -->
+                        <div class="mt-4 d-flex gap-2 flex-wrap">
+                            <a href="/events/{{ event.pk }}/photos/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-images me-1"></i>Photos</a>
+                            <a href="/events/{{ event.pk }}/volunteers/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-hands-helping me-1"></i>Bénévoles</a>
+                            {% if event.kiosk_mode_enabled %}
+                            <a href="/events/{{ event.pk }}/kiosk/" class="btn btn-outline-secondary btn-sm" target="_blank"><i class="fas fa-tablet-alt me-1"></i>Kiosque</a>
+                            {% endif %}
+                            {% if is_staff %}
+                            <a href="/events/{{ event.pk }}/waitlist/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-list-ol me-1"></i>Liste d'attente</a>
+                            <a href="/events/{{ event.pk }}/survey/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-poll me-1"></i>Sondage</a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -138,8 +240,14 @@
                                 {% if user_rsvp %}Mettre à jour{% else %}S'inscrire{% endif %}
                             </button>
                         </form>
-                        {% else %}
-                        <p class="text-danger mb-0">Cet événement est complet.</p>
+                        {% elif event.is_full %}
+                        <p class="text-danger mb-2">Cet événement est complet.</p>
+                        <form method="post" action="/events/{{ event.pk }}/waitlist/join/">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-clock me-1"></i>Rejoindre la liste d'attente
+                            </button>
+                        </form>
                         {% endif %}
                     </div>
                 </div>
@@ -148,7 +256,7 @@
                 {% if attendees %}
                 <div class="card h-auto">
                     <div class="card-header">
-                        <h4 class="heading mb-0">Participants confirmés</h4>
+                        <h4 class="heading mb-0">Participants confirmés ({{ attendees|length }})</h4>
                     </div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
@@ -161,6 +269,49 @@
                             </li>
                             {% endfor %}
                         </ul>
+                    </div>
+                </div>
+                {% endif %}
+                <!-- All RSVPs (staff view) -->
+                {% if is_staff and all_rsvps %}
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Tous les RSVPs</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% for rsvp in all_rsvps %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                {{ rsvp.member.full_name }}
+                                <span class="badge badge-{% if rsvp.status == 'confirmed' %}success{% elif rsvp.status == 'declined' %}danger{% elif rsvp.status == 'maybe' %}warning{% else %}secondary{% endif %} light">
+                                    {{ rsvp.get_status_display }}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                <!-- Waitlist info -->
+                {% if waitlist_entries %}
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Liste d'attente ({{ waitlist_entries|length }})</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% for entry in waitlist_entries|slice:":5" %}
+                            <li class="list-group-item px-0">
+                                #{{ entry.position }} - {{ entry.member.full_name }}
+                                {% if entry.promoted_at %}
+                                <span class="badge badge-success light">Promu</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% if waitlist_entries|length > 5 %}
+                        <a href="/events/{{ event.pk }}/waitlist/" class="btn btn-outline-primary btn-sm mt-2">Voir tout</a>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}

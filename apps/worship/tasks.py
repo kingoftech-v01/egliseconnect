@@ -40,7 +40,7 @@ def send_service_assignment_reminders():
             if days_until <= 5 and not assignment.reminder_5days_sent:
                 assignment.reminder_5days_sent = True
                 sent = True
-                msg = f'Rappel: vous êtes assigné(e) au culte du {service.date:%d/%m/%Y} dans 5 jours.'
+                msg = f'Rappel: vous \u00eates assign\u00e9(e) au culte du {service.date:%d/%m/%Y} dans 5 jours.'
 
             elif days_until <= 3 and not assignment.reminder_3days_sent:
                 assignment.reminder_3days_sent = True
@@ -55,7 +55,7 @@ def send_service_assignment_reminders():
             elif days_until == 0 and not assignment.reminder_sameday_sent:
                 assignment.reminder_sameday_sent = True
                 sent = True
-                msg = f"C'est aujourd'hui! Culte à {service.start_time:%H:%M}. Section: {assignment.section.name}."
+                msg = f"C'est aujourd'hui! Culte \u00e0 {service.start_time:%H:%M}. Section: {assignment.section.name}."
 
             if sent:
                 assignment.save()
@@ -96,11 +96,33 @@ def check_validation_deadlines():
             for admin in admins:
                 Notification.objects.create(
                     member=admin,
-                    title='Deadline de validation dépassée',
+                    title='Deadline de validation d\u00e9pass\u00e9e',
                     message=(
                         f'Le culte du {service.date:%d/%m/%Y} a {unconfirmed} '
-                        f'assignation(s) non confirmée(s) après la date limite.'
+                        f'assignation(s) non confirm\u00e9e(s) apr\u00e8s la date limite.'
                     ),
                     notification_type='general',
                     link=f'/worship/services/{service.pk}/',
                 )
+
+
+@shared_task
+def update_song_usage_on_completion():
+    """Track song usage for recently completed services."""
+    from .models import WorshipService
+    from .services import SongUsageTracker
+
+    today = timezone.now().date()
+    # Find services completed today that haven't had usage tracked
+    recently_completed = WorshipService.objects.filter(
+        status=WorshipServiceStatus.COMPLETED,
+        date=today,
+    )
+
+    total = 0
+    for service in recently_completed:
+        count = SongUsageTracker.record_service_songs(service)
+        total += count
+
+    logger.info(f'Updated song usage for {total} songs from completed services.')
+    return total

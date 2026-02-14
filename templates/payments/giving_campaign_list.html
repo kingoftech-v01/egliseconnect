@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            {% for campaign in campaigns %}
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="card h-100">
+                    {% if campaign.image %}
+                    <img src="{{ campaign.image.url }}" class="card-img-top" alt="{{ campaign.name }}" style="max-height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ campaign.name }}</h5>
+                        {% if campaign.is_year_end %}
+                        <span class="badge badge-warning mb-2">{% trans "Fin d'année" %}</span>
+                        {% endif %}
+                        <p class="text-muted">{{ campaign.description|truncatewords:20 }}</p>
+
+                        {% include 'payments/_campaign_thermometer.html' with campaign=campaign %}
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <small class="text-muted">{{ campaign.current_amount }} / {{ campaign.goal_amount }} CAD</small>
+                            {% if campaign.is_ongoing %}
+                            <small class="text-info">{{ campaign.days_remaining }} {% trans "jours restants" %}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="/payments/campaigns/{{ campaign.pk }}/" class="btn btn-primary btn-sm w-100">
+                            {% trans "Voir la campagne" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="text-muted">{% trans "Aucune campagne active." %}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

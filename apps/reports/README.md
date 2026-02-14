@@ -1,451 +1,328 @@
-# Module Reports (Rapports et Tableau de bord)
+# Reports App
 
-> **Application Django** : `apps.reports`
-> **Chemin** : `apps/reports/`
-
----
-
-## Vue d'ensemble
-
-### Pour les non-techniques
-
-Ce module fournit a la direction de l'eglise une vue d'ensemble de toutes les activites. Il comprend :
-
-- **Tableau de bord principal** : affiche les statistiques cles en un coup d'oeil -- nombre total de membres, dons recents, evenements a venir, activite des benevoles, demandes d'aide ouvertes et prochains anniversaires.
-- **Rapport des membres** : ventilation par role, nouveaux membres ce mois-ci et cette annee, membres actifs vs inactifs.
-- **Rapport des dons** : analyse mensuelle et annuelle des dons, ventilation par type et methode de paiement, donateurs les plus genereux (anonymises par rang), suivi des campagnes.
-- **Rapport de presence** : suivi des RSVP par evenement, taux de confirmation, nombre d'invites.
-- **Rapport des benevoles** : quarts completes vs absences, repartition par poste, top 10 des benevoles les plus actifs.
-- **Calendrier des anniversaires** : permet a la communaute de celebrer ensemble les anniversaires a venir.
-
-Ce module est **en lecture seule** -- il ne cree aucune donnee, il agrege les informations des autres modules pour les presenter sous forme de tableaux et graphiques.
-
-### Pour les techniques
-
-L'application ne contient aucun model Django. Elle utilise deux services (`DashboardService` et `ReportService`) qui effectuent des queries d'aggregation (`Count`, `Sum`, `Avg`, `TruncMonth`, etc.) sur les models des autres applications. Les resultats sont serialises avec des serializers non-model (`Serializer`) plutot que `ModelSerializer`. Le frontend utilise Chart.js, ApexCharts et DataTables pour le rendu des graphiques et tableaux. Les ViewSets sont de type `viewsets.ViewSet` (sans model) et les permissions sont granulaires par role.
+> **Django application**: `apps.reports`
+> **Path**: `apps/reports/`
 
 ---
 
-## Architecture des fichiers
+## 1. Overview
+
+The Reports app provides church leadership with a centralized analytics and reporting hub for the EgliseConnect system. It is a **read-only** module -- it does not define any Django models of its own. Instead, it aggregates data from every other app in the project (members, donations, events, volunteers, help requests, attendance) and presents it through dashboards, detailed reports, and CSV exports.
+
+### Key Features
+
+- **Main dashboard** -- at-a-glance KPIs: total members, recent donations, upcoming events, volunteer activity, open help requests, and upcoming birthdays.
+- **Onboarding pipeline widget** -- counts of members in each membership-status stage (registered, form submitted, in training, interview scheduled).
+- **Financial summary widget** -- six-month giving trend rendered as a Chart.js line chart.
+- **Member growth trend** -- twelve-month new-registration chart.
+- **Member statistics page** -- breakdown by role, active vs. inactive, new this month/year.
+- **Donation report** -- monthly and yearly analysis, year-over-year comparison, breakdown by donation type and payment method, anonymized top-donor ranking, campaign totals.
+- **Attendance report** -- per-event RSVP statistics (confirmed, declined, guest count) plus attendance-session analytics (check-in counts, by type, by method).
+- **Volunteer report** -- shifts completed vs. no-shows, breakdown by position, top-10 most active volunteers.
+- **Birthday calendar** -- upcoming birthdays within a configurable day range (accessible to all authenticated members).
+- **CSV exports** -- one-click download of members, donations, attendance, and volunteer data as CSV files (BOM-prefixed for Excel compatibility).
+- **REST API** -- full programmatic access to all dashboard and report data via DRF ViewSets and an additional treasurer-specific endpoint.
+
+---
+
+## 2. File Structure
 
 ```
 apps/reports/
     __init__.py
-    apps.py
-    services.py            # DashboardService + ReportService
-    serializers.py          # 9 serializers (non-model)
-    views_api.py            # 2 ViewSets + 1 APIView
-    views_frontend.py       # 6 vues avec templates
-    urls.py                 # Routage API + frontend
+    apps.py                     # AppConfig (name='apps.reports')
+    services.py                 # DashboardService + ReportService
+    serializers.py              # 10 non-model serializers
+    views_api.py                # 2 ViewSets + 1 APIView (DRF)
+    views_frontend.py           # 10 frontend views (6 pages + 4 CSV exports)
+    urls.py                     # URL routing (API + frontend)
     migrations/
-        __init__.py         # Pas de migrations (pas de models)
+        __init__.py             # No migrations (no models)
     tests/
         __init__.py
-        test_services.py    # Tests des services d'aggregation
-        test_views_api.py   # Tests API
-        test_views_frontend.py
+        test_services.py        # 9 tests  -- service-layer aggregation logic
+        test_views_api.py       # 68 tests -- API endpoints, permissions, edge cases
+        test_views_frontend.py  # 127 tests -- frontend views, context, CSV exports
 ```
 
 ---
 
-## Services
+## 3. Models
+
+This app defines **no models**. It is purely a reporting layer that queries models from other apps:
+
+| Model | Source App |
+|-------|-----------|
+| `Member` | `apps.members` |
+| `Donation` | `apps.donations` |
+| `Event`, `EventRSVP` | `apps.events` |
+| `AttendanceSession`, `AttendanceRecord` | `apps.attendance` |
+| `VolunteerPosition`, `VolunteerSchedule`, `VolunteerAvailability` | `apps.volunteers` |
+| `HelpRequest` | `apps.help_requests` |
+
+---
+
+## 4. Services
+
+All business logic lives in two static service classes in `services.py`.
 
 ### DashboardService
 
-Service statique qui agrege les statistiques de chaque module pour le tableau de bord.
+Aggregates quick-look statistics for the dashboard and individual stat widgets.
 
-| Methode | Description | Donnees retournees |
-|---------|-------------|---------------------|
-| `get_member_stats()` | Statistiques des membres | total, active, inactive, new_this_month, new_this_year, role_breakdown |
-| `get_donation_stats(year)` | Statistiques des dons | total_amount, total_count, average_amount, monthly_breakdown, by_type, by_payment_method |
-| `get_event_stats(year)` | Statistiques des evenements | total_events, upcoming, cancelled, by_type, total_rsvps, confirmed_rsvps |
-| `get_volunteer_stats()` | Statistiques des benevoles | total_positions, volunteers_by_position, upcoming_schedules, confirmed/pending_this_month |
-| `get_help_request_stats()` | Statistiques des demandes d'aide | total, open, resolved_this_month, by_urgency, by_category |
-| `get_upcoming_birthdays(days)` | Anniversaires a venir | Liste de {member_id, member_name, birthday, age} |
-| `get_dashboard_summary()` | Agregation complete | Combine toutes les methodes ci-dessus + generated_at |
-
-**Exemple de retour de `get_member_stats()`** :
-```python
-{
-    'total': 150,
-    'active': 142,
-    'inactive': 8,
-    'new_this_month': 3,
-    'new_this_year': 12,
-    'role_breakdown': [
-        {'role': 'member', 'count': 120},
-        {'role': 'group_leader', 'count': 15},
-        {'role': 'pastor', 'count': 5},
-        {'role': 'admin', 'count': 2},
-    ]
-}
-```
+| Method | Description | Return Keys |
+|--------|-------------|-------------|
+| `get_member_stats()` | Member totals and role breakdown | `total`, `active`, `inactive`, `new_this_month`, `new_this_year`, `role_breakdown` |
+| `get_donation_stats(year=None)` | Donation totals for a given year | `year`, `total_amount`, `total_count`, `average_amount`, `monthly_breakdown`, `by_type`, `by_payment_method` |
+| `get_event_stats(year=None)` | Event totals and RSVP counts | `year`, `total_events`, `upcoming`, `cancelled`, `by_type`, `total_rsvps`, `confirmed_rsvps` |
+| `get_volunteer_stats()` | Volunteer position and schedule stats | `total_positions`, `volunteers_by_position`, `upcoming_schedules`, `confirmed_this_month`, `pending_this_month` |
+| `get_help_request_stats()` | Help-request totals by status, urgency, and category | `total`, `open`, `resolved_this_month`, `by_urgency`, `by_category` |
+| `get_upcoming_birthdays(days=7)` | Members with birthdays in the next N days | List of `{member_id, member_name, birthday, age, email}` |
+| `get_dashboard_summary()` | Combines all of the above into one payload | `members`, `donations`, `events`, `volunteers`, `help_requests`, `upcoming_birthdays`, `generated_at` |
+| `get_onboarding_pipeline_stats()` | Counts members in each onboarding stage | `registered`, `form_submitted`, `in_training`, `interview_scheduled`, `total_in_process` |
+| `get_financial_summary()` | Six-month giving trend | `monthly_trend`, `labels`, `values` |
+| `get_member_growth_trend()` | Twelve-month new-member registration counts | `labels`, `counts` |
 
 ### ReportService
 
-Service statique qui genere des rapports detailles avec filtres de dates.
+Generates detailed, date-filtered reports for display or export.
 
-| Methode | Parametres | Description |
-|---------|------------|-------------|
-| `get_attendance_report(start_date, end_date)` | Dates optionnelles (defaut: 90 derniers jours) | RSVP par evenement : confirmed, declined, total_guests |
-| `get_donation_report(year)` | Annee (obligatoire) | Ventilation mensuelle, top donateurs (anonymises par rang), campagnes |
-| `get_volunteer_report(start_date, end_date)` | Dates optionnelles (defaut: 30 derniers jours) | Quarts par poste, completed vs no_show, top 10 benevoles |
+| Method | Parameters | Description | Return Keys |
+|--------|------------|-------------|-------------|
+| `get_attendance_report(start_date, end_date)` | Optional dates (default: last 90 days) | Per-event RSVP breakdown | `start_date`, `end_date`, `total_events`, `events` |
+| `get_attendance_session_stats(start_date, end_date)` | Optional dates (default: last 90 days) | Session-level check-in analytics | `total_sessions`, `total_checkins`, `avg_per_session`, `by_type`, `by_method` |
+| `get_donation_report(year)` | Year (required) | Monthly breakdown, anonymized top donors, campaign totals | `year`, `total`, `total_count`, `unique_donors`, `monthly`, `top_donors`, `campaigns` |
+| `get_volunteer_report(start_date, end_date)` | Optional dates (default: last 30 days) | Shifts by position, completed vs. no-show, top volunteers | `start_date`, `end_date`, `total_shifts`, `completed`, `no_shows`, `by_position`, `top_volunteers` |
 
-**Exemple de retour de `get_donation_report(2026)`** :
-```python
-{
-    'year': 2026,
-    'total': Decimal('45000.00'),
-    'total_count': 312,
-    'unique_donors': 89,
-    'monthly': [
-        {'month': 1, 'total': Decimal('5200.00'), 'count': 35},
-        {'month': 2, 'total': Decimal('4800.00'), 'count': 28},
-        # ... 12 mois
-    ],
-    'top_donors': [
-        {'rank': 1, 'total': Decimal('3500.00')},
-        {'rank': 2, 'total': Decimal('2800.00')},
-        # ... jusqu'a 10
-    ],
-    'campaigns': [
-        {'campaign__name': 'Construction', 'total': Decimal('12000.00'), 'count': 45},
-    ]
-}
-```
-
-**Note importante** : les top donateurs sont anonymises -- seul le rang et le montant sont retournes, pas le nom du membre. Ceci protege la confidentialite des dons.
+**Privacy note**: Top donors are anonymized -- only rank and amount are returned, never the member's identity.
 
 ---
 
-## Serializers
+## 5. Serializers
 
-Serializers non-model (`serializers.Serializer`) pour valider et formater les donnees des services :
+All serializers are non-model (`serializers.Serializer`) since there are no app-specific models. Defined in `serializers.py`:
 
-| Serializer | Champs |
+| Serializer | Fields |
 |------------|--------|
-| `MemberStatsSerializer` | total, active, inactive, new_this_month, new_this_year, role_breakdown |
-| `DonationStatsSerializer` | year, total_amount, total_count, average_amount, monthly_breakdown, by_type, by_payment_method |
-| `EventStatsSerializer` | year, total_events, upcoming, cancelled, by_type, total_rsvps, confirmed_rsvps |
-| `VolunteerStatsSerializer` | total_positions, volunteers_by_position, upcoming_schedules, confirmed/pending_this_month |
-| `HelpRequestStatsSerializer` | total, open, resolved_this_month, by_urgency, by_category |
-| `BirthdaySerializer` | member_id (UUID), member_name, birthday (Date), age (nullable) |
-| `DashboardSummarySerializer` | members, donations, events, volunteers, help_requests, upcoming_birthdays, generated_at |
-| `AttendanceReportSerializer` | start_date, end_date, total_events, events (list) |
-| `DonationReportSerializer` | year, total, total_count, unique_donors, monthly, top_donors, campaigns |
-| `VolunteerReportSerializer` | start_date, end_date, total_shifts, completed, no_shows, by_position, top_volunteers |
+| `MemberStatsSerializer` | `total`, `active`, `inactive`, `new_this_month`, `new_this_year`, `role_breakdown` |
+| `DonationStatsSerializer` | `year`, `total_amount`, `total_count`, `average_amount`, `monthly_breakdown`, `by_type`, `by_payment_method` |
+| `EventStatsSerializer` | `year`, `total_events`, `upcoming`, `cancelled`, `by_type`, `total_rsvps`, `confirmed_rsvps` |
+| `VolunteerStatsSerializer` | `total_positions`, `volunteers_by_position`, `upcoming_schedules`, `confirmed_this_month`, `pending_this_month` |
+| `HelpRequestStatsSerializer` | `total`, `open`, `resolved_this_month`, `by_urgency`, `by_category` |
+| `BirthdaySerializer` | `member_id` (UUID), `member_name`, `birthday` (Date), `age` (nullable Int) |
+| `DashboardSummarySerializer` | `members`, `donations`, `events`, `volunteers`, `help_requests`, `upcoming_birthdays`, `generated_at` |
+| `AttendanceReportSerializer` | `start_date`, `end_date`, `total_events`, `events` |
+| `DonationReportSerializer` | `year`, `total`, `total_count`, `unique_donors`, `monthly`, `top_donors`, `campaigns` |
+| `VolunteerReportSerializer` | `start_date`, `end_date`, `total_shifts`, `completed`, `no_shows`, `by_position`, `top_volunteers` |
 
 ---
 
-## Endpoints API REST
+## 6. API Endpoints
 
-Tous les endpoints sont prefixes par `/api/v1/reports/`.
+All API endpoints are prefixed with `/api/v1/reports/`.
 
 ### DashboardViewSet
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/reports/dashboard/` | Tableau de bord complet | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/dashboard/members/` | Statistiques des membres | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/dashboard/donations/` | Statistiques des dons | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/dashboard/events/` | Statistiques des evenements | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/dashboard/volunteers/` | Statistiques des benevoles | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/dashboard/help_requests/` | Statistiques des demandes d'aide | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/dashboard/birthdays/` | Anniversaires a venir | `IsPastor \| IsAdmin` |
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/reports/dashboard/` | Full dashboard summary | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/dashboard/members/` | Member statistics | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/dashboard/donations/` | Donation statistics | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/dashboard/events/` | Event statistics | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/dashboard/volunteers/` | Volunteer statistics | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/dashboard/help_requests/` | Help-request statistics | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/dashboard/birthdays/` | Upcoming birthdays | `IsPastor \| IsAdmin` |
 
-**Parametres de query pour `donations` et `events`** : `?year=2026` (optionnel, defaut: annee en cours)
-
-**Parametre de query pour `birthdays`** : `?days=7` (nombre de jours a venir, defaut: 7)
+**Query parameters**:
+- `donations` and `events`: `?year=2026` (optional, defaults to current year)
+- `birthdays`: `?days=7` (optional, defaults to 7)
 
 ### ReportViewSet
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/reports/reports/attendance/` | Rapport de presence | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/reports/donations/{year}/` | Rapport annuel des dons | `IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/reports/volunteers/` | Rapport des benevoles | `IsPastor \| IsAdmin` |
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/reports/reports/attendance/` | Attendance report | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/reports/donations/{year}/` | Annual donation report | `IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/reports/volunteers/` | Volunteer report | `IsPastor \| IsAdmin` |
 
-**Parametres de query pour `attendance` et `volunteers`** :
-- `?start_date=2026-01-01` (format ISO, optionnel)
-- `?end_date=2026-02-06` (format ISO, optionnel)
+**Query parameters** for `attendance` and `volunteers`:
+- `?start_date=2026-01-01` (ISO format, optional)
+- `?end_date=2026-02-13` (ISO format, optional)
 
 ### TreasurerDonationReportView (APIView)
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/reports/treasurer/donations/` | Rapport des dons (annee en cours) | `IsTreasurer \| IsPastor \| IsAdmin` |
-| `GET` | `/api/v1/reports/treasurer/donations/{year}/` | Rapport des dons (annee specifique) | `IsTreasurer \| IsPastor \| IsAdmin` |
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/reports/treasurer/donations/` | Donation report (current year) | `IsTreasurer \| IsPastor \| IsAdmin` |
+| `GET` | `/api/v1/reports/treasurer/donations/{year}/` | Donation report (specific year) | `IsTreasurer \| IsPastor \| IsAdmin` |
 
-Cet endpoint permet aux tresoriers d'acceder aux rapports de dons sans avoir acces complet au tableau de bord administratif.
-
----
-
-## URLs frontend
-
-| URL | Vue | Template | Description |
-|-----|-----|----------|-------------|
-| `/reports/` | `dashboard` | `reports/dashboard.html` | Tableau de bord principal |
-| `/reports/members/` | `member_stats` | `reports/member_stats.html` | Statistiques des membres |
-| `/reports/donations/` | `donation_report` | `reports/donation_report.html` | Rapport des dons (avec selecteur d'annee) |
-| `/reports/attendance/` | `attendance_report` | `reports/attendance_report.html` | Rapport de presence |
-| `/reports/volunteers/` | `volunteer_report` | `reports/volunteer_report.html` | Rapport des benevoles |
-| `/reports/birthdays/` | `birthday_report` | `reports/birthday_report.html` | Calendrier des anniversaires |
-
-**Note** : la page d'accueil de l'application (`/`) redirige vers `/reports/` pour les utilisateurs autorises.
-
-**Logique de la vue `donation_report`** : combine les donnees de `ReportService.get_donation_report()` et `DashboardService.get_donation_stats()`. Propose un selecteur d'annee couvrant les 5 dernieres annees.
-
-**Logique de la vue `birthday_report`** : parametre `?days=30` (defaut: 30 jours). Accessible a tous les membres authentifies.
+This endpoint allows treasurers to access donation reports without requiring full admin/pastor dashboard access.
 
 ---
 
-## Templates
+## 7. Frontend URLs
 
-| Template | Description | Librairies JS |
-|----------|-------------|---------------|
-| `reports/dashboard.html` | Tableau de bord avec cartes de statistiques et graphiques | Chart.js, ApexCharts, DataTables |
-| `reports/member_stats.html` | Ventilation des membres par role, nouveaux membres, tendances | Chart.js |
-| `reports/donation_report.html` | Graphique mensuel, ventilation par type et methode, selecteur d'annee | Chart.js, ApexCharts |
-| `reports/attendance_report.html` | Tableau des evenements avec RSVP, taux de confirmation | DataTables |
-| `reports/volunteer_report.html` | Repartition par poste, taux de completion, top benevoles | Chart.js |
-| `reports/birthday_report.html` | Liste des anniversaires a venir avec age | -- |
+All frontend routes are prefixed with `/reports/` and use the `frontend:reports:` namespace.
 
----
+### Report Pages
 
-## Permissions
+| Path | View Function | Name | Description |
+|------|---------------|------|-------------|
+| `/reports/` | `dashboard` | `dashboard` | Main dashboard with KPI cards, onboarding pipeline, financial trend, and growth chart |
+| `/reports/members/` | `member_stats` | `member_stats` | Member statistics with role breakdown and 12-month growth chart |
+| `/reports/donations/` | `donation_report` | `donation_report` | Donation report with year selector, YoY comparison, and monthly chart |
+| `/reports/attendance/` | `attendance_report` | `attendance_report` | Attendance analytics with date-range filtering and session statistics |
+| `/reports/volunteers/` | `volunteer_report` | `volunteer_report` | Volunteer activity report with date-range filtering |
+| `/reports/birthdays/` | `birthday_report` | `birthday_report` | Upcoming birthday list (configurable via `?days=` parameter, default 30) |
 
-| Role | Tableau de bord | Stats membres | Rapport dons | Rapport presence | Rapport benevoles | Anniversaires |
-|------|----------------|---------------|--------------|------------------|-------------------|---------------|
-| **Membre** | Non | Non | Non | Non | Non | Oui |
-| **Responsable de groupe** | Non | Non | Non | Non | Non | Oui |
-| **Tresorier** | Oui (frontend) | Non | Oui | Non | Non | Oui |
-| **Pasteur** | Oui | Oui | Oui | Oui | Oui | Oui |
-| **Admin** | Oui | Oui | Oui | Oui | Oui | Oui |
+### CSV Export Endpoints
 
-**Note sur l'API** : les endpoints du `DashboardViewSet` et `ReportViewSet` exigent `IsPastor | IsAdmin`. Le `TreasurerDonationReportView` ajoute `IsTreasurer` comme permission supplementaire.
+| Path | View Function | Name | Description |
+|------|---------------|------|-------------|
+| `/reports/export/members/` | `export_members_csv` | `export_members_csv` | Download active members as CSV |
+| `/reports/export/donations/` | `export_donations_csv` | `export_donations_csv` | Download donations for a year as CSV (`?year=`) |
+| `/reports/export/attendance/` | `export_attendance_csv` | `export_attendance_csv` | Download attendance/RSVP data as CSV |
+| `/reports/export/volunteers/` | `export_volunteers_csv` | `export_volunteers_csv` | Download top volunteers as CSV |
 
-**Note sur le frontend** : la vue `dashboard` accepte egalement le role `'treasurer'`. La vue `birthday_report` est accessible a tout membre authentifie.
-
----
-
-## Exemples d'utilisation
-
-### API : Obtenir le tableau de bord complet
-
-```bash
-curl -X GET /api/v1/reports/dashboard/ \
-  -H "Authorization: Bearer <token>"
-```
-
-**Reponse** (`200 OK`) :
-```json
-{
-  "members": {
-    "total": 150,
-    "active": 142,
-    "inactive": 8,
-    "new_this_month": 3,
-    "new_this_year": 12,
-    "role_breakdown": [
-      {"role": "member", "count": 120}
-    ]
-  },
-  "donations": {
-    "year": 2026,
-    "total_amount": "45000.00",
-    "total_count": 312,
-    "average_amount": "144.23",
-    "monthly_breakdown": [...],
-    "by_type": [...],
-    "by_payment_method": [...]
-  },
-  "events": {
-    "year": 2026,
-    "total_events": 24,
-    "upcoming": 8,
-    "cancelled": 1
-  },
-  "volunteers": {
-    "total_positions": 12,
-    "upcoming_schedules": 35,
-    "confirmed_this_month": 28,
-    "pending_this_month": 7
-  },
-  "help_requests": {
-    "total": 45,
-    "open": 5,
-    "resolved_this_month": 3
-  },
-  "upcoming_birthdays": [
-    {
-      "member_id": "...",
-      "member_name": "Sophie Bergeron",
-      "birthday": "2026-02-10",
-      "age": 35
-    }
-  ],
-  "generated_at": "2026-02-06T15:00:00Z"
-}
-```
-
-### API : Rapport des dons pour une annee specifique
-
-```bash
-curl -X GET /api/v1/reports/reports/donations/2025/ \
-  -H "Authorization: Bearer <token>"
-```
-
-### API : Rapport de presence avec dates personnalisees
-
-```bash
-curl -X GET "/api/v1/reports/reports/attendance/?start_date=2026-01-01&end_date=2026-02-06" \
-  -H "Authorization: Bearer <token>"
-```
-
-### API : Rapport des benevoles (30 derniers jours)
-
-```bash
-curl -X GET /api/v1/reports/reports/volunteers/ \
-  -H "Authorization: Bearer <token>"
-```
-
-**Reponse** :
-```json
-{
-  "start_date": "2026-01-07",
-  "end_date": "2026-02-06",
-  "total_shifts": 120,
-  "completed": 105,
-  "no_shows": 8,
-  "by_position": [
-    {
-      "position__name": "Accueil",
-      "total": 40,
-      "completed": 38,
-      "no_show": 1
-    }
-  ],
-  "top_volunteers": [
-    {"member__first_name": "Jean", "member__last_name": "Tremblay", "count": 8}
-  ]
-}
-```
-
-### API : Rapport des dons pour le tresorier
-
-```bash
-curl -X GET /api/v1/reports/treasurer/donations/2026/ \
-  -H "Authorization: Bearer <token>"
-```
-
-### API : Anniversaires des 14 prochains jours
-
-```bash
-curl -X GET "/api/v1/reports/dashboard/birthdays/?days=14" \
-  -H "Authorization: Bearer <token>"
-```
-
-### API : Statistiques des dons pour une annee specifique
-
-```bash
-curl -X GET "/api/v1/reports/dashboard/donations/?year=2025" \
-  -H "Authorization: Bearer <token>"
-```
+All CSV files include a UTF-8 BOM for seamless opening in Microsoft Excel.
 
 ---
 
-## Tests
+## 8. Templates
 
-Les tests utilisent `pytest` avec `pytest-django` et `factory_boy`.
+All templates live in `templates/reports/` and extend the project's `base.html`.
 
-### Executer les tests
+| Template | Description | JS Libraries |
+|----------|-------------|-------------|
+| `reports/dashboard.html` | Dashboard with stat cards, onboarding pipeline, financial trend, and growth chart | Chart.js, ApexCharts, DataTables |
+| `reports/member_stats.html` | Member breakdown by role, active/inactive, new registrations, 12-month growth chart | Chart.js |
+| `reports/donation_report.html` | Monthly donation chart, year selector, YoY comparison, type/method breakdown | Chart.js, ApexCharts |
+| `reports/attendance_report.html` | Event RSVP table, attendance session stats, date-range filter | DataTables |
+| `reports/volunteer_report.html` | Shifts by position, completion rate, top volunteers, date-range filter | Chart.js |
+| `reports/birthday_report.html` | Upcoming birthdays list with age and configurable day range | -- |
+
+---
+
+## 9. Admin Configuration
+
+This app has **no `admin.py` file** and registers nothing in the Django admin. Since the app defines no models, there is nothing to register.
+
+---
+
+## 10. Permissions Matrix
+
+### Frontend Views
+
+| Role | Dashboard | Member Stats | Donation Report | Attendance Report | Volunteer Report | Birthday Report | CSV Exports (Members/Attendance/Volunteers) | CSV Export (Donations) |
+|------|-----------|-------------|-----------------|-------------------|------------------|-----------------|---------------------------------------------|----------------------|
+| **Member** | No | No | No | No | No | Yes | No | No |
+| **Group Leader** | No | No | No | No | No | Yes | No | No |
+| **Treasurer** | Yes | No | Yes | No | No | Yes | No | Yes |
+| **Pastor** | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| **Admin** | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+
+### API Endpoints
+
+| Role | DashboardViewSet | ReportViewSet | TreasurerDonationReportView |
+|------|-----------------|---------------|-----------------------------|
+| **Member** | 403 Forbidden | 403 Forbidden | 403 Forbidden |
+| **Group Leader** | 403 Forbidden | 403 Forbidden | 403 Forbidden |
+| **Treasurer** | 403 Forbidden | 403 Forbidden | 200 OK |
+| **Pastor** | 200 OK | 200 OK | 200 OK |
+| **Admin** | 200 OK | 200 OK | 200 OK |
+
+**Notes**:
+- All views and endpoints require authentication (`@login_required` or `IsAuthenticated`).
+- The `birthday_report` frontend view is the only report page accessible to all authenticated members with a member profile.
+- The `dashboard` and `donation_report` frontend views additionally accept the `treasurer` role.
+- API permissions use DRF permission classes from `apps.core.permissions`: `IsPastor`, `IsAdmin`, `IsTreasurer`.
+
+---
+
+## 11. Dependencies
+
+### Python / Django Dependencies
+
+| Dependency | Usage |
+|------------|-------|
+| `apps.core.permissions` | `IsPastor`, `IsAdmin`, `IsTreasurer` permission classes |
+| `apps.core.mixins` | `PastorRequiredMixin` (imported but used only indirectly) |
+| `apps.core.utils` | `get_upcoming_birthdays()` utility function |
+| `apps.core.constants` | `MembershipStatus`, `AttendanceSessionType` |
+| `apps.members.models` | `Member` -- aggregation queries for member stats |
+| `apps.donations.models` | `Donation` -- aggregation queries for donation stats |
+| `apps.events.models` | `Event`, `EventRSVP` -- aggregation queries for event/attendance stats |
+| `apps.attendance.models` | `AttendanceSession`, `AttendanceRecord` -- session-level attendance analytics |
+| `apps.volunteers.models` | `VolunteerPosition`, `VolunteerSchedule`, `VolunteerAvailability` -- volunteer stats |
+| `apps.help_requests.models` | `HelpRequest` -- help-request stats |
+| `djangorestframework` | API ViewSets, serializers, permissions |
+
+### Frontend Libraries (loaded in templates)
+
+| Library | Usage |
+|---------|-------|
+| Chart.js | Line/bar/doughnut charts on dashboard, members, donations, volunteers |
+| ApexCharts | Advanced charts on dashboard and donation report |
+| DataTables | Interactive sortable/searchable tables on dashboard and attendance report |
+
+---
+
+## 12. Tests
+
+Tests use `pytest` with `pytest-django` and `factory_boy`. The test suite contains **204 tests** across three modules.
+
+### Test Files
+
+| File | Tests | Coverage Area |
+|------|-------|---------------|
+| `tests/test_services.py` | 9 | DashboardService and ReportService aggregation logic |
+| `tests/test_views_api.py` | 68 | API endpoint responses, permission enforcement, query parameter edge cases, year/date fallbacks |
+| `tests/test_views_frontend.py` | 127 | Frontend view access control, context variables, CSV export content and headers, redirect behavior |
+
+### Running Tests
 
 ```bash
-# Tous les tests du module reports
+# All reports tests
 pytest apps/reports/ -v
 
-# Tests des services (logique d'aggregation)
+# Service layer only
 pytest apps/reports/tests/test_services.py -v
 
-# Tests API (permissions, endpoints)
+# API tests only
 pytest apps/reports/tests/test_views_api.py -v
 
-# Tests frontend
+# Frontend tests only
 pytest apps/reports/tests/test_views_frontend.py -v
 ```
 
-### Couverture des tests de services
+### Test Coverage Highlights
 
-Les tests couvrent les scenarios suivants :
+**Service tests** (`test_services.py`):
+- `DashboardService`: member totals, donation totals, event counts, volunteer positions, help-request open/resolved counts, full dashboard summary structure, onboarding pipeline, financial summary, member growth trend, birthday email inclusion.
+- `ReportService`: attendance report events/RSVPs, donation report monthly breakdown, volunteer shifts/no-shows, attendance session stats (empty, with data, by type, default dates).
 
-- **DashboardService** :
-  - `get_member_stats()` : total, actifs, inactifs
-  - `get_donation_stats()` : total, montant, compte
-  - `get_event_stats()` : total, annules
-  - `get_volunteer_stats()` : nombre de postes
-  - `get_help_request_stats()` : total, ouverts (new + in_progress)
-  - `get_dashboard_summary()` : verification de la structure complete
+**API tests** (`test_views_api.py`):
+- Authentication required (401/403 for unauthenticated requests).
+- Role-based access: pastor and admin allowed; regular member denied; treasurer allowed only on treasurer-specific endpoint.
+- Query parameter handling: valid year, invalid year fallback, custom days, valid/invalid date ranges.
+- Response field validation for every endpoint.
+- Edge cases: `None` year, non-numeric year strings, both invalid dates.
 
-- **ReportService** :
-  - `get_attendance_report()` : evenements avec RSVP
-  - `get_donation_report()` : montant total, compte, 12 mois
-  - `get_volunteer_report()` : quarts completes, absences
+**Frontend tests** (`test_views_frontend.py`):
+- Login required redirects.
+- Role-based access for every view (pastor, admin, treasurer, regular member, volunteer, user without profile).
+- Context variable presence (summary, stats, report, growth data JSON, onboarding pipeline, financial summary, YoY comparison, session stats).
+- CSV export: content type, disposition header, filename, BOM presence, header row, data rows.
+- Date/year parameter handling: valid, invalid, missing, defaults.
+- Redirect destinations for unauthorized users.
 
-### Factories utilisees (d'autres modules)
+### Factories Used (from other apps)
 
-Les tests du module reports utilisent les factories des autres modules pour generer les donnees d'aggregation :
-
-| Factory | Module source |
-|---------|--------------|
-| `MemberFactory` | `apps.members` |
-| `DonationFactory` | `apps.donations` |
-| `EventFactory`, `EventRSVPFactory` | `apps.events` |
-| `VolunteerPositionFactory`, `VolunteerScheduleFactory` | `apps.volunteers` |
-| `HelpRequestFactory` | `apps.help_requests` |
-
----
-
-## Dependances
-
-| Dependance | Utilisation |
-|------------|-------------|
-| `apps.core.permissions` | `IsPastor`, `IsAdmin`, `IsTreasurer` |
-| `apps.core.utils` | `get_upcoming_birthdays()` |
-| `apps.members.models` | Queries d'aggregation sur `Member` |
-| `apps.donations.models` | Queries d'aggregation sur `Donation` |
-| `apps.events.models` | Queries d'aggregation sur `Event`, `EventRSVP` |
-| `apps.volunteers.models` | Queries d'aggregation sur `VolunteerPosition`, `VolunteerSchedule`, `VolunteerAvailability` |
-| `apps.help_requests.models` | Queries d'aggregation sur `HelpRequest` |
-| Chart.js | Graphiques (frontend) |
-| ApexCharts | Graphiques avances (frontend) |
-| DataTables | Tableaux interactifs (frontend) |
-
----
-
-## Notes techniques
-
-### Performance
-
-Les services effectuent des queries d'aggregation directement en base de donnees (via les ORM `annotate`, `aggregate`, `values`), ce qui est performant meme avec de grands volumes de donnees. Le `get_dashboard_summary()` execute cependant plusieurs queries en serie -- si la performance devient un enjeu, un systeme de cache (Redis) ou de pre-calcul pourrait etre envisage.
-
-### Confidentialite des dons
-
-Les rapports de dons affichent les top donateurs par **rang uniquement** (1er, 2eme, 3eme...) sans reveler l'identite du membre. Ceci respecte la confidentialite des dons tout en fournissant des metriques utiles a la direction.
-
-### Module en lecture seule
-
-Ce module ne possede aucun model propre et n'effectue aucune ecriture en base de donnees. Il est purement oriente lecture et aggregation. Toutes les donnees proviennent des autres modules de l'application.
-
----
-
-## Recent Additions
-
-### New Frontend Views
-
-- **`attendance_report`** — `/reports/attendance/` — Attendance analytics with date range filtering. Uses `ReportService.get_attendance_report()` and `DashboardService.get_event_stats()`. Requires pastor/admin.
-- **`volunteer_report`** — `/reports/volunteers/` — Volunteer activity report with date range filtering. Uses `ReportService.get_volunteer_report()` and `DashboardService.get_volunteer_stats()`. Requires pastor/admin.
-
-### New Templates
-
-- `attendance_report.html` — Attendance analytics dashboard
-- `volunteer_report.html` — Volunteer activity report
+| Factory | Source |
+|---------|--------|
+| `UserFactory`, `MemberFactory`, `PastorFactory`, `TreasurerFactory`, `AdminMemberFactory` | `apps.members.tests.factories` |
+| `DonationFactory` | `apps.donations.tests.factories` |
+| `EventFactory`, `EventRSVPFactory` | `apps.events.tests.factories` |
+| `VolunteerPositionFactory`, `VolunteerScheduleFactory` | `apps.volunteers.tests.factories` |
+| `HelpRequestFactory` | `apps.help_requests.tests.factories` |
+| `AttendanceSessionFactory`, `AttendanceRecordFactory` | `apps.attendance.tests.factories` |

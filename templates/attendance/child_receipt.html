@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Recu - Enregistrement enfant{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8 col-md-10">
+                <div class="card">
+                    <div class="card-header text-center bg-success text-white">
+                        <h4 class="heading mb-0"><i class="bi bi-check-circle me-2"></i>Enfant enregistre</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="mb-2">{{ child.full_name }}</h3>
+                        <p class="text-muted mb-4">{{ checkin.session.name }} - {{ checkin.session.date|date:"d/m/Y" }}</p>
+
+                        <!-- Security Code (item 2) -->
+                        <div class="border border-3 border-primary rounded p-4 mb-4">
+                            <p class="text-muted mb-1">Code de securite</p>
+                            <h1 class="display-3 fw-bold text-primary mb-0" style="letter-spacing: 0.5em;">{{ checkin.security_code }}</h1>
+                            <p class="text-muted mt-2 small">Presentez ce code pour retirer votre enfant</p>
+                        </div>
+
+                        {% if has_allergies %}
+                        <div class="alert alert-danger text-start">
+                            <h6><i class="bi bi-exclamation-triangle me-2"></i>Allergies</h6>
+                            <p class="mb-0">{{ child.allergies }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if has_medical_notes %}
+                        <div class="alert alert-warning text-start">
+                            <h6><i class="bi bi-heart-pulse me-2"></i>Notes medicales</h6>
+                            <p class="mb-0">{{ child.medical_notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <button onclick="window.print()" class="btn btn-outline-primary">
+                                <i class="bi bi-printer me-1"></i>Imprimer
+                            </button>
+                            <a href="/attendance/child/checkin/" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Enregistrer un autre enfant
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

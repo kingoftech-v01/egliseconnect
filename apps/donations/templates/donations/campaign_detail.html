@@ -90,7 +90,7 @@
                             {{ campaign.current_amount }} $ collectés sur {{ campaign.goal_amount }} $
                         </p>
                         {% if campaign.is_ongoing %}
-                        <a href="/payments/donate/?campaign={{ campaign.pk }}" class="btn btn-primary">
+                        <a href="/donations/donate/?campaign={{ campaign.pk }}" class="btn btn-primary">
                             <i class="fas fa-hand-holding-heart me-1"></i> Faire un don
                         </a>
                         {% endif %}

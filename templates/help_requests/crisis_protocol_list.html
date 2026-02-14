@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/help-requests/">Demandes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Protocoles de crise</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="mb-3">
+            <a href="/help-requests/crisis/protocols/create/" class="btn btn-primary btn-sm me-1">
+                <i class="fa fa-plus me-1"></i> Nouveau protocole
+            </a>
+            <a href="/help-requests/crisis/resources/" class="btn btn-outline-primary btn-sm me-1">
+                <i class="fa fa-book me-1"></i> Ressources
+            </a>
+            <a href="/help-requests/crisis/notify/" class="btn btn-outline-danger btn-sm">
+                <i class="fa fa-bell me-1"></i> Alerte de crise
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption">
+                        <h4 class="heading mb-0">Protocoles de crise</h4>
+                    </div>
+                    <table class="table">
+                        <thead><tr><th>Titre</th><th>Type</th><th>Statut</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {% for protocol in protocols %}
+                            <tr>
+                                <td><a href="/help-requests/crisis/protocols/{{ protocol.pk }}/">{{ protocol.title }}</a></td>
+                                <td>{{ protocol.protocol_type }}</td>
+                                <td>
+                                    {% if protocol.is_active %}
+                                        <span class="badge badge-success">Actif</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="/help-requests/crisis/protocols/{{ protocol.pk }}/" class="btn btn-sm btn-outline-primary">Voir</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted">Aucun protocole.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-4">
+            <a href="/help-requests/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

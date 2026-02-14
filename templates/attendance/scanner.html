@@ -4,6 +4,15 @@
 {% block title %}Scanner QR - Check-in{% endblock %}
 
 {% block content %}
+<style>
+.new-checkin-flash {
+    animation: flashGreen 1s ease-out;
+}
+@keyframes flashGreen {
+    0% { background-color: rgba(40, 167, 69, 0.3); }
+    100% { background-color: transparent; }
+}
+</style>
 <div class="content-body">
     <div class="page-titles">
         <ol class="breadcrumb">
@@ -70,6 +79,19 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Member Search (item 24) -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="bi bi-search me-2"></i>Recherche membre</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <input type="text" id="member-search-input" class="form-control" placeholder="Nom ou prenom..." autocomplete="off">
+                        </div>
+                        <div id="member-search-results"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Scanner Area and Recent Check-ins -->
@@ -77,7 +99,7 @@
                 <!-- Camera Scanner -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="heading mb-0">Scanner de camera</h4>
+                        <h4 class="heading mb-0">Scanner de camera <span id="scan-count-badge" class="badge bg-success ms-2" style="display:none;">0</span></h4>
                         <button id="toggle-scanner" class="btn btn-sm btn-outline-primary" onclick="toggleScanner()">
                             <i class="bi bi-camera me-1"></i>Demarrer
                         </button>
@@ -86,6 +108,10 @@
                         <div id="qr-reader" style="width:100%;"></div>
                         <div id="scan-result" class="mt-3" style="display:none;">
                             <div id="scan-result-content"></div>
+                        </div>
+                        <!-- Sound/Visual Feedback (item 23) -->
+                        <div id="scan-feedback" class="mt-3" style="display:none;">
+                            <div id="scan-feedback-content" class="text-center p-3 rounded"></div>
                         </div>
                     </div>
                 </div>
@@ -100,6 +126,7 @@
                             <table id="recent-checkins-table" class="table">
                                 <thead>
                                     <tr>
+                                        <th>Photo</th>
                                         <th>Membre</th>
                                         <th>Methode</th>
                                         <th>Heure</th>
@@ -108,10 +135,25 @@
                                 <tbody>
                                     {% for record in recent_checkins %}
                                     <tr>
+                                        <td>
+                                            {% if record.member.photo %}
+                                            <img src="{{ record.member.photo.url }}" alt="" class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                                            {% else %}
+                                            <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                                <span class="text-white small">{{ record.member.first_name|first }}{{ record.member.last_name|first }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </td>
                                         <td>{{ record.member.first_name }} {{ record.member.last_name }}</td>
                                         <td>
                                             {% if record.method == 'qr_scan' %}
                                             <span class="badge bg-success">QR</span>
+                                            {% elif record.method == 'nfc' %}
+                                            <span class="badge bg-purple">NFC</span>
+                                            {% elif record.method == 'kiosk' %}
+                                            <span class="badge bg-warning">Kiosque</span>
+                                            {% elif record.method == 'geo' %}
+                                            <span class="badge bg-info">Geo</span>
                                             {% else %}
                                             <span class="badge bg-info">Manuel</span>
                                             {% endif %}
@@ -120,7 +162,7 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted">Aucune presence enregistree pour cette session.</td>
+                                        <td colspan="4" class="text-center text-muted">Aucune presence enregistree pour cette session.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -186,34 +228,134 @@ function stopScanner() {
     }
 }
 
-function onScanSuccess(decodedText) {
-    // Stop scanner temporarily
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(function() {
-            scannerRunning = false;
-        });
+// Sound feedback (item 23)
+function playSuccessSound() {
+    try {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch(e) {}
+}
+
+function playErrorSound() {
+    try {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    } catch(e) {}
+}
+
+// Visual feedback (item 23)
+function showScanFeedback(message, type) {
+    var feedbackDiv = document.getElementById('scan-feedback');
+    var contentDiv = document.getElementById('scan-feedback-content');
+    feedbackDiv.style.display = 'block';
+
+    if (type === 'success') {
+        contentDiv.className = 'text-center p-3 rounded bg-success text-white';
+        contentDiv.innerHTML = '<i class="bi bi-check-circle fs-3 me-2"></i>' + message;
+        playSuccessSound();
+    } else if (type === 'warning') {
+        contentDiv.className = 'text-center p-3 rounded bg-warning text-dark';
+        contentDiv.innerHTML = '<i class="bi bi-exclamation-triangle fs-3 me-2"></i>' + message;
+    } else {
+        contentDiv.className = 'text-center p-3 rounded bg-danger text-white';
+        contentDiv.innerHTML = '<i class="bi bi-x-circle fs-3 me-2"></i>' + message;
+        playErrorSound();
     }
 
-    var sessionId = document.getElementById('session-select').value || document.getElementById('manual-session-select').value;
+    setTimeout(function() {
+        feedbackDiv.style.display = 'none';
+    }, 3000);
+}
 
-    // Send check-in via fetch
+// Debounce: track recently scanned codes
+var recentScans = {};
+
+function onScanSuccess(decodedText) {
+    // Debounce: skip if same code scanned within 5 seconds
+    var now = Date.now();
+    if (recentScans[decodedText] && (now - recentScans[decodedText]) < 5000) {
+        return;
+    }
+    recentScans[decodedText] = now;
+
+    var sessionId = document.getElementById('session-select').value || document.getElementById('manual-session-select').value;
+    if (!sessionId) {
+        showScanFeedback('Selectionnez une session', 'danger');
+        return;
+    }
+
     var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    fetch('/attendance/scanner/checkin/', {
+    // DO NOT stop the scanner - keep it running for continuous scanning
+    fetch('/attendance/scanner/checkin-ajax/', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        body: 'qr_code=' + encodeURIComponent(decodedText) + '&session_id=' + encodeURIComponent(sessionId)
-    }).then(function(response) {
-        // Redirect to scanner page to see the flash message
-        window.location.href = '/attendance/scanner/';
-    }).catch(function(error) {
-        showScanResult('Erreur de connexion', 'danger');
-        // Restart scanner after error
-        setTimeout(startScanner, 2000);
+        body: JSON.stringify({qr_code: decodedText, session_id: sessionId})
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.status === 'success') {
+            showScanFeedback(data.message, 'success');
+            // Add to recent check-ins table dynamically
+            addToRecentTable(data.member_name, 'QR', data.checked_in_at);
+            updateScanCount(1);
+        } else if (data.status === 'duplicate') {
+            showScanFeedback(data.message, 'warning');
+        } else {
+            showScanFeedback(data.message, 'danger');
+        }
+    })
+    .catch(function(error) {
+        showScanFeedback('Erreur de connexion', 'danger');
     });
+}
+
+var scanCount = 0;
+function updateScanCount(increment) {
+    scanCount += increment;
+    var badge = document.getElementById('scan-count-badge');
+    if (badge) {
+        badge.textContent = scanCount;
+        badge.style.display = 'inline-block';
+    }
+}
+
+function addToRecentTable(memberName, method, time) {
+    var tbody = document.querySelector('#recent-checkins-table tbody');
+    if (!tbody) return;
+    // Remove "no records" row if present
+    var emptyRow = tbody.querySelector('td[colspan]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+
+    var initials = memberName.split(' ').map(function(n) { return n.charAt(0); }).join('');
+    var row = document.createElement('tr');
+    row.className = 'new-checkin-flash';
+    row.innerHTML = '<td><div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center" style="width:32px;height:32px;"><span class="text-white small">' + initials + '</span></div></td>' +
+        '<td>' + memberName + '</td>' +
+        '<td><span class="badge bg-success">QR</span></td>' +
+        '<td>' + time + '</td>';
+    tbody.insertBefore(row, tbody.firstChild);
 }
 
 function showScanResult(message, type) {
@@ -226,6 +368,66 @@ function showScanResult(message, type) {
 // Sync session selects
 document.getElementById('session-select').addEventListener('change', function() {
     document.getElementById('manual-session-select').value = this.value;
+});
+
+// Member Search (item 24)
+var memberSearchTimeout = null;
+document.getElementById('member-search-input').addEventListener('input', function() {
+    clearTimeout(memberSearchTimeout);
+    var q = this.value.trim();
+    if (q.length < 2) {
+        document.getElementById('member-search-results').innerHTML = '';
+        return;
+    }
+    memberSearchTimeout = setTimeout(function() {
+        fetch('/attendance/api/member-search/?q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var html = '';
+            data.results.forEach(function(member) {
+                html += '<div class="d-flex align-items-center p-2 border-bottom member-search-result" style="cursor:pointer;" data-member-id="' + member.id + '">';
+                if (member.photo_url) {
+                    html += '<img src="' + member.photo_url + '" class="rounded-circle me-2" width="32" height="32" style="object-fit:cover;">';
+                } else {
+                    html += '<div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center me-2" style="width:32px;height:32px;"><span class="text-white small">' + member.full_name.charAt(0) + '</span></div>';
+                }
+                html += '<div><strong>' + member.full_name + '</strong><br><small class="text-muted">' + (member.member_number || '') + '</small></div>';
+                html += '</div>';
+            });
+            if (!html && q.length >= 2) {
+                html = '<p class="text-muted text-center mt-2">Aucun resultat</p>';
+            }
+            document.getElementById('member-search-results').innerHTML = html;
+
+            // Add click listeners for manual check-in
+            document.querySelectorAll('.member-search-result').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    var memberId = this.dataset.memberId;
+                    var sessionId = document.getElementById('session-select').value || document.getElementById('manual-session-select').value;
+                    if (!sessionId) {
+                        alert('Veuillez selectionner une session.');
+                        return;
+                    }
+                    // Submit manual check-in through the session detail add-record
+                    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    var formData = new FormData();
+                    formData.append('member_id', memberId);
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+
+                    fetch('/attendance/sessions/' + sessionId + '/add-record/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken },
+                        body: formData,
+                    }).then(function() {
+                        showScanFeedback('Membre enregistre', 'success');
+                        setTimeout(function() { window.location.reload(); }, 1500);
+                    }).catch(function() {
+                        showScanFeedback('Erreur d\'enregistrement', 'danger');
+                    });
+                });
+            });
+        });
+    }, 300);
 });
 </script>
 {% endblock %}

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/songs/">Chants</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">CCLI</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-end gap-2 flex-wrap">
+                            <div>
+                                <label class="form-label small mb-0">Date debut</label>
+                                <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+                            </div>
+                            <div>
+                                <label class="form-label small mb-0">Date fin</label>
+                                <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                            <a href="/worship/ccli-report/" class="btn btn-outline-secondary btn-sm">Reinitialiser</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Rapport d'utilisation CCLI</h4>
+                        <span class="badge badge-info">{{ usage_data|length }} chant{{ usage_data|length|pluralize:"s" }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Artiste</th>
+                                        <th>CCLI #</th>
+                                        <th>Fois jouee</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in usage_data %}
+                                    <tr>
+                                        <td><a href="/worship/songs/{{ item.song.pk }}/" class="fw-bold">{{ item.song.title }}</a></td>
+                                        <td>{{ item.song.artist|default:"-" }}</td>
+                                        <td>{{ item.song.ccli_number }}</td>
+                                        <td><strong>{{ item.play_count }}</strong></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center py-4">Aucune donnee CCLI pour la periode selectionnee.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

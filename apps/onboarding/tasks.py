@@ -43,7 +43,7 @@ def send_form_deadline_reminders():
                 title=f'Rappel: {days_before} jour(s) restant(s)',
                 message=(
                     f'Il vous reste {days_before} jour(s) pour soumettre '
-                    f'votre formulaire d\'adhésion.'
+                    f'votre formulaire d\'adhesion.'
                 ),
                 notification_type='general',
                 link='/onboarding/form/',
@@ -58,6 +58,26 @@ def send_lesson_reminders():
 
     today = timezone.localdate()
 
+    # 5 days before
+    lessons_5d = ScheduledLesson.objects.filter(
+        scheduled_date__date=today + timedelta(days=5),
+        status=LessonStatus.UPCOMING,
+        reminder_5days_sent=False,
+    )
+    for sl in lessons_5d:
+        Notification.objects.create(
+            member=sl.training.member,
+            title='Rappel: Lecon dans 5 jours',
+            message=(
+                f'Lecon "{sl.lesson.title}" prevue le '
+                f'{sl.scheduled_date:%d/%m/%Y a %H:%M}. Presence obligatoire.'
+            ),
+            notification_type='event',
+            link='/onboarding/training/',
+        )
+        sl.reminder_5days_sent = True
+        sl.save(update_fields=['reminder_5days_sent', 'updated_at'])
+
     # 3 days before
     lessons_3d = ScheduledLesson.objects.filter(
         scheduled_date__date=today + timedelta(days=3),
@@ -67,10 +87,10 @@ def send_lesson_reminders():
     for sl in lessons_3d:
         Notification.objects.create(
             member=sl.training.member,
-            title=f'Rappel: Leçon dans 3 jours',
+            title=f'Rappel: Lecon dans 3 jours',
             message=(
-                f'Leçon "{sl.lesson.title}" prévue le '
-                f'{sl.scheduled_date:%d/%m/%Y à %H:%M}. Présence obligatoire.'
+                f'Lecon "{sl.lesson.title}" prevue le '
+                f'{sl.scheduled_date:%d/%m/%Y a %H:%M}. Presence obligatoire.'
             ),
             notification_type='event',
             link='/onboarding/training/',
@@ -87,10 +107,10 @@ def send_lesson_reminders():
     for sl in lessons_1d:
         Notification.objects.create(
             member=sl.training.member,
-            title='Rappel: Leçon DEMAIN',
+            title='Rappel: Lecon DEMAIN',
             message=(
-                f'Leçon "{sl.lesson.title}" demain à '
-                f'{sl.scheduled_date:%H:%M}. Présence obligatoire.'
+                f'Lecon "{sl.lesson.title}" demain a '
+                f'{sl.scheduled_date:%H:%M}. Presence obligatoire.'
             ),
             notification_type='event',
             link='/onboarding/training/',
@@ -107,10 +127,10 @@ def send_lesson_reminders():
     for sl in lessons_today:
         Notification.objects.create(
             member=sl.training.member,
-            title="Rappel: Leçon AUJOURD'HUI",
+            title="Rappel: Lecon AUJOURD'HUI",
             message=(
-                f'Leçon "{sl.lesson.title}" aujourd\'hui à '
-                f'{sl.scheduled_date:%H:%M}. Présence obligatoire.'
+                f'Lecon "{sl.lesson.title}" aujourd\'hui a '
+                f'{sl.scheduled_date:%H:%M}. Presence obligatoire.'
             ),
             notification_type='event',
             link='/onboarding/training/',
@@ -128,6 +148,28 @@ def send_interview_reminders():
 
     active_statuses = [InterviewStatus.CONFIRMED, InterviewStatus.ACCEPTED]
 
+    # 5 days before
+    interviews_5d = Interview.objects.filter(
+        status__in=active_statuses,
+        reminder_5days_sent=False,
+    ).exclude(confirmed_date__isnull=True).filter(
+        confirmed_date__date=today + timedelta(days=5)
+    )
+    for iv in interviews_5d:
+        Notification.objects.create(
+            member=iv.member,
+            title='Rappel: Interview dans 5 jours',
+            message=(
+                f'Votre interview finale est le '
+                f'{iv.final_date:%d/%m/%Y a %H:%M}. '
+                'Presence obligatoire - pas de deuxieme chance.'
+            ),
+            notification_type='event',
+            link='/onboarding/interview/',
+        )
+        iv.reminder_5days_sent = True
+        iv.save(update_fields=['reminder_5days_sent', 'updated_at'])
+
     # 3 days before
     interviews_3d = Interview.objects.filter(
         status__in=active_statuses,
@@ -141,8 +183,8 @@ def send_interview_reminders():
             title='Rappel: Interview dans 3 jours',
             message=(
                 f'Votre interview finale est le '
-                f'{iv.final_date:%d/%m/%Y à %H:%M}. '
-                'Présence obligatoire - pas de deuxième chance.'
+                f'{iv.final_date:%d/%m/%Y a %H:%M}. '
+                'Presence obligatoire - pas de deuxieme chance.'
             ),
             notification_type='event',
             link='/onboarding/interview/',
@@ -162,9 +204,9 @@ def send_interview_reminders():
             member=iv.member,
             title='Rappel: Interview DEMAIN',
             message=(
-                f'Votre interview finale est DEMAIN à '
+                f'Votre interview finale est DEMAIN a '
                 f'{iv.final_date:%H:%M}. '
-                'Présence obligatoire - pas de deuxième chance.'
+                'Presence obligatoire - pas de deuxieme chance.'
             ),
             notification_type='event',
             link='/onboarding/interview/',
@@ -184,12 +226,39 @@ def send_interview_reminders():
             member=iv.member,
             title="Rappel: Interview AUJOURD'HUI",
             message=(
-                f"Votre interview finale est AUJOURD'HUI à "
+                f"Votre interview finale est AUJOURD'HUI a "
                 f'{iv.final_date:%H:%M}. '
-                'Présence obligatoire.'
+                'Presence obligatoire.'
             ),
             notification_type='event',
             link='/onboarding/interview/',
         )
         iv.reminder_sameday_sent = True
         iv.save(update_fields=['reminder_sameday_sent', 'updated_at'])
+
+
+# ─── P1: Welcome Sequence Processing (item 13) ──────────────────────────────
+
+
+@shared_task
+def process_welcome_sequences():
+    """Run daily: advance welcome sequences for all active members."""
+    from .models import WelcomeProgress
+    from .services import OnboardingService
+
+    active_progress = WelcomeProgress.objects.filter(
+        completed_at__isnull=True,
+        is_active=True,
+    ).select_related('member', 'sequence')
+
+    processed = 0
+    for progress in active_progress:
+        step = OnboardingService.advance_welcome_sequence(progress)
+        if step:
+            processed += 1
+            logger.info(
+                f'Welcome step "{step.subject}" sent to {progress.member.full_name}'
+            )
+
+    logger.info(f'{processed} welcome sequence step(s) processed')
+    return processed

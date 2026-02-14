@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Nouvelle sequence{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Nouvelle sequence</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/welcome-sequences/">Sequences</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Creer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Creer une sequence de bienvenue</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% if form.errors %}
+                            <div class="alert alert-danger">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                    <p><strong>{{ field.label }}:</strong> {{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label">Nom</label>
+                                {{ form.name }}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                {{ form.description }}
+                            </div>
+                            <div class="mb-3 form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label">Active</label>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/welcome-sequences/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Creer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <form method="get" class="d-flex gap-2">
+                                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Rechercher...">
+                                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i></button>
+                            </form>
+                            <div class="d-flex gap-2">
+                                <a href="/worship/sermons/archive/" class="btn btn-outline-info btn-sm"><i class="fas fa-archive me-1"></i> Archives</a>
+                                <a href="/worship/sermons/feed/" class="btn btn-outline-warning btn-sm"><i class="fas fa-rss me-1"></i> RSS</a>
+                                {% if is_staff %}
+                                <a href="/worship/sermons/create/" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Nouvelle predication</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Titre</th>
+                                        <th>Predicateur</th>
+                                        <th>Reference</th>
+                                        <th>Serie</th>
+                                        {% if is_staff %}<th>Statut</th>{% endif %}
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sermon in sermons %}
+                                    <tr>
+                                        <td>{{ sermon.date|date:"d/m/Y" }}</td>
+                                        <td><strong>{{ sermon.title }}</strong></td>
+                                        <td>{{ sermon.speaker.full_name|default:"-" }}</td>
+                                        <td>{{ sermon.scripture_reference|default:"-" }}</td>
+                                        <td>{{ sermon.series.title|default:"-" }}</td>
+                                        {% if is_staff %}
+                                        <td>
+                                            {% if sermon.status == 'draft' %}
+                                            <span class="badge badge-secondary">Brouillon</span>
+                                            {% elif sermon.status == 'published' %}
+                                            <span class="badge badge-success">Publie</span>
+                                            {% elif sermon.status == 'archived' %}
+                                            <span class="badge badge-info">Archive</span>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                        <td>
+                                            <a href="/worship/sermons/{{ sermon.pk }}/" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i></a>
+                                            {% if is_staff %}
+                                            <a href="/worship/sermons/{{ sermon.pk }}/edit/" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="7" class="text-center py-4">Aucune predication.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if sermons.has_other_pages %}
+        <div class="row">
+            <div class="col-12 text-center">
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if sermons.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ sermons.previous_page_number }}&q={{ q }}">Precedent</a></li>
+                        {% endif %}
+                        {% for num in sermons.paginator.page_range %}
+                        <li class="page-item {% if sermons.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}&q={{ q }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if sermons.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ sermons.next_page_number }}&q={{ q }}">Suivant</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

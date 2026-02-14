@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/help-requests/prayer/wall/">Prière</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Modération</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Demandes en attente de modération ({{ pending|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Titre</th><th>Description</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for prayer in pending %}
+                        <tr>
+                            <td>{{ prayer.title }}</td>
+                            <td>{{ prayer.description|truncatewords:20 }}</td>
+                            <td>{{ prayer.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <form method="post" action="/help-requests/prayer/{{ prayer.pk }}/moderate/" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fa fa-check"></i> Approuver
+                                    </button>
+                                </form>
+                                <form method="post" action="/help-requests/prayer/{{ prayer.pk }}/moderate/" class="d-inline ms-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fa fa-times"></i> Rejeter
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">Aucune demande en attente.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-4">
+            <a href="/help-requests/prayer/wall/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour au mur de prière
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

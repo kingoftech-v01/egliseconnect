@@ -1,7 +1,11 @@
 """DRF serializers for member API."""
 from rest_framework import serializers
 
-from .models import Member, Family, Group, GroupMembership, DirectoryPrivacy
+from .models import (
+    Member, Family, Group, GroupMembership, DirectoryPrivacy,
+    Child, PastoralCare, BackgroundCheck, CustomField, CustomFieldValue,
+    MemberEngagementScore,
+)
 
 
 class MemberListSerializer(serializers.ModelSerializer):
@@ -364,4 +368,89 @@ class DirectoryPrivacySerializer(serializers.ModelSerializer):
             'show_address',
             'show_birth_date',
             'show_photo',
+        ]
+
+
+class ChildSerializer(serializers.ModelSerializer):
+    """Serializer for child/dependent profiles."""
+
+    full_name = serializers.CharField(read_only=True)
+    age = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Child
+        fields = [
+            'id', 'first_name', 'last_name', 'full_name', 'family',
+            'date_of_birth', 'age', 'allergies', 'medical_notes',
+            'authorized_pickups', 'photo', 'is_active',
+        ]
+
+
+class PastoralCareSerializer(serializers.ModelSerializer):
+    """Serializer for pastoral care records."""
+
+    member_name = serializers.CharField(source='member.full_name', read_only=True)
+    assigned_to_name = serializers.CharField(source='assigned_to.full_name', read_only=True, allow_null=True)
+    care_type_display = serializers.CharField(source='get_care_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = PastoralCare
+        fields = [
+            'id', 'member', 'member_name', 'care_type', 'care_type_display',
+            'assigned_to', 'assigned_to_name', 'date', 'notes',
+            'follow_up_date', 'status', 'status_display', 'is_active',
+        ]
+
+
+class BackgroundCheckSerializer(serializers.ModelSerializer):
+    """Serializer for background check records."""
+
+    member_name = serializers.CharField(source='member.full_name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = BackgroundCheck
+        fields = [
+            'id', 'member', 'member_name', 'status', 'status_display',
+            'check_date', 'expiry_date', 'provider', 'reference_number',
+            'notes', 'is_active',
+        ]
+
+
+class CustomFieldSerializer(serializers.ModelSerializer):
+    """Serializer for custom field definitions."""
+
+    field_type_display = serializers.CharField(source='get_field_type_display', read_only=True)
+
+    class Meta:
+        model = CustomField
+        fields = [
+            'id', 'name', 'field_type', 'field_type_display',
+            'options_json', 'is_required', 'order', 'is_active',
+        ]
+
+
+class CustomFieldValueSerializer(serializers.ModelSerializer):
+    """Serializer for custom field values."""
+
+    field_name = serializers.CharField(source='custom_field.name', read_only=True)
+
+    class Meta:
+        model = CustomFieldValue
+        fields = ['id', 'member', 'custom_field', 'field_name', 'value']
+
+
+class MemberEngagementScoreSerializer(serializers.ModelSerializer):
+    """Serializer for engagement scores."""
+
+    member_name = serializers.CharField(source='member.full_name', read_only=True)
+    level = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = MemberEngagementScore
+        fields = [
+            'id', 'member', 'member_name', 'attendance_score', 'giving_score',
+            'volunteering_score', 'group_score', 'total_score',
+            'calculated_at', 'level',
         ]

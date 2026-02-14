@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <form method="get" class="d-flex gap-2 align-items-end">
+                                {% for field in search_form %}
+                                <div>
+                                    <label class="form-label small mb-0">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% endfor %}
+                                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i></button>
+                            </form>
+                            <div class="d-flex gap-2">
+                                <a href="/worship/songs/most-played/" class="btn btn-outline-info btn-sm"><i class="fas fa-chart-bar me-1"></i> Top chants</a>
+                                <a href="/worship/songs/rotation/" class="btn btn-outline-warning btn-sm"><i class="fas fa-sync me-1"></i> Rotation</a>
+                                <a href="/worship/ccli-report/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-alt me-1"></i> CCLI</a>
+                                {% if is_staff %}
+                                <a href="/worship/songs/create/" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Nouveau chant</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Artiste</th>
+                                        <th>Tonalite</th>
+                                        <th>BPM</th>
+                                        <th>Derniere utilisation</th>
+                                        <th>Fois jouee</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for song in songs %}
+                                    <tr>
+                                        <td><strong>{{ song.title }}</strong></td>
+                                        <td>{{ song.artist|default:"-" }}</td>
+                                        <td>{{ song.song_key|default:"-" }}</td>
+                                        <td>{{ song.bpm|default:"-" }}</td>
+                                        <td>{{ song.last_played|date:"d/m/Y"|default:"Jamais" }}</td>
+                                        <td>{{ song.play_count }}</td>
+                                        <td>
+                                            <a href="/worship/songs/{{ song.pk }}/" class="btn btn-primary btn-sm" title="Detail"><i class="fas fa-eye"></i></a>
+                                            {% if song.chord_chart %}
+                                            <a href="/worship/songs/{{ song.pk }}/chord-chart/" class="btn btn-info btn-sm" title="Grille"><i class="fas fa-music"></i></a>
+                                            {% endif %}
+                                            {% if is_staff %}
+                                            <a href="/worship/songs/{{ song.pk }}/edit/" class="btn btn-warning btn-sm" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="7" class="text-center py-4">Aucun chant enregistre.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

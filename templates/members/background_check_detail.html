@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/background-checks/">Verifications</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Detail</a></li>
+        </ol>
+        <a href="/members/background-checks/{{ check.pk }}/edit/" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-edit me-1"></i>Modifier
+        </a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Verification des antecedents</h4></div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Membre</p>
+                                <strong><a href="/members/{{ check.member.pk }}/">{{ check.member.full_name }}</a></strong>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Statut</p>
+                                {% if check.status == "approved" %}
+                                <span class="badge bg-success">Approuve</span>
+                                {% elif check.status == "pending" %}
+                                <span class="badge bg-warning">En attente</span>
+                                {% elif check.status == "expired" %}
+                                <span class="badge bg-danger">Expire</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ check.get_status_display }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Date de verification</p>
+                                <strong>{{ check.check_date|default:"-" }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Date d'expiration</p>
+                                <strong>
+                                    {{ check.expiry_date|default:"-" }}
+                                    {% if check.is_expired %}<span class="badge bg-danger ms-1">Expire</span>{% endif %}
+                                    {% if check.days_until_expiry is not None and check.days_until_expiry > 0 and check.days_until_expiry <= 30 %}
+                                    <span class="badge bg-warning ms-1">{{ check.days_until_expiry }} jours</span>
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Fournisseur</p>
+                                <strong>{{ check.provider|default:"-" }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Numero de reference</p>
+                                <strong>{{ check.reference_number|default:"-" }}</strong>
+                            </div>
+                        </div>
+                        {% if check.notes %}
+                        <div class="mt-3">
+                            <p class="text-muted mb-1">Notes</p>
+                            <p>{{ check.notes|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

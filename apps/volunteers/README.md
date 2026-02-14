@@ -1,465 +1,563 @@
-# Module Volunteers (Benevolat)
+# Volunteers App
 
-> **Application Django** : `apps.volunteers`
-> **Chemin** : `apps/volunteers/`
+## Overview
 
----
+The Volunteers app coordinates volunteer service within the church. It manages volunteer positions (roles), member availability preferences, scheduled assignments, planned absences, shift swap requests, and automated schedule reminders via Celery tasks. The app provides both a template-based frontend (using the W3CRM/DexignZone theme) and a full Django REST Framework API with four ViewSets.
 
-## Vue d'ensemble
+All models inherit from `BaseModel`, which provides UUID primary keys, `created_at`/`updated_at` timestamps, and an `is_active` soft-flag with `ActiveManager` as the default manager.
 
-### Pour les non-techniques
+## File Structure
 
-Ce module coordonne le service des benevoles au sein de l'eglise. Il permet de :
-
-- **Gerer les postes** de benevolat (accueil, louange, technique, enfants, jeunesse, etc.)
-- **Planifier les horaires** de chaque dimanche ou evenement special
-- **Indiquer sa disponibilite** en fonction de la frequence souhaitee (chaque semaine, aux deux semaines, mensuelle, occasionnelle)
-- **Demander un echange** de quart lorsqu'un benevole ne peut pas assurer sa plage prevue
-
-Les pasteurs et administrateurs creent les postes et assignent les horaires, tandis que les membres consultent leur propre calendrier et gerent leurs disponibilites.
-
-### Pour les techniques
-
-L'application est construite avec Django et Django REST Framework. Elle expose quatre ViewSets REST complets ainsi que quatre vues frontend servies par templates. Les models heritent de `BaseModel` (UUID, `created_at`, `updated_at`, `is_active`). Les constantes de l'application sont centralisees dans `apps.core.constants` (`VolunteerRole`, `ScheduleStatus`, `VolunteerFrequency`). Les permissions sont gerees par les classes `IsMember` et `IsPastorOrAdmin` du module `apps.core.permissions`.
-
----
-
-## Architecture des fichiers
-
-```
+```text
 apps/volunteers/
     __init__.py
-    apps.py
-    models.py              # 4 models
-    serializers.py          # 4 serializers
-    views_api.py            # 4 ViewSets REST
-    views_frontend.py       # 4 vues avec templates
-    urls.py                 # Routage API + frontend
-    admin.py                # Configuration Django Admin
+    admin.py                # Django admin configuration (4 model admins)
+    apps.py                 # AppConfig
+    forms.py                # VolunteerPositionForm, VolunteerScheduleForm, SwapRequestForm
+    models.py               # VolunteerPosition, VolunteerAvailability, VolunteerSchedule, PlannedAbsence, SwapRequest
+    serializers.py          # 4 DRF serializers
+    tasks.py                # Celery task for schedule reminders
+    urls.py                 # Frontend + API URL routing
+    views_api.py            # 4 DRF ViewSets
+    views_frontend.py       # 16 template-based views
     migrations/
         0001_initial.py
     tests/
         __init__.py
-        factories.py        # 4 factories (factory_boy)
-        test_views_api.py   # Tests API complets
-        test_views_frontend.py
-```
+        factories.py        # 5 factories (factory_boy)
+        test_forms.py       # VolunteerPositionForm + VolunteerScheduleForm tests
+        test_models.py      # Model __str__ tests
+        test_tasks.py       # Celery reminder task tests
+        test_views_api.py   # Full API endpoint coverage
+        test_views_frontend.py  # Frontend view tests
 
----
+templates/volunteers/
+    availability_update.html      # Manage availability per position
+    my_schedule.html              # Current user's schedule
+    planned_absence_delete.html   # Delete absence confirmation
+    planned_absence_form.html     # Create/edit planned absence
+    planned_absence_list.html     # List planned absences
+    position_delete.html          # Delete position confirmation
+    position_form.html            # Create/edit position
+    position_list.html            # List active positions
+    schedule_delete.html          # Delete schedule confirmation
+    schedule_form.html            # Create/edit schedule entry
+    schedule_list.html            # Full volunteer schedule
+    swap_request_form.html        # Create swap request
+    swap_request_list.html        # List swap requests
+```
 
 ## Models
 
 ### VolunteerPosition
 
-Represente un poste de benevolat dans un ministere de l'eglise.
+Represents a volunteer role that members can sign up for within a specific ministry area.
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `name` | `CharField(100)` | Nom du poste (ex: "Pianiste", "Son") |
-| `role_type` | `CharField(20)` | Type de ministere (`VolunteerRole.CHOICES`) |
-| `description` | `TextField` | Description detaillee du poste |
-| `min_volunteers` | `PositiveIntegerField` | Nombre minimum de benevoles requis (defaut: 1) |
-| `max_volunteers` | `PositiveIntegerField` | Nombre maximum (optionnel, nullable) |
-| `skills_required` | `TextField` | Competences necessaires |
+| Field | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `UUIDField` | PK, auto-generated | Inherited from BaseModel |
+| `name` | `CharField(100)` | required | Position name (e.g., "Pianist", "Sound Tech") |
+| `role_type` | `CharField(20)` | choices: `VolunteerRole`, required | Ministry area category |
+| `description` | `TextField` | blank | Detailed description of duties |
+| `min_volunteers` | `PositiveIntegerField` | default: `1` | Minimum required volunteers |
+| `max_volunteers` | `PositiveIntegerField` | nullable | Maximum volunteers (None = unlimited) |
+| `skills_required` | `TextField` | blank | Skills or qualifications needed |
+| `created_at` | `DateTimeField` | auto_now_add | Inherited from BaseModel |
+| `updated_at` | `DateTimeField` | auto_now | Inherited from BaseModel |
+| `is_active` | `BooleanField` | default: `True` | Inherited from BaseModel |
 
-**Valeurs possibles pour `role_type`** :
+**VolunteerRole choices:**
 
-| Constante | Valeur | Libelle FR |
-|-----------|--------|------------|
-| `VolunteerRole.WORSHIP` | `'worship'` | Louange |
-| `VolunteerRole.HOSPITALITY` | `'hospitality'` | Accueil |
-| `VolunteerRole.TECHNICAL` | `'technical'` | Technique |
-| `VolunteerRole.CHILDREN` | `'children'` | Enfants |
-| `VolunteerRole.YOUTH` | `'youth'` | Jeunesse |
-| `VolunteerRole.ADMIN` | `'admin'` | Administratif |
-| `VolunteerRole.OUTREACH` | `'outreach'` | Evangelisation |
-| `VolunteerRole.OTHER` | `'other'` | Autre |
+| Constant | Value | French Label |
+| --- | --- | --- |
+| `VolunteerRole.WORSHIP` | `worship` | Louange |
+| `VolunteerRole.HOSPITALITY` | `hospitality` | Accueil |
+| `VolunteerRole.TECHNICAL` | `technical` | Technique |
+| `VolunteerRole.CHILDREN` | `children` | Enfants |
+| `VolunteerRole.YOUTH` | `youth` | Jeunesse |
+| `VolunteerRole.ADMIN` | `admin` | Administration |
+| `VolunteerRole.OUTREACH` | `outreach` | Evangelisation |
+| `VolunteerRole.OTHER` | `other` | Autre |
 
-**Meta** : ordonne par `name`, verbose `"Poste de benevolat"`.
+**Computed properties:**
 
----
+| Property | Return Type | Description |
+| --- | --- | --- |
+| `volunteer_count` | `int` | Count of `available_volunteers` (VolunteerAvailability records) |
+
+**Meta:** ordering = `['name']`, verbose_name = "Poste de benevolat"
 
 ### VolunteerAvailability
 
-Indique la disponibilite d'un membre pour un poste specifique.
+Tracks when a member is available for a specific volunteer position, including preferred frequency.
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `member` | `ForeignKey(Member)` | Membre benevole |
-| `position` | `ForeignKey(VolunteerPosition)` | Poste concerne |
-| `is_available` | `BooleanField` | Disponible ou non (defaut: `True`) |
-| `frequency` | `CharField(20)` | Frequence souhaitee (`VolunteerFrequency.CHOICES`) |
-| `notes` | `TextField` | Commentaires (optionnel) |
+| Field | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `UUIDField` | PK, auto-generated | Inherited from BaseModel |
+| `member` | `ForeignKey(Member)` | `CASCADE` | The volunteer member (related_name: `volunteer_availability`) |
+| `position` | `ForeignKey(VolunteerPosition)` | `CASCADE` | The position (related_name: `available_volunteers`) |
+| `is_available` | `BooleanField` | default: `True` | Whether currently available |
+| `frequency` | `CharField(20)` | choices: `VolunteerFrequency`, default: `monthly` | Preferred service frequency |
+| `notes` | `TextField` | blank | Additional notes |
+| `created_at` | `DateTimeField` | auto_now_add | Inherited from BaseModel |
+| `updated_at` | `DateTimeField` | auto_now | Inherited from BaseModel |
+| `is_active` | `BooleanField` | default: `True` | Inherited from BaseModel |
 
-**Contrainte unique** : `(member, position)` -- un membre ne peut avoir qu'une seule disponibilite par poste.
+**VolunteerFrequency choices:**
 
-**Valeurs possibles pour `frequency`** :
+| Constant | Value | French Label |
+| --- | --- | --- |
+| `VolunteerFrequency.WEEKLY` | `weekly` | Chaque semaine |
+| `VolunteerFrequency.BIWEEKLY` | `biweekly` | Aux deux semaines |
+| `VolunteerFrequency.MONTHLY` | `monthly` | Une fois par mois |
+| `VolunteerFrequency.OCCASIONAL` | `occasional` | Occasionnellement |
 
-| Constante | Valeur | Libelle FR |
-|-----------|--------|------------|
-| `VolunteerFrequency.WEEKLY` | `'weekly'` | Chaque semaine |
-| `VolunteerFrequency.BIWEEKLY` | `'biweekly'` | Aux deux semaines |
-| `VolunteerFrequency.MONTHLY` | `'monthly'` | Une fois par mois |
-| `VolunteerFrequency.OCCASIONAL` | `'occasional'` | Occasionnellement |
+**Constraints:** `unique_together = ['member', 'position']` -- one availability record per member per position.
 
----
+**Meta:** verbose_name = "Disponibilite"
 
 ### VolunteerSchedule
 
-Represente une assignation planifiee d'un benevole a un poste pour une date donnee.
+A scheduled volunteer assignment for a specific date, optionally linked to an event.
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `member` | `ForeignKey(Member)` | Benevole assigne |
-| `position` | `ForeignKey(VolunteerPosition)` | Poste a occuper |
-| `event` | `ForeignKey(Event)` | Evenement lie (optionnel, nullable) |
-| `date` | `DateField` | Date du quart |
-| `status` | `CharField(20)` | Statut de l'assignation (`ScheduleStatus.CHOICES`) |
-| `reminder_sent` | `BooleanField` | Si un rappel a ete envoye (defaut: `False`) |
-| `notes` | `TextField` | Notes additionnelles |
+| Field | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `UUIDField` | PK, auto-generated | Inherited from BaseModel |
+| `member` | `ForeignKey(Member)` | `CASCADE` | Assigned volunteer (related_name: `volunteer_schedules`) |
+| `position` | `ForeignKey(VolunteerPosition)` | `CASCADE` | Position to fill (related_name: `schedules`) |
+| `event` | `ForeignKey(Event)` | nullable, `CASCADE` | Optional linked event (related_name: `volunteer_schedules`) |
+| `date` | `DateField` | required | Date of the assignment |
+| `status` | `CharField(20)` | choices: `ScheduleStatus`, default: `scheduled` | Assignment status |
+| `reminder_sent` | `BooleanField` | default: `False` | Legacy flag -- set to `True` when any reminder is sent |
+| `reminder_5days_sent` | `BooleanField` | default: `False` | 5-day reminder tracking flag |
+| `reminder_3days_sent` | `BooleanField` | default: `False` | 3-day reminder tracking flag |
+| `reminder_1day_sent` | `BooleanField` | default: `False` | 1-day reminder tracking flag |
+| `reminder_sameday_sent` | `BooleanField` | default: `False` | Same-day reminder tracking flag |
+| `notes` | `TextField` | blank | Additional notes |
+| `created_at` | `DateTimeField` | auto_now_add | Inherited from BaseModel |
+| `updated_at` | `DateTimeField` | auto_now | Inherited from BaseModel |
+| `is_active` | `BooleanField` | default: `True` | Inherited from BaseModel |
 
-**Valeurs possibles pour `status`** :
+**ScheduleStatus choices:**
 
-| Constante | Valeur | Libelle FR |
-|-----------|--------|------------|
-| `ScheduleStatus.SCHEDULED` | `'scheduled'` | Planifie |
-| `ScheduleStatus.CONFIRMED` | `'confirmed'` | Confirme |
-| `ScheduleStatus.DECLINED` | `'declined'` | Refuse |
-| `ScheduleStatus.COMPLETED` | `'completed'` | Complete |
-| `ScheduleStatus.NO_SHOW` | `'no_show'` | Absent |
+| Constant | Value | French Label |
+| --- | --- | --- |
+| `ScheduleStatus.SCHEDULED` | `scheduled` | Planifie |
+| `ScheduleStatus.CONFIRMED` | `confirmed` | Confirme |
+| `ScheduleStatus.DECLINED` | `declined` | Refuse |
+| `ScheduleStatus.COMPLETED` | `completed` | Complete |
+| `ScheduleStatus.NO_SHOW` | `no_show` | Absent |
 
-**Meta** : ordonne par `date`.
+**Meta:** ordering = `['date']`, verbose_name = "Horaire"
 
----
+### PlannedAbsence
+
+Pre-declared absence period to prevent scheduling a member during that time.
+
+| Field | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `UUIDField` | PK, auto-generated | Inherited from BaseModel |
+| `member` | `ForeignKey(Member)` | `CASCADE` | Member declaring absence (related_name: `planned_absences`) |
+| `start_date` | `DateField` | required | Absence start date |
+| `end_date` | `DateField` | required | Absence end date |
+| `reason` | `TextField` | blank | Reason for absence |
+| `approved_by` | `ForeignKey(Member)` | nullable, `SET_NULL` | Staff member who approved (related_name: `approved_absences`) |
+| `created_at` | `DateTimeField` | auto_now_add | Inherited from BaseModel |
+| `updated_at` | `DateTimeField` | auto_now | Inherited from BaseModel |
+| `is_active` | `BooleanField` | default: `True` | Inherited from BaseModel |
+
+**Meta:** ordering = `['-start_date']`, verbose_name = "Absence prevue"
 
 ### SwapRequest
 
-Demande d'echange de quart entre deux benevoles.
+Request to swap a scheduled shift with another volunteer.
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `original_schedule` | `ForeignKey(VolunteerSchedule)` | Quart original a echanger |
-| `requested_by` | `ForeignKey(Member)` | Membre qui demande l'echange |
-| `swap_with` | `ForeignKey(Member)` | Membre avec qui echanger (optionnel, nullable) |
-| `status` | `CharField(20)` | `'pending'` / `'approved'` / `'declined'` |
-| `reason` | `TextField` | Raison de la demande |
+| Field | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `UUIDField` | PK, auto-generated | Inherited from BaseModel |
+| `original_schedule` | `ForeignKey(VolunteerSchedule)` | `CASCADE` | The shift to swap (related_name: `swap_requests`) |
+| `requested_by` | `ForeignKey(Member)` | `CASCADE` | Member requesting the swap (related_name: `swap_requests_made`) |
+| `swap_with` | `ForeignKey(Member)` | nullable, `SET_NULL` | Target member for the swap (related_name: `swap_requests_received`) |
+| `status` | `CharField(20)` | choices: `pending`/`approved`/`declined`, default: `pending` | Request status |
+| `reason` | `TextField` | blank | Reason for the swap request |
+| `created_at` | `DateTimeField` | auto_now_add | Inherited from BaseModel |
+| `updated_at` | `DateTimeField` | auto_now | Inherited from BaseModel |
+| `is_active` | `BooleanField` | default: `True` | Inherited from BaseModel |
 
----
+**Meta:** verbose_name = "Demande d'echange"
+
+## Forms
+
+### VolunteerPositionForm
+
+- **Mixin:** `W3CRMFormMixin` (applies DexignZone CSS classes)
+- **Model:** `VolunteerPosition`
+- **Fields:** `name`, `role_type`, `description`, `min_volunteers`, `max_volunteers`, `skills_required`
+- **Widgets:**
+  - `description`: `Textarea` with `rows=3`
+  - `skills_required`: `Textarea` with `rows=3`
+
+### VolunteerScheduleForm
+
+- **Mixin:** `W3CRMFormMixin`
+- **Model:** `VolunteerSchedule`
+- **Fields:** `member`, `position`, `event`, `date`, `status`, `notes`
+- **Widgets:**
+  - `date`: `DateInput` with `type="date"`
+  - `notes`: `Textarea` with `rows=3`
+  - `member`: `Select` with `data-search="true"` attribute
+
+### SwapRequestForm
+
+- **Mixin:** `W3CRMFormMixin`
+- **Model:** `SwapRequest`
+- **Display fields:** `requesting_schedule`, `target_member`, `target_schedule`, `reason`
+- **Custom `__init__`:** Accepts a `member` keyword argument to scope the `requesting_schedule` queryset to the member's future active schedules. The `target_schedule` queryset is dynamically populated based on the selected `target_member` from POST data.
+- **Custom `save`:** Maps form fields to model fields:
+  - `requesting_schedule` -> `original_schedule`
+  - `requesting_schedule.member` -> `requested_by`
+  - `target_member` -> `swap_with`
 
 ## Serializers
 
-Quatre serializers `ModelSerializer` dans `serializers.py` :
+All serializers use `fields = '__all__'`.
 
-| Serializer | Model | Champs supplementaires (read-only) |
-|------------|-------|------------------------------------|
-| `VolunteerPositionSerializer` | `VolunteerPosition` | `role_type_display` |
-| `VolunteerAvailabilitySerializer` | `VolunteerAvailability` | `member_name`, `position_name` |
-| `VolunteerScheduleSerializer` | `VolunteerSchedule` | `member_name`, `position_name`, `status_display` |
-| `SwapRequestSerializer` | `SwapRequest` | `requested_by_name` |
+### VolunteerPositionSerializer
 
-Tous utilisent `fields = '__all__'`.
+| Extra Field | Source | Read-only |
+| --- | --- | --- |
+| `role_type_display` | `get_role_type_display` | yes |
 
----
+### VolunteerAvailabilitySerializer
 
-## Endpoints API REST
+| Extra Field | Source | Read-only |
+| --- | --- | --- |
+| `member_name` | `member.full_name` | yes |
+| `position_name` | `position.name` | yes |
 
-Tous les endpoints sont prefixes par `/api/v1/volunteers/` et utilisent le `DefaultRouter` de DRF.
+### VolunteerScheduleSerializer
+
+| Extra Field | Source | Read-only |
+| --- | --- | --- |
+| `member_name` | `member.full_name` | yes |
+| `position_name` | `position.name` | yes |
+| `status_display` | `get_status_display` | yes |
+
+### SwapRequestSerializer
+
+| Extra Field | Source | Read-only |
+| --- | --- | --- |
+| `requested_by_name` | `requested_by.full_name` | yes |
+
+## API Endpoints
+
+All API endpoints are prefixed with `/api/v1/volunteers/` and use the DRF `DefaultRouter`.
 
 ### VolunteerPositionViewSet
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/volunteers/positions/` | Lister les postes | `IsMember` (authentifie) |
-| `POST` | `/api/v1/volunteers/positions/` | Creer un poste | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/volunteers/positions/{id}/` | Detail d'un poste | `IsMember` |
-| `PUT/PATCH` | `/api/v1/volunteers/positions/{id}/` | Modifier un poste | `IsPastorOrAdmin` |
-| `DELETE` | `/api/v1/volunteers/positions/{id}/` | Supprimer un poste | `IsPastorOrAdmin` |
+Base path: `/api/v1/volunteers/positions/`
 
-**Filtres** : `role_type`, `is_active` (via `DjangoFilterBackend`)
-**Recherche** : `name` (via `SearchFilter`)
+| Method | Endpoint | Action | Permission |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/volunteers/positions/` | List positions | `IsMember` |
+| `POST` | `/api/v1/volunteers/positions/` | Create position | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/volunteers/positions/{id}/` | Retrieve position | `IsMember` |
+| `PUT` | `/api/v1/volunteers/positions/{id}/` | Full update | `IsPastorOrAdmin` |
+| `PATCH` | `/api/v1/volunteers/positions/{id}/` | Partial update | `IsPastorOrAdmin` |
+| `DELETE` | `/api/v1/volunteers/positions/{id}/` | Delete position | `IsPastorOrAdmin` |
+
+- **Filter backends:** `DjangoFilterBackend`, `SearchFilter`
+- **Filterset fields:** `role_type`, `is_active`
+- **Search fields:** `name`
 
 ### VolunteerScheduleViewSet
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/volunteers/schedules/` | Lister tous les horaires | `IsMember` |
-| `POST` | `/api/v1/volunteers/schedules/` | Creer un horaire | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/volunteers/schedules/{id}/` | Detail d'un horaire | `IsMember` |
-| `PUT/PATCH` | `/api/v1/volunteers/schedules/{id}/` | Modifier un horaire | `IsPastorOrAdmin` |
-| `DELETE` | `/api/v1/volunteers/schedules/{id}/` | Supprimer un horaire | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/volunteers/schedules/my-schedule/` | Mon horaire personnel | `IsMember` |
-| `POST` | `/api/v1/volunteers/schedules/{id}/confirm/` | Confirmer une assignation | `IsPastorOrAdmin` |
+Base path: `/api/v1/volunteers/schedules/`
 
-**Filtres** : `position`, `status`, `date`, `member`
-**Tri** : `date` (via `OrderingFilter`)
+| Method | Endpoint | Action | Permission |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/volunteers/schedules/` | List all schedules | `IsMember` |
+| `POST` | `/api/v1/volunteers/schedules/` | Create schedule entry | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/volunteers/schedules/{id}/` | Retrieve schedule | `IsMember` |
+| `PUT` | `/api/v1/volunteers/schedules/{id}/` | Full update | `IsPastorOrAdmin` |
+| `PATCH` | `/api/v1/volunteers/schedules/{id}/` | Partial update | `IsPastorOrAdmin` |
+| `DELETE` | `/api/v1/volunteers/schedules/{id}/` | Delete schedule | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/volunteers/schedules/my-schedule/` | Current user's schedules | `IsMember` |
+| `POST` | `/api/v1/volunteers/schedules/{id}/confirm/` | Set status to `confirmed` | `IsPastorOrAdmin` |
+
+- **Filter backends:** `DjangoFilterBackend`, `OrderingFilter`
+- **Filterset fields:** `position`, `status`, `date`, `member`
+- **Ordering fields:** `date`
+- **Default ordering:** `date` ascending
+- **my-schedule:** Returns 404 with `{'error': 'Profil requis'}` if user has no `member_profile`
 
 ### VolunteerAvailabilityViewSet
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/volunteers/availability/` | Lister les disponibilites | `IsMember` |
-| `POST` | `/api/v1/volunteers/availability/` | Declarer sa disponibilite | `IsMember` |
-| `GET` | `/api/v1/volunteers/availability/{id}/` | Detail | `IsMember` |
-| `PUT/PATCH` | `/api/v1/volunteers/availability/{id}/` | Modifier | `IsMember` |
-| `DELETE` | `/api/v1/volunteers/availability/{id}/` | Supprimer | `IsMember` |
+Base path: `/api/v1/volunteers/availability/`
 
-**Portee (scoping)** : les membres ne voient que leurs propres disponibilites; le staff (`is_staff`) voit tout.
+| Method | Endpoint | Action | Permission |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/volunteers/availability/` | List availability | `IsMember` |
+| `POST` | `/api/v1/volunteers/availability/` | Create availability | `IsMember` |
+| `GET` | `/api/v1/volunteers/availability/{id}/` | Retrieve | `IsMember` |
+| `PUT` | `/api/v1/volunteers/availability/{id}/` | Full update | `IsMember` |
+| `PATCH` | `/api/v1/volunteers/availability/{id}/` | Partial update | `IsMember` |
+| `DELETE` | `/api/v1/volunteers/availability/{id}/` | Delete | `IsMember` |
+
+**Queryset scoping:** Django `is_staff` users see all records. Members see only their own availability. Users without a `member_profile` see an empty queryset.
 
 ### SwapRequestViewSet
 
-| Methode | URL | Action | Permission |
-|---------|-----|--------|------------|
-| `GET` | `/api/v1/volunteers/swap-requests/` | Lister les demandes | `IsMember` |
-| `POST` | `/api/v1/volunteers/swap-requests/` | Creer une demande | `IsMember` |
-| `GET` | `/api/v1/volunteers/swap-requests/{id}/` | Detail | `IsMember` |
-| `PUT/PATCH` | `/api/v1/volunteers/swap-requests/{id}/` | Modifier | `IsMember` |
-| `DELETE` | `/api/v1/volunteers/swap-requests/{id}/` | Supprimer | `IsMember` |
+Base path: `/api/v1/volunteers/swap-requests/`
 
-**Portee (scoping)** : les membres ne voient que les demandes ou ils sont `requested_by` ou `swap_with`. Le staff voit toutes les demandes.
+| Method | Endpoint | Action | Permission |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/volunteers/swap-requests/` | List swap requests | `IsMember` |
+| `POST` | `/api/v1/volunteers/swap-requests/` | Create swap request | `IsMember` |
+| `GET` | `/api/v1/volunteers/swap-requests/{id}/` | Retrieve | `IsMember` |
+| `PUT` | `/api/v1/volunteers/swap-requests/{id}/` | Full update | `IsMember` |
+| `PATCH` | `/api/v1/volunteers/swap-requests/{id}/` | Partial update | `IsMember` |
+| `DELETE` | `/api/v1/volunteers/swap-requests/{id}/` | Delete | `IsMember` |
 
----
+**Queryset scoping:** Django `is_staff` users see all requests. Members see only requests where they are `requested_by` or `swap_with`. Users without a `member_profile` see an empty queryset.
 
-## URLs frontend
+## Frontend URLs
 
-| URL | Vue | Template | Description |
-|-----|-----|----------|-------------|
-| `/volunteers/positions/` | `position_list` | `volunteers/position_list.html` | Liste des postes actifs |
-| `/volunteers/schedule/` | `schedule_list` | `volunteers/schedule_list.html` | Horaire complet de tous les benevoles |
-| `/volunteers/my-schedule/` | `my_schedule` | `volunteers/my_schedule.html` | Mon horaire personnel |
-| `/volunteers/availability/` | `availability_update` | `volunteers/availability_update.html` | Gerer mes disponibilites par poste |
+Base path: `/volunteers/` (namespace: `frontend:volunteers`)
 
-Toutes les vues frontend necessitent `@login_required`. La vue `availability_update` gere le POST pour mettre a jour les disponibilites de chaque poste via `update_or_create`.
+### Position Management
 
----
+| URL Pattern | View Function | Name | Description |
+| --- | --- | --- | --- |
+| `/volunteers/positions/` | `position_list` | `position_list` | List active positions with volunteer counts |
+| `/volunteers/positions/create/` | `position_create` | `position_create` | Create new position (admin/pastor) |
+| `/volunteers/positions/<uuid:pk>/edit/` | `position_update` | `position_update` | Edit position (admin/pastor) |
+| `/volunteers/positions/<uuid:pk>/delete/` | `position_delete` | `position_delete` | Delete position confirmation (admin/pastor) |
+
+### Schedule Management
+
+| URL Pattern | View Function | Name | Description |
+| --- | --- | --- | --- |
+| `/volunteers/schedule/` | `schedule_list` | `schedule_list` | Full schedule with date range filter |
+| `/volunteers/schedule/create/` | `schedule_create` | `schedule_create` | Create schedule entry (admin/pastor) |
+| `/volunteers/schedule/<uuid:pk>/edit/` | `schedule_update` | `schedule_update` | Edit schedule entry (admin/pastor) |
+| `/volunteers/schedule/<uuid:pk>/delete/` | `schedule_delete` | `schedule_delete` | Delete schedule confirmation (admin/pastor) |
+| `/volunteers/my-schedule/` | `my_schedule` | `my_schedule` | Current user's schedule |
+
+### Availability
+
+| URL Pattern | View Function | Name | Description |
+| --- | --- | --- | --- |
+| `/volunteers/availability/` | `availability_update` | `availability_update` | Update availability for each position (GET + POST) |
+
+### Planned Absences
+
+| URL Pattern | View Function | Name | Description |
+| --- | --- | --- | --- |
+| `/volunteers/planned-absences/` | `planned_absence_list` | `planned_absence_list` | List absences (own or all for leaders) |
+| `/volunteers/planned-absences/create/` | `planned_absence_create` | `planned_absence_create` | Declare a new absence |
+| `/volunteers/planned-absences/<uuid:pk>/edit/` | `planned_absence_edit` | `planned_absence_edit` | Edit absence (owner or staff) |
+| `/volunteers/planned-absences/<uuid:pk>/delete/` | `planned_absence_delete` | `planned_absence_delete` | Delete absence (owner or staff) |
+
+### Swap Requests
+
+| URL Pattern | View Function | Name | Description |
+| --- | --- | --- | --- |
+| `/volunteers/swap-requests/` | `swap_request_list` | `swap_request_list` | List swap requests (own or all for staff) |
+| `/volunteers/swap-requests/create/` | `swap_request_create` | `swap_request_create` | Create new swap request |
+
+### View Details
+
+**position_list** -- Displays active positions annotated with `num_volunteers` (count of available volunteers per position).
+
+**schedule_list** -- Displays all active schedules ordered by date. Supports optional `date_from` and `date_to` GET parameters for date range filtering.
+
+**my_schedule** -- Displays the current user's volunteer schedule entries. Requires `member_profile`.
+
+**availability_update** -- GET renders all active positions with the current user's existing availability records. POST iterates over all positions and uses `update_or_create` to set `is_available` (checkbox) and `frequency` (select) per position. Default frequency is `monthly`. Redirects to `my_schedule` on success.
+
+**planned_absence_list** -- Regular members see only their own absences. Users with roles `admin`, `pastor`, `deacon`, or `group_leader` see all active absences.
+
+**planned_absence_create** -- Manual form (no Django Form class). Validates that both dates are provided and `end_date >= start_date`. Creates `PlannedAbsence` for the current member.
+
+**planned_absence_edit** -- Allows the absence owner or staff (`Roles.STAFF_ROLES`) to edit. Same validation as create.
+
+**planned_absence_delete** -- Allows the absence owner or staff to delete. GET shows confirmation, POST performs hard delete.
+
+**swap_request_list** -- Staff sees all active swap requests. Regular members see only requests where they are `requested_by` or `swap_with`.
+
+**swap_request_create** -- Renders `SwapRequestForm` scoped to the current member's future schedules.
 
 ## Templates
 
-| Template | Description |
-|----------|-------------|
-| `volunteers/position_list.html` | Affiche les postes actifs avec type, description et nombre requis |
-| `volunteers/schedule_list.html` | Tableau des horaires (date, membre, poste, statut) |
-| `volunteers/my_schedule.html` | Horaire filtre pour le membre connecte |
-| `volunteers/availability_update.html` | Formulaire avec checkbox par poste + selection de frequence |
+| Template | Used By | Description |
+| --- | --- | --- |
+| `templates/volunteers/position_list.html` | `position_list` | Active positions with role type, description, and volunteer count |
+| `templates/volunteers/position_form.html` | `position_create`, `position_update` | Shared create/edit form for positions |
+| `templates/volunteers/position_delete.html` | `position_delete` | Delete position confirmation |
+| `templates/volunteers/schedule_list.html` | `schedule_list` | Full schedule table (date, member, position, status) with date filters |
+| `templates/volunteers/schedule_form.html` | `schedule_create`, `schedule_update` | Shared create/edit form for schedule entries |
+| `templates/volunteers/schedule_delete.html` | `schedule_delete` | Delete schedule confirmation |
+| `templates/volunteers/my_schedule.html` | `my_schedule` | Current user's schedule entries |
+| `templates/volunteers/availability_update.html` | `availability_update` | Checkbox per position + frequency dropdown |
+| `templates/volunteers/planned_absence_list.html` | `planned_absence_list` | List of planned absences with dates and reason |
+| `templates/volunteers/planned_absence_form.html` | `planned_absence_create`, `planned_absence_edit` | Shared create/edit absence form |
+| `templates/volunteers/planned_absence_delete.html` | `planned_absence_delete` | Delete absence confirmation |
+| `templates/volunteers/swap_request_list.html` | `swap_request_list` | List of swap requests with status |
+| `templates/volunteers/swap_request_form.html` | `swap_request_create` | Swap request creation form |
 
----
+All templates extend `base.html` and use the W3CRM/DexignZone template system. Templates are located in the global `templates/volunteers/` directory, not inside the app directory.
 
-## Administration Django
+## Celery Tasks
 
-Quatre classes d'administration enregistrees dans `admin.py` :
+### send_volunteer_schedule_reminders
 
-| Admin Class | Colonnes affichees | Filtres |
-|-------------|-------------------|---------|
-| `VolunteerPositionAdmin` | name, role_type, min/max_volunteers, is_active | role_type, is_active |
-| `VolunteerAvailabilityAdmin` | member, position, is_available, frequency | position, is_available, frequency |
-| `VolunteerScheduleAdmin` | member, position, date, status, reminder_sent | position, status, date |
-| `SwapRequestAdmin` | original_schedule, requested_by, swap_with, status | status |
+Located in `apps/volunteers/tasks.py`. A `@shared_task` that sends progressive reminders for upcoming volunteer schedules.
 
-`VolunteerScheduleAdmin` dispose egalement de `date_hierarchy = 'date'` pour la navigation par date. Les champs `member`, `position` et `event` utilisent `autocomplete_fields`.
+**Reminder windows:**
 
----
+| Days Until Schedule | Flag Set | Message Content |
+| --- | --- | --- |
+| <= 5 days | `reminder_5days_sent` | "dans 5 jours" |
+| <= 3 days | `reminder_3days_sent` | "dans 3 jours" |
+| <= 1 day | `reminder_1day_sent` | "DEMAIN" |
+| 0 (same day) | `reminder_sameday_sent` | "C'est aujourd'hui!" |
 
-## Permissions
+**Behavior:**
 
-| Role | Consulter postes | Creer/modifier postes | Consulter horaires | Creer/modifier horaires | Gerer ses disponibilites | Demandes d'echange |
-|------|------------------|-----------------------|--------------------|------------------------|--------------------------|---------------------|
-| **Membre** | Oui | Non | Oui (tous) | Non | Oui (les siennes) | Oui (les siennes) |
-| **Responsable de groupe** | Oui | Non | Oui | Non | Oui | Oui |
-| **Pasteur / Admin** | Oui | Oui | Oui | Oui | Oui (toutes) | Oui (toutes) |
-| **Staff (is_staff)** | Selon role | Selon role | Selon role | Selon role | Oui (toutes) | Oui (toutes) |
+- Queries `VolunteerSchedule` records with `date >= today` and status in `[SCHEDULED, CONFIRMED]`
+- Checks each reminder flag in order (5d, 3d, 1d, same-day) and sends the first unsent one
+- Creates a `Notification` record (from `apps.communication.models`) with:
+  - `notification_type = 'volunteer'`
+  - `link = '/volunteers/'`
+  - `title = 'Rappel de benevolat'`
+- Sets `reminder_sent = True` (legacy flag) along with the specific window flag
+- Returns the total count of reminders sent
+- Skips `DECLINED`, `COMPLETED`, and `NO_SHOW` statuses
+- Skips schedules with dates in the past
 
----
+## Admin Configuration
 
-## Exemples d'utilisation
+### VolunteerPositionAdmin
 
-### API : Creer un poste de benevolat (Pasteur)
+- **Extends:** `BaseModelAdmin`
+- **list_display:** `name`, `role_type`, `min_volunteers`, `max_volunteers`, `is_active`
+- **list_filter:** `role_type`, `is_active`
+- **search_fields:** `name`
 
-```bash
-curl -X POST /api/v1/volunteers/positions/ \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Pianiste",
-    "role_type": "worship",
-    "description": "Accompagnement musical au piano",
-    "min_volunteers": 1,
-    "max_volunteers": 2,
-    "skills_required": "Piano, lecture de partitions"
-  }'
-```
+### VolunteerAvailabilityAdmin
 
-**Reponse** (`201 Created`) :
-```json
-{
-  "id": "a1b2c3d4-...",
-  "name": "Pianiste",
-  "role_type": "worship",
-  "role_type_display": "Louange",
-  "description": "Accompagnement musical au piano",
-  "min_volunteers": 1,
-  "max_volunteers": 2,
-  "skills_required": "Piano, lecture de partitions",
-  "is_active": true,
-  "created_at": "2026-01-15T10:00:00Z",
-  "updated_at": "2026-01-15T10:00:00Z"
-}
-```
+- **Extends:** `BaseModelAdmin`
+- **list_display:** `member`, `position`, `is_available`, `frequency`
+- **list_filter:** `position`, `is_available`, `frequency`
+- **autocomplete_fields:** `member`, `position`
 
-### API : Consulter mon horaire
+### VolunteerScheduleAdmin
 
-```bash
-curl -X GET /api/v1/volunteers/schedules/my-schedule/ \
-  -H "Authorization: Bearer <token>"
-```
+- **Extends:** `BaseModelAdmin`
+- **list_display:** `member`, `position`, `date`, `status`, `reminder_sent`
+- **list_filter:** `position`, `status`, `date`
+- **autocomplete_fields:** `member`, `position`, `event`
+- **date_hierarchy:** `date`
 
-**Reponse** (`200 OK`) :
-```json
-[
-  {
-    "id": "...",
-    "member": "...",
-    "member_name": "Jean Tremblay",
-    "position": "...",
-    "position_name": "Pianiste",
-    "date": "2026-02-09",
-    "status": "scheduled",
-    "status_display": "Planifie",
-    "reminder_sent": false,
-    "notes": ""
-  }
-]
-```
+### SwapRequestAdmin
 
-### API : Creer une demande d'echange
+- **Extends:** `BaseModelAdmin`
+- **list_display:** `original_schedule`, `requested_by`, `swap_with`, `status`
+- **list_filter:** `status`
 
-```bash
-curl -X POST /api/v1/volunteers/swap-requests/ \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "original_schedule": "<schedule-uuid>",
-    "requested_by": "<member-uuid>",
-    "swap_with": "<autre-member-uuid>",
-    "reason": "Conflit avec un rendez-vous medical"
-  }'
-```
+## Permissions Matrix
 
-### API : Filtrer les postes par type
+### Frontend Views
 
-```bash
-# Postes d'accueil uniquement
-curl -X GET "/api/v1/volunteers/positions/?role_type=hospitality" \
-  -H "Authorization: Bearer <token>"
+| View | Authentication | Role Required | Notes |
+| --- | --- | --- | --- |
+| `position_list` | `@login_required` | Any authenticated | Shows active positions only |
+| `position_create` | `@login_required` | Admin or Pastor | Redirects others to `/` |
+| `position_update` | `@login_required` | Admin or Pastor | Redirects others to `/` |
+| `position_delete` | `@login_required` | Admin or Pastor | Redirects others to `/` |
+| `schedule_list` | `@login_required` | Any authenticated | Shows active schedules |
+| `schedule_create` | `@login_required` | Admin or Pastor | Redirects others to `/` |
+| `schedule_update` | `@login_required` | Admin or Pastor | Redirects others to `/` |
+| `schedule_delete` | `@login_required` | Admin or Pastor | Redirects others to `/` |
+| `my_schedule` | `@login_required` | Any with member profile | Requires `member_profile` |
+| `availability_update` | `@login_required` | Any with member profile | Requires `member_profile` |
+| `planned_absence_list` | `@login_required` | Any with member profile | Leaders see all; members see own |
+| `planned_absence_create` | `@login_required` | Any with member profile | Creates for current member |
+| `planned_absence_edit` | `@login_required` | Owner or Staff | `Roles.STAFF_ROLES` can edit any |
+| `planned_absence_delete` | `@login_required` | Owner or Staff | `Roles.STAFF_ROLES` can delete any |
+| `swap_request_list` | `@login_required` | Any with member profile | Staff sees all; members see own |
+| `swap_request_create` | `@login_required` | Any with member profile | Scoped to member's schedules |
 
-# Recherche par nom
-curl -X GET "/api/v1/volunteers/positions/?search=Piano" \
-  -H "Authorization: Bearer <token>"
-```
+### API Views
 
-### API : Confirmer une assignation (Pasteur)
+| ViewSet | Read Actions | Write Actions |
+| --- | --- | --- |
+| `VolunteerPositionViewSet` | `IsMember` (list, retrieve) | `IsPastorOrAdmin` (create, update, delete) |
+| `VolunteerScheduleViewSet` | `IsMember` (list, retrieve, my_schedule) | `IsPastorOrAdmin` (create, update, delete, confirm) |
+| `VolunteerAvailabilityViewSet` | `IsMember` (all CRUD, scoped by user) | `IsMember` (all CRUD, scoped by user) |
+| `SwapRequestViewSet` | `IsMember` (all CRUD, scoped by user) | `IsMember` (all CRUD, scoped by user) |
 
-```bash
-curl -X POST /api/v1/volunteers/schedules/<schedule-id>/confirm/ \
-  -H "Authorization: Bearer <token>"
-```
+**Note:** `IsMember` only checks `request.user.is_authenticated`. `IsPastorOrAdmin` checks for membership in `Roles.STAFF_ROLES` (deacon, pastor, admin) or Django `is_staff`/`is_superuser`.
 
----
+## Dependencies
+
+| Dependency | Usage |
+| --- | --- |
+| `apps.core.models.BaseModel` | Model inheritance (UUID PK, timestamps, `is_active`) |
+| `apps.core.constants` | `VolunteerRole`, `ScheduleStatus`, `VolunteerFrequency`, `Roles` |
+| `apps.core.permissions` | `IsMember`, `IsPastorOrAdmin` |
+| `apps.core.mixins` | `W3CRMFormMixin` (for form styling) |
+| `apps.members.Member` | Foreign key target for all member references |
+| `apps.events.Event` | Optional FK in `VolunteerSchedule` |
+| `apps.communication.models.Notification` | Created by the Celery reminder task |
+| `djangorestframework` | API ViewSets, serializers, permissions |
+| `django-filter` | `DjangoFilterBackend` for API filtering |
+| `celery` | `@shared_task` for schedule reminders |
 
 ## Tests
 
-Les tests utilisent `pytest` avec le plugin `pytest-django` et `factory_boy` pour la generation de donnees.
+Test framework: **pytest** with `pytest-django` and `factory_boy`.
 
-### Factories disponibles
+### Test Files
 
-| Factory | Model | Valeurs par defaut |
-|---------|-------|--------------------|
-| `VolunteerPositionFactory` | `VolunteerPosition` | role_type=WORSHIP, min_volunteers=1 |
-| `VolunteerAvailabilityFactory` | `VolunteerAvailability` | is_available=True, frequency=MONTHLY |
-| `VolunteerScheduleFactory` | `VolunteerSchedule` | date=aujourd'hui+7 jours, status=SCHEDULED |
-| `SwapRequestFactory` | `SwapRequest` | status='pending' |
+| File | Test Classes | Coverage Area |
+| --- | --- | --- |
+| `tests/factories.py` | `VolunteerPositionFactory`, `VolunteerAvailabilityFactory`, `VolunteerScheduleFactory`, `PlannedAbsenceFactory`, `SwapRequestFactory` | Factory Boy factories for all 5 models |
+| `tests/test_models.py` | `TestVolunteerPositionStr` (2 tests), `TestVolunteerScheduleStr` (2 tests), `TestPlannedAbsenceStr` (1 test) | `__str__` methods for Position, Schedule, and PlannedAbsence |
+| `tests/test_forms.py` | `TestVolunteerPositionForm` (6 tests), `TestVolunteerScheduleForm` (7 tests) | Validation, required fields, optional fields, save/update |
+| `tests/test_views_frontend.py` | `TestPositionList` (5 tests), `TestScheduleList` (5 tests), `TestMySchedule` (4 tests), `TestAvailabilityUpdate` (9 tests), `TestPlannedAbsenceList` (5 tests), `TestPlannedAbsenceCreate` (5 tests), `TestPositionCreate` (7 tests), `TestPositionUpdate` (7 tests), `TestPositionDelete` (7 tests), `TestScheduleCreate` (6 tests), `TestScheduleUpdate` (7 tests), `TestScheduleDelete` (7 tests) | Auth enforcement, role-based permissions, CRUD, filtering, scoping, 404 handling |
+| `tests/test_views_api.py` | `TestVolunteerPositionList` (4 tests), `TestVolunteerPositionRetrieve` (2 tests), `TestVolunteerPositionCreate` (2 tests), `TestVolunteerPositionUpdate` (2 tests), `TestVolunteerPositionDelete` (2 tests), `TestVolunteerScheduleList` (4 tests), `TestVolunteerScheduleRetrieve` (1 test), `TestVolunteerScheduleCreate` (2 tests), `TestVolunteerScheduleMySchedule` (3 tests), `TestVolunteerScheduleConfirm` (2 tests), `TestVolunteerScheduleUpdateDelete` (3 tests), `TestVolunteerAvailabilityList` (4 tests), `TestVolunteerAvailabilityCRUD` (4 tests), `TestSwapRequestList` (6 tests), `TestSwapRequestCRUD` (4 tests) | Full API coverage: CRUD, filters, search, ordering, custom actions, scoping, permissions |
+| `tests/test_tasks.py` | `TestSendVolunteerScheduleReminders` (15 tests) | All reminder windows (5d, 3d, 1d, same-day), duplicate prevention, status filtering, notification content, past schedule exclusion, multi-schedule processing |
 
-### Executer les tests
+### Key Test Scenarios
+
+- **Authentication:** All views and endpoints redirect unauthenticated users to `/accounts/login/` or return 403
+- **Role-based access:** Regular members cannot create/update/delete positions or schedules; admin/pastor can
+- **No member profile:** Users without `member_profile` are redirected to `/` on frontend or return appropriate errors on API
+- **Queryset scoping:** Members see only their own availability and swap requests; staff sees all
+- **Availability update:** Checkbox-based `update_or_create` pattern correctly sets `is_available` and `frequency` per position
+- **Planned absence validation:** Missing dates and `end_date < start_date` are rejected
+- **Planned absence ownership:** Only the owner or staff roles can edit/delete
+- **Swap request scoping:** Members see requests where they are `requested_by` or `swap_with`
+- **Schedule confirm:** POST to `confirm` action sets status to `confirmed`
+- **Only active records shown:** `is_active=False` positions and schedules are excluded from frontend lists
+- **Reminder task:** Sends correct messages at each window, prevents duplicate sends, skips declined/completed/past schedules, creates Notification records with correct type and link
+- **404 handling:** Nonexistent UUIDs return 404
+
+### Running Tests
 
 ```bash
-# Tous les tests du module volunteers
+# All volunteers tests
 pytest apps/volunteers/ -v
 
-# Tests API seulement
-pytest apps/volunteers/tests/test_views_api.py -v
-
-# Tests frontend seulement
+# By category
+pytest apps/volunteers/tests/test_models.py -v
+pytest apps/volunteers/tests/test_forms.py -v
 pytest apps/volunteers/tests/test_views_frontend.py -v
+pytest apps/volunteers/tests/test_views_api.py -v
+pytest apps/volunteers/tests/test_tasks.py -v
 
-# Un test specifique
-pytest apps/volunteers/tests/test_views_api.py::TestVolunteerPositionCreate -v
+# Specific test class
+pytest apps/volunteers/tests/test_tasks.py::TestSendVolunteerScheduleReminders -v
 ```
-
-### Couverture des tests API
-
-Les tests couvrent les scenarios suivants :
-
-- **VolunteerPositionViewSet** : list, retrieve, create, update, delete, filtrage par `role_type`, recherche par `name`, verification des permissions (membre vs pasteur)
-- **VolunteerScheduleViewSet** : list, retrieve, create, update, delete, `my-schedule`, `confirm`, filtrage par `status`, tri par `date`, gestion du profil manquant
-- **VolunteerAvailabilityViewSet** : CRUD complet, scoping (membre voit les siennes, staff voit tout), utilisateur sans profil
-- **SwapRequestViewSet** : CRUD complet, scoping (`requested_by` + `swap_with`), staff voit tout
-
----
-
-## Dependances
-
-| Dependance | Utilisation |
-|------------|-------------|
-| `apps.core.models.BaseModel` | Heritage des models (UUID, timestamps, is_active) |
-| `apps.core.constants` | `VolunteerRole`, `ScheduleStatus`, `VolunteerFrequency` |
-| `apps.core.permissions` | `IsMember`, `IsPastorOrAdmin` |
-| `apps.members.Member` | FK vers le membre benevole |
-| `apps.events.Event` | FK optionnelle vers l'evenement lie |
-| `django-filter` | Filtrage des endpoints API |
-
----
-
-## Recent Additions
-
-### PlannedAbsence Model
-
-Allows members to declare planned absences from volunteer duties.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `member` | ForeignKey → Member | Member declaring absence |
-| `start_date` | DateField | Absence start |
-| `end_date` | DateField | Absence end |
-| `reason` | TextField | Reason (optional) |
-| `approved_by` | ForeignKey → Member | Approver (nullable) |
-
-Ordering: `['-start_date']`.
-
-### New Forms
-- `VolunteerPositionForm` — Fields: `name`, `role_type`, `description`, `min_volunteers`, `max_volunteers`, `skills_required`
-- `VolunteerScheduleForm` — Fields: `member`, `position`, `event`, `date`, `status`, `notes` (DateInput widget)
-
-### New Frontend Views (8 views)
-
-**Position CRUD:**
-- `position_create` — `/volunteers/positions/create/` — Create position (admin/pastor)
-- `position_update` — `/volunteers/positions/<pk>/edit/` — Edit position (admin/pastor)
-- `position_delete` — `/volunteers/positions/<pk>/delete/` — Delete position (admin/pastor)
-
-**Schedule CRUD:**
-- `schedule_create` — `/volunteers/schedule/create/` — Create schedule (admin/pastor)
-- `schedule_update` — `/volunteers/schedule/<pk>/edit/` — Edit schedule (admin/pastor)
-- `schedule_delete` — `/volunteers/schedule/<pk>/delete/` — Delete schedule (admin/pastor)
-
-**Planned Absences:**
-- `planned_absence_list` — `/volunteers/planned-absences/` — List absences
-- `planned_absence_create` — `/volunteers/planned-absences/create/` — Create absence
-
-### New Templates
-- `position_form.html` — Create/update position form
-- `position_delete.html` — Delete position confirmation
-- `schedule_form.html` — Create/update schedule form
-- `schedule_delete.html` — Delete schedule confirmation
-- `planned_absence_form.html` — Create planned absence form
-- `planned_absence_list.html` — List member's absences
-
-### Celery Tasks
-- `send_volunteer_schedule_reminders()` — Sends 5d/3d/1d/same-day reminders for volunteer schedules using per-schedule tracking flags

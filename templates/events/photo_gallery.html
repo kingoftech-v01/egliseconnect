@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/events/">Événements</a></li>
+            <li class="breadcrumb-item"><a href="/events/{{ event.pk }}/">{{ event.title }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Photos</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Upload Form -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Téléverser une photo</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/events/{{ event.pk }}/photos/upload/" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="row g-3 align-items-end">
+                                {% for field in form %}
+                                <div class="col-md-{% if forloop.first %}6{% else %}4{% endif %}">
+                                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% endfor %}
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="fas fa-upload me-1"></i>Envoyer
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Gallery -->
+        <div class="row">
+            {% for photo in photos %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card h-auto">
+                    <img src="{{ photo.image.url }}" class="card-img-top" alt="{{ photo.caption }}">
+                    <div class="card-body">
+                        {% if photo.caption %}
+                        <p class="card-text">{{ photo.caption }}</p>
+                        {% endif %}
+                        <small class="text-muted">
+                            {% if photo.uploaded_by %}Par {{ photo.uploaded_by.full_name }}{% endif %}
+                            | {{ photo.created_at|date:"d/m/Y" }}
+                        </small>
+                        {% if is_staff and not photo.is_approved %}
+                        <form method="post" action="/events/{{ event.pk }}/photos/{{ photo.pk }}/approve/" class="mt-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-xs">
+                                <i class="fas fa-check me-1"></i>Approuver
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if is_staff and not photo.is_approved %}
+                        <span class="badge badge-warning light mt-1">En attente d'approbation</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body text-center py-4">
+                        <p class="mb-0">Aucune photo pour cet événement.</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="/events/{{ event.pk }}/" class="btn btn-outline-secondary btn-sm mt-3">
+            <i class="fas fa-arrow-left me-1"></i>Retour à l'événement
+        </a>
+    </div>
+</div>
+{% endblock %}

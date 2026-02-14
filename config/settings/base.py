@@ -42,6 +42,10 @@ THIRD_PARTY_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.mfa',
+    # Real-time & integrations
+    'channels',
+    'oauth2_provider',
+    'waffle',
 ]
 
 LOCAL_APPS = [
@@ -75,6 +79,8 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'apps.core.middleware.TwoFactorEnforcementMiddleware',
     'apps.core.middleware.MembershipAccessMiddleware',
+    'waffle.middleware.WaffleMiddleware',
+    'apps.core.middleware_api.APIDeprecationHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -92,12 +98,21 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'custom_context_processor.dz_static',
+                'apps.core.context_processors.branding',
+                'apps.core.context_processors.language_context',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 DATABASES = {
@@ -213,6 +228,14 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '20/minute',
         'user': '100/minute',
+        'burst': '30/minute',
+        'sustained': '1000/day',
+        'anon_burst': '10/minute',
+        'anon_sustained': '200/day',
+        'login': '5/minute',
+        'webhook': '60/minute',
+        'export': '10/hour',
+        'search': '60/minute',
     },
 }
 
@@ -259,6 +282,19 @@ CHURCH_REGISTRATION_NUMBER = env('CHURCH_REGISTRATION_NUMBER', default='')  # CR
 STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY', default='')
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
+
+# Twilio SMS
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='')
+TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='')
+
+# Coinbase Commerce (Crypto)
+COINBASE_COMMERCE_API_KEY = env('COINBASE_COMMERCE_API_KEY', default='')
+
+# Web Push (VAPID)
+VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')
+VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='')
 
 MEMBER_ROLES = [
     ('member', 'Membre'),

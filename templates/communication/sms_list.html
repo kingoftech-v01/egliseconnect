@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        <div>
+                            <a href="/communication/sms/templates/" class="btn btn-outline-secondary btn-sm me-2">
+                                <i class="fa fa-file-alt me-1"></i> Modeles
+                            </a>
+                            <a href="/communication/sms/compose/" class="btn btn-primary btn-sm">
+                                <i class="fa fa-plus me-1"></i> Composer un SMS
+                            </a>
+                        </div>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Destinataire</th>
+                                <th>Telephone</th>
+                                <th>Message</th>
+                                <th>Statut</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sms in sms_messages %}
+                            <tr>
+                                <td>{{ sms.recipient_member.full_name|default:"-" }}</td>
+                                <td>{{ sms.phone_number }}</td>
+                                <td>{{ sms.body|truncatewords:10 }}</td>
+                                <td>
+                                    {% if sms.status == 'delivered' %}
+                                        <span class="badge badge-success">Livre</span>
+                                    {% elif sms.status == 'sent' %}
+                                        <span class="badge badge-info">Envoye</span>
+                                    {% elif sms.status == 'failed' %}
+                                        <span class="badge badge-danger">Echec</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ sms.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ sms.created_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Aucun SMS envoye.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

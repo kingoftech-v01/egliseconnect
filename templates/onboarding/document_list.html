@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Documents a signer{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Documents a signer</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/dashboard/">Mon parcours</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Documents</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 mx-auto">
+                {% for item in doc_status %}
+                <div class="card mb-3">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">
+                                {% if item.signed %}
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                {% else %}
+                                <i class="fas fa-file-signature text-warning me-2"></i>
+                                {% endif %}
+                                {{ item.document.title }}
+                            </h5>
+                            <span class="badge bg-{{ item.document.get_document_type_display|lower }}">{{ item.document.get_document_type_display }}</span>
+                            {% if item.signed %}
+                            <span class="badge bg-success ms-1">Signe</span>
+                            {% else %}
+                            <span class="badge bg-warning ms-1">En attente</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if item.signed %}
+                            <span class="text-success"><i class="fas fa-check me-1"></i>Signe</span>
+                            {% else %}
+                            <a href="/onboarding/documents/{{ item.document.pk }}/sign/" class="btn btn-primary btn-sm">
+                                <i class="fas fa-pen me-1"></i>Signer
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-file-alt text-muted mb-3" style="font-size:3rem;"></i>
+                        <h5 class="text-muted">Aucun document a signer</h5>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

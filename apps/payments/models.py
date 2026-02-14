@@ -1,10 +1,10 @@
-"""Payment models for Stripe integration."""
+"""Payment models for Stripe integration, giving statements, goals, SMS donations, kiosk, etc."""
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.core.models import BaseModel
-from apps.core.constants import DonationType
+from apps.core.constants import DonationType, PaymentPlanStatus, PledgeFrequency
 
 
 class PaymentStatus:
@@ -33,6 +33,31 @@ class RecurringFrequency:
         (WEEKLY, _('Hebdomadaire')),
         (MONTHLY, _('Mensuel')),
     ]
+
+
+class StatementType:
+    QUARTERLY = 'quarterly'
+    ANNUAL = 'annual'
+
+    CHOICES = [
+        (QUARTERLY, _('Trimestriel')),
+        (ANNUAL, _('Annuel')),
+    ]
+
+
+class CurrencyChoices:
+    CAD = 'CAD'
+    USD = 'USD'
+    EUR = 'EUR'
+
+    CHOICES = [
+        (CAD, 'CAD - Dollar canadien'),
+        (USD, 'USD - Dollar américain'),
+        (EUR, 'EUR - Euro'),
+    ]
+
+
+# ─── Existing models ────────────────────────────────────────────────────────────
 
 
 class StripeCustomer(BaseModel):
@@ -116,6 +141,13 @@ class OnlinePayment(BaseModel):
         blank=True,
         verbose_name=_('URL du reçu Stripe')
     )
+    payment_method_type = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        verbose_name=_('Méthode de paiement'),
+        help_text=_('card, apple_pay, google_pay, ach_debit, etc.')
+    )
 
     class Meta:
         verbose_name = _('Paiement en ligne')
@@ -196,3 +228,391 @@ class RecurringDonation(BaseModel):
     @property
     def amount_display(self):
         return f'{self.amount:.2f} {self.currency}'
+
+
+# ─── P1: Giving Statements ──────────────────────────────────────────────────────
+
+
+class GivingStatement(BaseModel):
+    """Tax giving statement for a member covering a time period."""
+    member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='giving_statements',
+        verbose_name=_('Membre')
+    )
+    period_start = models.DateField(
+        verbose_name=_('Début de la période')
+    )
+    period_end = models.DateField(
+        verbose_name=_('Fin de la période')
+    )
+    statement_type = models.CharField(
+        max_length=20,
+        choices=StatementType.CHOICES,
+        default=StatementType.ANNUAL,
+        verbose_name=_('Type de relevé')
+    )
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Montant total')
+    )
+    generated_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Généré le')
+    )
+    pdf_file = models.FileField(
+        upload_to='statements/%Y/',
+        blank=True,
+        null=True,
+        verbose_name=_('Fichier PDF')
+    )
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Envoyé le')
+    )
+
+    class Meta:
+        verbose_name = _('Relevé de dons')
+        verbose_name_plural = _('Relevés de dons')
+        ordering = ['-period_end', '-generated_at']
+        unique_together = ['member', 'period_start', 'period_end', 'statement_type']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.get_statement_type_display()} ({self.period_start} à {self.period_end})'
+
+    @property
+    def is_sent(self):
+        return self.sent_at is not None
+
+
+# ─── P1: Giving Goals ───────────────────────────────────────────────────────────
+
+
+class GivingGoal(BaseModel):
+    """Annual giving goal for a member."""
+    member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='giving_goals',
+        verbose_name=_('Membre')
+    )
+    year = models.IntegerField(
+        verbose_name=_('Année')
+    )
+    target_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name=_('Montant cible')
+    )
+
+    class Meta:
+        verbose_name = _('Objectif de don')
+        verbose_name_plural = _('Objectifs de don')
+        unique_together = ['member', 'year']
+        ordering = ['-year']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.year}: {self.target_amount}'
+
+
+# ─── P2: SMS Donations ──────────────────────────────────────────────────────────
+
+
+class SMSDonation(BaseModel):
+    """Donation initiated via SMS text-to-give."""
+    phone_number = models.CharField(
+        max_length=20,
+        verbose_name=_('Numéro de téléphone')
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name=_('Montant')
+    )
+    member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sms_donations',
+        verbose_name=_('Membre')
+    )
+    processed = models.BooleanField(
+        default=False,
+        verbose_name=_('Traité')
+    )
+    stripe_charge_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name=_('Stripe Charge ID')
+    )
+    command_text = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name=_('Commande SMS'),
+        help_text=_('Texte original du SMS reçu')
+    )
+    is_recurring = models.BooleanField(
+        default=False,
+        verbose_name=_('Récurrent')
+    )
+    frequency = models.CharField(
+        max_length=20,
+        choices=RecurringFrequency.CHOICES,
+        blank=True,
+        default='',
+        verbose_name=_('Fréquence')
+    )
+
+    class Meta:
+        verbose_name = _('Don par SMS')
+        verbose_name_plural = _('Dons par SMS')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        member_name = self.member.full_name if self.member else self.phone_number
+        return f'{member_name} - {self.amount} CAD (SMS)'
+
+
+# ─── P2: Kiosk Session Tracking ─────────────────────────────────────────────────
+
+
+class KioskSession(BaseModel):
+    """Tracks a giving kiosk session for daily reconciliation."""
+    session_date = models.DateField(
+        verbose_name=_('Date de session')
+    )
+    location = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name=_('Emplacement')
+    )
+    total_transactions = models.IntegerField(
+        default=0,
+        verbose_name=_('Nombre de transactions')
+    )
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Montant total')
+    )
+    reconciled = models.BooleanField(
+        default=False,
+        verbose_name=_('Réconcilié')
+    )
+    reconciled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Réconcilié le')
+    )
+    notes = models.TextField(
+        blank=True,
+        default='',
+        verbose_name=_('Notes')
+    )
+
+    class Meta:
+        verbose_name = _('Session kiosque')
+        verbose_name_plural = _('Sessions kiosque')
+        ordering = ['-session_date']
+
+    def __str__(self):
+        return f'Kiosque {self.session_date} - {self.total_amount} CAD'
+
+
+# ─── P3: Payment Plans ──────────────────────────────────────────────────────────
+
+
+class PaymentPlan(BaseModel):
+    """Payment plan to split a large gift into installments."""
+    member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='payment_plans',
+        verbose_name=_('Membre')
+    )
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name=_('Montant total')
+    )
+    installment_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name=_('Montant par versement')
+    )
+    frequency = models.CharField(
+        max_length=20,
+        choices=PledgeFrequency.CHOICES,
+        default=PledgeFrequency.MONTHLY,
+        verbose_name=_('Fréquence')
+    )
+    remaining_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name=_('Montant restant')
+    )
+    start_date = models.DateField(
+        verbose_name=_('Date de début')
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=PaymentPlanStatus.CHOICES,
+        default=PaymentPlanStatus.ACTIVE,
+        verbose_name=_('Statut')
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Complété le')
+    )
+    donation_type = models.CharField(
+        max_length=20,
+        choices=DonationType.CHOICES,
+        default=DonationType.OFFERING,
+        verbose_name=_('Type de don')
+    )
+
+    class Meta:
+        verbose_name = _('Plan de paiement')
+        verbose_name_plural = _('Plans de paiement')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.total_amount} CAD ({self.get_status_display()})'
+
+    @property
+    def progress_percentage(self):
+        if self.total_amount == 0:
+            return 100
+        paid = self.total_amount - self.remaining_amount
+        return min(100, int((paid / self.total_amount) * 100))
+
+    @property
+    def amount_paid(self):
+        return self.total_amount - self.remaining_amount
+
+
+# ─── P3: Employer Matching ───────────────────────────────────────────────────────
+
+
+class EmployerMatch(BaseModel):
+    """Tracks employer matching program for a member."""
+    member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='employer_matches',
+        verbose_name=_('Membre')
+    )
+    employer_name = models.CharField(
+        max_length=200,
+        verbose_name=_('Nom de l\'employeur')
+    )
+    match_ratio = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('1.00'),
+        verbose_name=_('Ratio de jumelage'),
+        help_text=_('ex: 1.00 = dollar pour dollar, 0.50 = 50 cents par dollar')
+    )
+    annual_cap = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Plafond annuel'),
+        help_text=_('0 = pas de plafond')
+    )
+    match_amount_received = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Montant de jumelage reçu')
+    )
+
+    class Meta:
+        verbose_name = _('Jumelage employeur')
+        verbose_name_plural = _('Jumelages employeur')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.employer_name} ({self.match_ratio}x)'
+
+
+# ─── P3: Year-End Campaigns ─────────────────────────────────────────────────────
+
+
+class GivingCampaign(BaseModel):
+    """Year-end or special giving campaign with goal tracking and countdown."""
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_('Nom de la campagne')
+    )
+    description = models.TextField(
+        blank=True,
+        default='',
+        verbose_name=_('Description')
+    )
+    goal_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Objectif')
+    )
+    current_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Montant actuel')
+    )
+    start_date = models.DateField(
+        verbose_name=_('Date de début')
+    )
+    end_date = models.DateField(
+        verbose_name=_('Date de fin')
+    )
+    is_year_end = models.BooleanField(
+        default=False,
+        verbose_name=_('Campagne de fin d\'année')
+    )
+    image = models.ImageField(
+        upload_to='giving_campaigns/%Y/',
+        blank=True,
+        null=True,
+        verbose_name=_('Image')
+    )
+
+    class Meta:
+        verbose_name = _('Campagne de dons')
+        verbose_name_plural = _('Campagnes de dons')
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def progress_percentage(self):
+        if not self.goal_amount or self.goal_amount == 0:
+            return 0
+        return min(100, int((self.current_amount / self.goal_amount) * 100))
+
+    @property
+    def is_ongoing(self):
+        from django.utils import timezone
+        today = timezone.now().date()
+        return self.start_date <= today <= self.end_date
+
+    @property
+    def days_remaining(self):
+        from django.utils import timezone
+        today = timezone.now().date()
+        if today > self.end_date:
+            return 0
+        return (self.end_date - today).days

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/families/">Familles</a></li>
+            <li class="breadcrumb-item"><a href="/members/families/{{ family.pk }}/">{{ family.name }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Tableau de bord</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Family Info -->
+        <div class="row mb-4">
+            <div class="col-xl-4 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-auto">
+                            <p class="text-muted mb-1">Membres</p>
+                            <h3 class="mb-0">{{ members|length }}</h3>
+                        </div>
+                        <div class="icon-box bg-primary-light rounded-circle">
+                            <i class="fas fa-users text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-auto">
+                            <p class="text-muted mb-1">Enfants</p>
+                            <h3 class="mb-0">{{ children|length }}</h3>
+                        </div>
+                        <div class="icon-box bg-info-light rounded-circle">
+                            <i class="fas fa-child text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-auto">
+                            <p class="text-muted mb-1">Adresse</p>
+                            <p class="mb-0 small">{{ family.address|default:"Non renseignee" }}</p>
+                        </div>
+                        <div class="icon-box bg-success-light rounded-circle">
+                            <i class="fas fa-map-marker-alt text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members -->
+        <div class="row">
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Membres de la famille</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Role</th>
+                                        <th>Telephone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in members %}
+                                    <tr>
+                                        <td><a href="/members/{{ m.pk }}/">{{ m.full_name }}</a></td>
+                                        <td>{{ m.get_role_display }}</td>
+                                        <td>{{ m.phone|default:"-" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Aucun membre.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Children -->
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Enfants</h4>
+                        <a href="/members/families/{{ family.pk }}/children/create/" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Ajouter
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Age</th>
+                                        <th>Allergies</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for child in children %}
+                                    <tr>
+                                        <td>{{ child.full_name }}</td>
+                                        <td>{% if child.age is not None %}{{ child.age }} ans{% else %}-{% endif %}</td>
+                                        <td>{{ child.allergies|default:"-"|truncatewords:5 }}</td>
+                                        <td>
+                                            <a href="/members/children/{{ child.pk }}/edit/" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucun enfant enregistre.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Actions</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="/members/families/{{ family.pk }}/edit/" class="btn btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Modifier la famille
+                            </a>
+                            <form method="post" action="/members/families/{{ family.pk }}/sync-address/" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-info" onclick="return confirm('Synchroniser l\'adresse de la famille vers tous les membres?')">
+                                    <i class="fas fa-sync me-1"></i>Synchroniser les adresses
+                                </button>
+                            </form>
+                            <a href="/members/families/{{ family.pk }}/children/" class="btn btn-outline-secondary">
+                                <i class="fas fa-child me-1"></i>Gerer les enfants
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

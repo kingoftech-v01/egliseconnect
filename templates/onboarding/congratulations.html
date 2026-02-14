@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Felicitations!{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 mx-auto">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-trophy text-warning" style="font-size:5rem;"></i>
+                        </div>
+                        <h2 class="text-primary mb-3">Felicitations, {{ member.full_name }}!</h2>
+                        <p class="lead mb-4">
+                            Vous etes maintenant membre officiel de notre communaute.
+                            Votre parcours d'integration est termine avec succes!
+                        </p>
+
+                        {% if achievements %}
+                        <hr>
+                        <h4 class="mb-3">Vos accomplissements</h4>
+                        <div class="row justify-content-center">
+                            {% for ma in achievements %}
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body text-center p-3">
+                                        <i class="{{ ma.achievement.icon|default:'fas fa-award' }} text-primary mb-2" style="font-size:2rem;"></i>
+                                        <h6 class="mb-1">{{ ma.achievement.name }}</h6>
+                                        <small class="text-muted">+{{ ma.achievement.points }} pts</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-4">
+                            <a href="/reports/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-tachometer-alt me-2"></i>Acceder au tableau de bord
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

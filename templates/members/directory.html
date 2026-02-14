@@ -15,7 +15,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-                        <form method="get" class="d-flex gap-3 align-items-end">
+                        <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
                             <div class="flex-grow-1">
                                 <label class="form-label" for="search-input">Rechercher dans l'annuaire</label>
                                 <input type="text" name="search" id="search-input" class="form-control" placeholder="Nom, prenom, numero de membre..." value="{{ search }}">
@@ -28,6 +28,11 @@
                                 <a href="/members/directory/" class="btn btn-outline-secondary">Reinitialiser</a>
                             </div>
                             {% endif %}
+                            <div>
+                                <a href="/members/directory/public/" class="btn btn-outline-info" title="Annuaire public avec photos">
+                                    <i class="fas fa-th me-1"></i>Vue photo
+                                </a>
+                            </div>
                         </form>
                     </div>
                 </div>

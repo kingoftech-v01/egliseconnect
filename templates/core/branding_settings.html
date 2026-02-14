@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row page-titles">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Accueil</a></li>
+                <li class="breadcrumb-item active">Image de marque</li>
+            </ol>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">{{ page_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endfor %}
+
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {% if branding %}
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Aperçu</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if branding.logo %}
+                        <img src="{{ branding.logo.url }}" alt="Logo" class="mb-3" style="max-width:150px;">
+                        {% endif %}
+                        <h5>{{ branding.church_name }}</h5>
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <div style="width:50px;height:50px;border-radius:8px;background:{{ branding.primary_color }};" title="Primaire"></div>
+                            <div style="width:50px;height:50px;border-radius:8px;background:{{ branding.secondary_color }};" title="Secondaire"></div>
+                            <div style="width:50px;height:50px;border-radius:8px;background:{{ branding.accent_color }};" title="Accent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

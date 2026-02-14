@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title|default:"Tableau de bord pastoral" }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/help-requests/">Demandes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Soins pastoraux</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Statistics -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body py-3 px-4 d-flex justify-content-between align-items-center">
+                        <div><h6 class="mb-0">Cas ouverts</h6><h3 class="mb-0">{{ total_open }}</h3></div>
+                        <span class="badge badge-primary" style="font-size: 1.2rem;"><i class="fa fa-folder-open"></i></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body py-3 px-4 d-flex justify-content-between align-items-center">
+                        <div><h6 class="mb-0">En suivi</h6><h3 class="mb-0">{{ total_follow_up }}</h3></div>
+                        <span class="badge badge-warning" style="font-size: 1.2rem;"><i class="fa fa-clock"></i></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body py-3 px-4 d-flex justify-content-between align-items-center">
+                        <div><h6 class="mb-0">Fermés ce mois</h6><h3 class="mb-0">{{ closed_this_month }}</h3></div>
+                        <span class="badge badge-success" style="font-size: 1.2rem;"><i class="fa fa-check"></i></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body py-3 px-4">
+                        <h6 class="mb-2">Types de soins</h6>
+                        {% for item in care_type_breakdown %}
+                        <small>{{ item.care_type }}: {{ item.count }}</small><br>
+                        {% empty %}
+                        <small class="text-muted">Aucun</small>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="mb-3">
+            <a href="/help-requests/care/create/" class="btn btn-primary btn-sm me-1">
+                <i class="fa fa-plus me-1"></i> Nouvelle visite
+            </a>
+            <a href="/help-requests/care/calendar/" class="btn btn-outline-primary btn-sm me-1">
+                <i class="fa fa-calendar me-1"></i> Calendrier
+            </a>
+            <a href="/help-requests/care/teams/" class="btn btn-outline-primary btn-sm">
+                <i class="fa fa-users me-1"></i> Equipes
+            </a>
+        </div>
+
+        <!-- Overdue Follow-ups -->
+        {% if overdue %}
+        <div class="card mb-3 border-danger">
+            <div class="card-header bg-danger-light">
+                <h4 class="heading mb-0 text-danger"><i class="fa fa-exclamation-triangle me-2"></i>Suivis en retard ({{ overdue|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Membre</th><th>Type</th><th>Date de suivi</th><th>Assigné à</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for care in overdue %}
+                        <tr>
+                            <td>{{ care.member.full_name }}</td>
+                            <td>{{ care.get_care_type_display }}</td>
+                            <td><span class="text-danger">{{ care.follow_up_date|date:"d/m/Y" }}</span></td>
+                            <td>{{ care.assigned_to.full_name|default:"-" }}</td>
+                            <td><a href="/help-requests/care/{{ care.pk }}/" class="btn btn-sm btn-outline-primary">Voir</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Upcoming Follow-ups -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h4 class="heading mb-0">Suivis a venir ({{ upcoming_followups|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Membre</th><th>Type</th><th>Date de suivi</th><th>Assigné à</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for care in upcoming_followups %}
+                        <tr>
+                            <td>{{ care.member.full_name }}</td>
+                            <td>{{ care.get_care_type_display }}</td>
+                            <td>{{ care.follow_up_date|date:"d/m/Y" }}</td>
+                            <td>{{ care.assigned_to.full_name|default:"-" }}</td>
+                            <td><a href="/help-requests/care/{{ care.pk }}/" class="btn btn-sm btn-outline-primary">Voir</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">Aucun suivi planifié.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Open Cases -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Cas ouverts ({{ open_cases|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Membre</th><th>Type</th><th>Date</th><th>Assigné à</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for care in open_cases %}
+                        <tr>
+                            <td>{{ care.member.full_name }}</td>
+                            <td>{{ care.get_care_type_display }}</td>
+                            <td>{{ care.date|date:"d/m/Y" }}</td>
+                            <td>{{ care.assigned_to.full_name|default:"-" }}</td>
+                            <td><a href="/help-requests/care/{{ care.pk }}/" class="btn btn-sm btn-outline-primary">Voir</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">Aucun cas ouvert.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-4">
+            <a href="/help-requests/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour aux demandes
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        <a href="/volunteers/background-checks/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouvelle verification
+                        </a>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Membre</th>
+                                <th>Poste</th>
+                                <th>Statut</th>
+                                <th>Date de verification</th>
+                                <th>Expiration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for check in checks %}
+                            <tr>
+                                <td>{{ check.member.full_name }}</td>
+                                <td>{{ check.position.name|default:"-" }}</td>
+                                <td>
+                                    {% if check.status == 'approved' and not check.is_expired %}
+                                        <span class="badge badge-success">Approuve</span>
+                                    {% elif check.status == 'pending' %}
+                                        <span class="badge badge-warning">En attente</span>
+                                    {% elif check.is_expired or check.status == 'expired' %}
+                                        <span class="badge badge-danger">Expire</span>
+                                    {% elif check.status == 'not_required' %}
+                                        <span class="badge badge-secondary">Non requis</span>
+                                    {% elif check.status == 'failed' %}
+                                        <span class="badge badge-danger">Echoue</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ check.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ check.check_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ check.expiry_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>
+                                    <a href="/volunteers/background-checks/{{ check.pk }}/edit/" class="btn btn-warning btn-xs"><i class="fas fa-edit"></i></a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center">Aucune verification enregistree.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

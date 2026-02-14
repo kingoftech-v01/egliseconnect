@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/imports/">Imports</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-xl-3 col-lg-4 col-md-4">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Valides</h6>
+                        <h3 class="text-success mb-0">{{ valid_count }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-4">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Invalides</h6>
+                        <h3 class="text-danger mb-0">{{ invalid_count }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-4">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Doublons</h6>
+                        <h3 class="text-warning mb-0">{{ duplicate_count }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-12">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        {% if valid_count > 0 %}
+                        <form method="post" action="/donations/imports/{{ donation_import.pk }}/confirm/">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-1"></i> Importer {{ valid_count }} ligne(s)
+                            </button>
+                        </form>
+                        {% else %}
+                        <p class="text-muted mb-0">Aucune ligne valide a importer.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Apercu des lignes</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Statut</th>
+                                        <th>Donnees</th>
+                                        <th>Erreur</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in rows %}
+                                    <tr>
+                                        <td>{{ row.row_number }}</td>
+                                        <td>
+                                            {% if row.status == 'valid' %}
+                                            <span class="badge badge-success light">Valide</span>
+                                            {% elif row.status == 'invalid' %}
+                                            <span class="badge badge-danger light">Invalide</span>
+                                            {% elif row.status == 'duplicate' %}
+                                            <span class="badge badge-warning light">Doublon</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary light">{{ row.get_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><small>{{ row.data_json }}</small></td>
+                                        <td><small class="text-danger">{{ row.error_message }}</small></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,838 +1,799 @@
-# Application Members
+# Members App
 
-Gestion des membres, familles et groupes pour le systeme **EgliseConnect**.
+## Overview
 
----
+The members app is the core module of EgliseConnect. It manages church member profiles, families, groups (cell groups, ministries, committees), departments, the member directory with privacy controls, birthday tracking, disciplinary actions with an approval workflow, and profile modification requests. Every member receives an auto-generated unique number (e.g., `MBR-2026-0001`) upon registration.
 
-## Vue d'ensemble
+### Key Features
 
-> **Pour les non-techniciens :** L'application `members` est le coeur fonctionnel d'EgliseConnect. C'est ici que l'on gere les profils des membres de l'eglise, les familles, les groupes (cellules de maison, ministeres, comites), le repertoire de l'eglise et le suivi des anniversaires. Chaque membre recoit automatiquement un numero unique (par exemple `MBR-2026-0001`) lors de son inscription.
+- **Member Profiles** -- Personal information, contact details, photo, church role, join date, baptism date, onboarding status, and 2FA tracking
+- **Auto-Generated Member Numbers** -- Format `MBR-YYYY-XXXX`, generated automatically with uniqueness enforcement
+- **Families** -- Group members into family units with a shared address
+- **Groups** -- Cell groups, ministries, committees, choirs, and classes with designated leaders and meeting schedules
+- **Departments** -- Organizational units with hierarchical structure, member enrollment, and custom task types (used by the worship app)
+- **Directory** -- Member directory with configurable privacy settings (public, group, private)
+- **Birthdays** -- Track and display birthdays by period (today, this week, this month, specific month)
+- **Disciplinary Actions** -- Punishment, exemption, and suspension workflow with role-hierarchy enforcement and dual-approval
+- **Profile Modification Requests** -- Staff can request members to update their personal information
+- **Multiple Roles** -- Members can hold additional roles beyond their primary role
+- **CSV Export** -- Export the member list to CSV (pastor/admin only)
+- **Superuser Signal** -- Auto-creates an admin Member profile for new Django superusers
 
-### Fonctionnalites principales
+## File Structure
 
-- **Profils de membres** -- Informations personnelles, coordonnees, photo, role dans l'eglise, dates d'adhesion et de bapteme.
-- **Numeros de membre auto-generes** -- Format `MBR-YYYY-XXXX`, generes automatiquement et proteges contre les doublons.
-- **Familles** -- Regroupement de membres par famille avec adresse partagee.
-- **Groupes** -- Cellules, ministeres, comites, chorales et classes avec leaders designes et horaires de reunions.
-- **Repertoire** -- Annuaire des membres avec parametres de confidentialite (public, groupe, prive).
-- **Anniversaires** -- Suivi et affichage des anniversaires (aujourd'hui, semaine, mois, a venir).
+```
+apps/members/
+├── __init__.py
+├── admin.py                 # Django admin configuration (5 ModelAdmins, 3 inlines)
+├── apps.py                  # App config
+├── forms.py                 # 14 forms (all with W3CRMFormMixin)
+├── models.py                # 11 models (Member, Family, Group, etc.)
+├── serializers.py           # 13 DRF serializers
+├── services.py              # DisciplinaryService (business logic)
+├── signals.py               # Superuser auto-profile signal
+├── urls.py                  # API router + frontend URL patterns
+├── views_api.py             # 4 DRF ViewSets
+├── views_frontend.py        # 30 frontend views
+├── migrations/
+│   └── ...
+└── tests/
+    ├── __init__.py
+    ├── factories.py          # Test data factories
+    ├── test_models.py        # Model tests
+    ├── test_forms.py         # Form tests
+    ├── test_serializers.py   # Serializer tests
+    ├── test_views_api.py     # API view tests
+    ├── test_views_api_extended.py  # Extended API tests
+    ├── test_views_frontend.py     # Frontend view tests
+    ├── test_disciplinary.py  # Disciplinary service tests
+    └── test_profile.py       # Profile and modification request tests
 
----
+templates/members/
+├── member_list.html
+├── member_detail.html
+├── member_form.html
+├── my_profile.html
+├── birthday_list.html
+├── directory.html
+├── privacy_settings.html
+├── group_list.html
+├── group_detail.html
+├── group_form.html
+├── group_delete.html
+├── group_add_member.html
+├── family_list.html
+├── family_detail.html
+├── family_form.html
+├── family_delete.html
+├── department_delete.html
+├── disciplinary_list.html
+├── disciplinary_form.html
+├── disciplinary_detail.html
+├── request_modification.html
+└── modification_request_list.html
 
-## Modeles
+templates/departments/
+├── department_list.html
+├── department_detail.html
+├── department_form.html
+├── department_add_member.html
+└── department_task_types.html
+```
+
+## Models
 
 ### Member
 
-Le modele principal de l'application. Herite de `SoftDeleteModel` (suppression logique avec possibilite de restauration).
+The primary model of the application. Inherits from `SoftDeleteModel` (logical deletion with restore capability).
 
-> **Pour les non-techniciens :** Le profil d'un membre contient toutes ses informations personnelles. La suppression d'un membre ne detruit pas ses donnees -- elles sont conservees et peuvent etre restaurees en cas d'erreur.
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key (from BaseModel) |
+| `user` | OneToOneField -> User | No | NULL | Optional link to Django user for authentication |
+| `member_number` | CharField(20) | Auto | -- | Auto-generated unique number (`MBR-YYYY-XXXX`), not editable |
+| `first_name` | CharField(100) | Yes | -- | First name |
+| `last_name` | CharField(100) | Yes | -- | Last name |
+| `email` | EmailField | No | blank | Email address |
+| `phone` | CharField(20) | No | blank | Primary phone number |
+| `phone_secondary` | CharField(20) | No | blank | Secondary phone number |
+| `birth_date` | DateField | No | NULL | Date of birth (for birthday tracking) |
+| `address` | TextField | No | blank | Street address |
+| `city` | CharField(100) | No | blank | City |
+| `province` | CharField(2) | Yes | `QC` | Canadian province (choices from `Province.CHOICES`) |
+| `postal_code` | CharField(10) | No | blank | Postal code |
+| `photo` | ImageField | No | NULL | Profile photo, uploaded to `members/photos/%Y/%m/`, validated by `validate_image_file` |
+| `role` | CharField(20) | Yes | `member` | Primary church role (choices from `Roles.CHOICES`) |
+| `family_status` | CharField(20) | Yes | `single` | Marital status (choices from `FamilyStatus.CHOICES`) |
+| `family` | ForeignKey -> Family | No | NULL | Family unit this member belongs to |
+| `joined_date` | DateField | No | NULL | Date the member joined the church |
+| `baptism_date` | DateField | No | NULL | Date of baptism |
+| `notes` | TextField | No | blank | Pastoral notes (visible only to pastoral staff) |
+| `membership_status` | CharField(30) | Yes | `registered` | Onboarding lifecycle status (choices from `MembershipStatus.CHOICES`), indexed |
+| `registration_date` | DateTimeField | No | NULL | When the member registered |
+| `form_deadline` | DateTimeField | No | NULL | Deadline for onboarding form submission |
+| `form_submitted_at` | DateTimeField | No | NULL | When the onboarding form was submitted |
+| `admin_reviewed_at` | DateTimeField | No | NULL | When an admin reviewed the submission |
+| `admin_reviewed_by` | ForeignKey -> self | No | NULL | Which admin reviewed the submission |
+| `became_active_at` | DateTimeField | No | NULL | When the member became fully active |
+| `rejection_reason` | TextField | No | blank | Reason for membership rejection |
+| `two_factor_enabled` | BooleanField | Yes | `False` | Whether 2FA is enabled |
+| `two_factor_deadline` | DateTimeField | No | NULL | Deadline for 2FA setup |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `deleted_at` | DateTimeField | No | NULL | Inherited from SoftDeleteModel |
 
-#### Champs
+**Properties:**
 
-| Champ | Type | Requis | Description |
-| ----- | ---- | ------ | ----------- |
-| `member_number` | `CharField(20)` | Auto | Numero unique genere automatiquement (`MBR-YYYY-XXXX`) |
-| `user` | `OneToOneField(User)` | Non | Lien optionnel vers un compte Django pour l'authentification |
-| `first_name` | `CharField(100)` | Oui | Prenom du membre |
-| `last_name` | `CharField(100)` | Oui | Nom de famille |
-| `email` | `EmailField` | Non | Adresse courriel |
-| `phone` | `CharField(20)` | Non | Telephone principal |
-| `phone_secondary` | `CharField(20)` | Non | Telephone secondaire |
-| `birth_date` | `DateField` | Non | Date de naissance (pour le suivi des anniversaires) |
-| `address` | `TextField` | Non | Adresse postale |
-| `city` | `CharField(100)` | Non | Ville |
-| `province` | `CharField(2)` | Oui | Province canadienne (defaut : `QC`) |
-| `postal_code` | `CharField(10)` | Non | Code postal |
-| `photo` | `ImageField` | Non | Photo de profil (max 5 Mo, JPEG/PNG/GIF/WebP) |
-| `role` | `CharField(20)` | Oui | Role dans l'eglise (defaut : `member`) |
-| `family_status` | `CharField(20)` | Oui | Etat civil (defaut : `single`) |
-| `family` | `ForeignKey(Family)` | Non | Famille d'appartenance |
-| `joined_date` | `DateField` | Non | Date d'adhesion a l'eglise |
-| `baptism_date` | `DateField` | Non | Date de bapteme |
-| `notes` | `TextField` | Non | Notes pastorales (visibles uniquement par l'equipe pastorale) |
-| `is_active` | `BooleanField` | Oui | Herite de `BaseModel` (defaut : `True`) |
+| Property | Return Type | Description |
+|----------|-------------|-------------|
+| `full_name` | `str` | `"first_name last_name"` |
+| `full_address` | `str` | Formatted address string (address, city, province, postal code) |
+| `age` | `int` or `None` | Calculated from `birth_date` |
+| `days_remaining_for_form` | `int` or `None` | Days until onboarding form deadline |
+| `is_form_expired` | `bool` | Whether the 30-day form deadline has passed |
+| `has_full_access` | `bool` | Whether membership status grants full dashboard access |
+| `can_use_qr` | `bool` | Whether membership status allows QR code attendance |
+| `is_in_onboarding` | `bool` | Whether member is currently in the onboarding process |
+| `is_2fa_overdue` | `bool` | Whether the 2FA setup deadline has passed without enabling |
+| `all_roles` | `set` | Union of primary role and all additional `MemberRole` entries |
+| `is_staff_member` | `bool` | Whether member has any role in `Roles.STAFF_ROLES` |
+| `can_manage_finances` | `bool` | Whether member has any role in `Roles.FINANCE_ROLES` |
 
-#### Proprietes
+**Methods:**
 
-| Propriete | Retour | Description |
-| --------- | ------ | ----------- |
-| `full_name` | `str` | Prenom + Nom (ex : `"Jean Dupont"`) |
-| `full_address` | `str` | Adresse formatee complete (adresse, ville, province, code postal) |
-| `age` | `int` ou `None` | Age calcule a partir de la date de naissance |
-| `is_staff_member` | `bool` | `True` si le role est Pastor ou Admin |
-| `can_manage_finances` | `bool` | `True` si le role est Treasurer ou Admin |
+| Method | Return | Description |
+|--------|--------|-------------|
+| `save()` | -- | Auto-generates `member_number` on first save via `generate_member_number()` |
+| `has_role(role)` | `bool` | Check if member has a specific role (primary or additional) |
+| `get_groups()` | `QuerySet[Group]` | Returns all active groups the member belongs to |
 
-#### Methodes
+**Database Indexes:**
 
-| Methode | Retour | Description |
-| ------- | ------ | ----------- |
-| `save()` | -- | Auto-genere `member_number` au premier enregistrement via `generate_member_number()` |
-| `get_groups()` | `QuerySet[Group]` | Retourne tous les groupes actifs dont le membre fait partie |
-| `delete()` | `tuple` | Suppression logique (heritee de `SoftDeleteModel`) |
-| `restore()` | -- | Restauration d'un membre supprime logiquement |
+| Indexed Fields | Purpose |
+|----------------|---------|
+| `member_number` | Fast lookup by member number |
+| `email` | Search by email |
+| `last_name, first_name` | Optimized alphabetical sorting |
+| `birth_date` | Birthday queries |
+| `role` | Role filtering |
 
-#### Indexes de base de donnees
-
-| Champs indexes | Utilisation |
-| -------------- | ----------- |
-| `member_number` | Recherche rapide par numero de membre |
-| `email` | Recherche par courriel |
-| `last_name, first_name` | Tri alphabetique optimise |
-| `birth_date` | Requetes d'anniversaires |
-| `role` | Filtrage par role |
-
-```python
-from apps.members.models import Member
-
-# Creation (le numero est genere automatiquement)
-membre = Member.objects.create(
-    first_name='Marie',
-    last_name='Tremblay',
-    email='marie@example.com',
-    phone='514-555-0199',
-    province='QC',
-)
-print(membre.member_number)  # MBR-2026-0001
-print(membre.full_name)      # Marie Tremblay
-
-# Suppression logique et restauration
-membre.delete()              # Soft delete
-print(membre.is_deleted)     # True
-membre.restore()             # Restauration
-print(membre.is_deleted)     # False
-```
+**Meta:** Ordered by `['last_name', 'first_name']`.
 
 ---
 
 ### Family
 
-Unite familiale regroupant des membres sous une adresse commune. Herite de `BaseModel`.
+Family unit grouping members under a shared address. Inherits from `BaseModel`.
 
-> **Pour les non-techniciens :** Une famille permet de regrouper les membres qui vivent ensemble et partagent la meme adresse. Cela evite de saisir l'adresse plusieurs fois et facilite le suivi des dons familiaux.
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `name` | CharField(200) | Yes | -- | Family name (e.g., "Famille Dupont") |
+| `address` | TextField | No | blank | Shared street address |
+| `city` | CharField(100) | No | blank | City |
+| `province` | CharField(2) | Yes | `QC` | Province |
+| `postal_code` | CharField(10) | No | blank | Postal code |
+| `notes` | TextField | No | blank | Notes |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
 
-#### Champs de Family
+**Properties:**
 
-| Champ | Type | Requis | Description |
-| ----- | ---- | ------ | ----------- |
-| `name` | `CharField(200)` | Oui | Nom de la famille (ex : `"Famille Dupont"`) |
-| `address` | `TextField` | Non | Adresse partagee |
-| `city` | `CharField(100)` | Non | Ville |
-| `province` | `CharField(2)` | Oui | Province (defaut : `QC`) |
-| `postal_code` | `CharField(10)` | Non | Code postal |
-| `notes` | `TextField` | Non | Notes |
+| Property | Return Type | Description |
+|----------|-------------|-------------|
+| `member_count` | `int` | Count of active members in this family |
+| `full_address` | `str` | Formatted address string |
 
-#### Proprietes de Family
-
-| Propriete | Retour | Description |
-| --------- | ------ | ----------- |
-| `member_count` | `int` | Nombre de membres actifs dans la famille |
-| `full_address` | `str` | Adresse formatee complete |
-
-```python
-from apps.members.models import Family, Member
-
-famille = Family.objects.create(
-    name='Famille Dupont',
-    address='123 rue Principale',
-    city='Montreal',
-    province='QC',
-    postal_code='H2X 1Y4',
-)
-
-# Associer un membre a la famille
-membre = Member.objects.create(
-    first_name='Jean',
-    last_name='Dupont',
-    family=famille,
-)
-
-print(famille.member_count)  # 1
-print(famille.full_address)  # 123 rue Principale, Montreal, QC, H2X 1Y4
-```
+**Meta:** Ordered by `['name']`.
 
 ---
 
 ### Group
 
-Groupe d'eglise (cellule, ministere, comite, classe, chorale). Herite de `BaseModel`.
+Church group (cell, ministry, committee, class, choir). Inherits from `BaseModel`.
 
-> **Pour les non-techniciens :** Un groupe represente toute forme de rassemblement regulier au sein de l'eglise : cellule de maison, equipe de louange, comite de jeunesse, etc. Chaque groupe peut avoir un leader designe, un jour et lieu de reunion.
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `name` | CharField(200) | Yes | -- | Group name |
+| `group_type` | CharField(20) | Yes | `cell` | Type: `cell`, `ministry`, `committee`, `class`, `choir`, `other` |
+| `description` | TextField | No | blank | Group description |
+| `leader` | ForeignKey -> Member | No | NULL | Group leader |
+| `meeting_day` | CharField(20) | No | blank | Meeting day (e.g., "Wednesday") |
+| `meeting_time` | TimeField | No | NULL | Meeting time |
+| `meeting_location` | CharField(200) | No | blank | Meeting location |
+| `email` | EmailField | No | blank | Group email address |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
 
-#### Champs de Group
+**Properties:**
 
-| Champ | Type | Requis | Description |
-| ----- | ---- | ------ | ----------- |
-| `name` | `CharField(200)` | Oui | Nom du groupe |
-| `group_type` | `CharField(20)` | Oui | Type : `cell`, `ministry`, `committee`, `class`, `choir`, `other` |
-| `description` | `TextField` | Non | Description du groupe |
-| `leader` | `ForeignKey(Member)` | Non | Leader du groupe (doit avoir le role `group_leader`, `pastor` ou `admin`) |
-| `meeting_day` | `CharField(20)` | Non | Jour de reunion (ex : `"Mercredi"`) |
-| `meeting_time` | `TimeField` | Non | Heure de reunion |
-| `meeting_location` | `CharField(200)` | Non | Lieu de reunion |
-| `email` | `EmailField` | Non | Courriel du groupe |
+| Property | Return Type | Description |
+|----------|-------------|-------------|
+| `member_count` | `int` | Count of active memberships in this group |
 
-#### Proprietes de Group
-
-| Propriete | Retour | Description |
-| --------- | ------ | ----------- |
-| `member_count` | `int` | Nombre de membres actifs dans le groupe |
-
-```python
-from apps.members.models import Group, Member
-
-leader = Member.objects.get(last_name='Dupont', role='group_leader')
-
-groupe = Group.objects.create(
-    name='Cellule Centre-Ville',
-    group_type='cell',
-    leader=leader,
-    meeting_day='Mercredi',
-    meeting_time='19:00',
-    meeting_location='Salle communautaire',
-)
-```
+**Meta:** Ordered by `['name']`.
 
 ---
 
 ### GroupMembership
 
-Table de jointure entre `Member` et `Group` avec role et date d'adhesion. Herite de `BaseModel`.
+Join table between `Member` and `Group` with role and join date. Inherits from `BaseModel`.
 
-> **Pour les non-techniciens :** Ce modele enregistre l'appartenance d'un membre a un groupe, incluant son role dans le groupe (membre, leader, assistant) et la date a laquelle il a rejoint.
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `member` | ForeignKey -> Member | Yes | -- | The member (related_name: `group_memberships`) |
+| `group` | ForeignKey -> Group | Yes | -- | The group (related_name: `memberships`) |
+| `role` | CharField(20) | Yes | `member` | Role in the group: `member`, `leader`, `assistant` |
+| `joined_date` | DateField | Auto | auto_now_add | Date joined the group |
+| `notes` | TextField | No | blank | Notes |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
 
-#### Champs de GroupMembership
+**Constraints:** `unique_together = ['member', 'group']`
 
-| Champ | Type | Requis | Description |
-| ----- | ---- | ------ | ----------- |
-| `member` | `ForeignKey(Member)` | Oui | Le membre |
-| `group` | `ForeignKey(Group)` | Oui | Le groupe |
-| `role` | `CharField(20)` | Oui | Role dans le groupe : `member`, `leader`, `assistant` |
-| `joined_date` | `DateField` | Auto | Date d'adhesion au groupe (auto) |
-| `notes` | `TextField` | Non | Notes |
-
-**Contrainte :** Un membre ne peut appartenir qu'une seule fois au meme groupe (`unique_together = ['member', 'group']`).
-
-```python
-from apps.members.models import GroupMembership
-
-# Ajouter un membre a un groupe
-GroupMembership.objects.create(
-    member=membre,
-    group=groupe,
-    role='member',
-)
-```
+**Meta:** Ordered by `['group__name', 'member__last_name']`.
 
 ---
 
 ### DirectoryPrivacy
 
-Parametres de confidentialite controlant la visibilite des informations dans le repertoire. Herite de `BaseModel`. Relation `OneToOneField` avec `Member`.
+Controls what information other members can see in the directory. One-to-one with `Member`. Inherits from `BaseModel`.
 
-> **Pour les non-techniciens :** Chaque membre peut choisir quelles informations les autres peuvent voir dans l'annuaire de l'eglise. Par exemple, un membre peut decider de rendre son profil visible uniquement aux personnes de ses groupes, et de masquer son adresse.
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `member` | OneToOneField -> Member | Yes | -- | The member (related_name: `privacy_settings`) |
+| `visibility` | CharField(20) | Yes | `public` | Profile visibility level |
+| `show_email` | BooleanField | Yes | `True` | Show email in directory |
+| `show_phone` | BooleanField | Yes | `True` | Show phone in directory |
+| `show_address` | BooleanField | Yes | `False` | Show address in directory |
+| `show_birth_date` | BooleanField | Yes | `True` | Show birth date in directory |
+| `show_photo` | BooleanField | Yes | `True` | Show photo in directory |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
 
-#### Champs de DirectoryPrivacy
+**Visibility Levels:**
 
-| Champ | Type | Defaut | Description |
-| ----- | ---- | ------ | ----------- |
-| `member` | `OneToOneField(Member)` | -- | Le membre concerne |
-| `visibility` | `CharField(20)` | `public` | Niveau de visibilite : `public`, `group`, `private` |
-| `show_email` | `BooleanField` | `True` | Afficher le courriel dans le repertoire |
-| `show_phone` | `BooleanField` | `True` | Afficher le telephone |
-| `show_address` | `BooleanField` | `False` | Afficher l'adresse |
-| `show_birth_date` | `BooleanField` | `True` | Afficher la date de naissance |
-| `show_photo` | `BooleanField` | `True` | Afficher la photo |
-
-#### Niveaux de visibilite
-
-| Niveau | Description |
-| ------ | ----------- |
-| `public` | Visible par tous les membres de l'eglise |
-| `group` | Visible uniquement par les membres qui partagent au moins un groupe |
-| `private` | Visible uniquement par l'equipe pastorale (pasteurs et administrateurs) |
-
-```python
-from apps.members.models import DirectoryPrivacy
-
-# Configurer la confidentialite d'un membre
-DirectoryPrivacy.objects.create(
-    member=membre,
-    visibility='group',
-    show_email=True,
-    show_phone=True,
-    show_address=False,
-    show_birth_date=True,
-    show_photo=True,
-)
-```
+| Level | Description |
+|-------|-------------|
+| `public` | Visible to all church members |
+| `group` | Visible only to members who share at least one group |
+| `private` | Visible only to pastoral staff (pastors and admins) |
 
 ---
 
-## Formulaires
+### MemberRole
 
-Tous les formulaires utilisent le `W3CRMFormMixin` (voir `apps/core/README.md`) pour appliquer automatiquement les classes CSS Bootstrap aux widgets.
+Allows a member to hold multiple roles simultaneously, in addition to their primary `role` field. Inherits from `BaseModel`.
 
-### Vue d'ensemble des formulaires
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `member` | ForeignKey -> Member | Yes | -- | The member (related_name: `additional_roles`) |
+| `role` | CharField(20) | Yes | -- | Additional role (choices from `Roles.CHOICES`) |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
 
-| Formulaire | Modele | Utilisation | Utilisateurs cibles |
-| ---------- | ------ | ----------- | ------------------- |
-| `MemberRegistrationForm` | `Member` | Inscription publique avec creation de compte optionnelle | Nouveaux membres |
-| `MemberProfileForm` | `Member` | Mise a jour du profil par le membre lui-meme | Membres connectes |
-| `MemberAdminForm` | `Member` | Edition complete par le personnel pastoral | Pasteurs, admins |
-| `FamilyForm` | `Family` | Creation et edition de familles | Pasteurs, admins |
-| `GroupForm` | `Group` | Creation et edition de groupes | Pasteurs, admins |
-| `GroupMembershipForm` | `GroupMembership` | Ajout de membres a un groupe | Pasteurs, admins |
-| `DirectoryPrivacyForm` | `DirectoryPrivacy` | Parametres de confidentialite du repertoire | Membres connectes |
-| `MemberSearchForm` | -- (Form) | Recherche et filtrage de la liste des membres | Tous les utilisateurs autorises |
-
-### Details des formulaires
-
-#### MemberRegistrationForm
-
-Formulaire d'inscription publique. Collecte les informations essentielles et peut optionnellement creer un compte utilisateur Django.
-
-**Champs du formulaire :**
-`first_name`, `last_name`, `email`, `phone`, `birth_date`, `address`, `city`, `province`, `postal_code`, `family_status`
-
-**Champs supplementaires :**
-
-- `create_account` (`BooleanField`, defaut : `True`) -- Option pour creer un compte de connexion
-- `password` / `password_confirm` -- Requis si `create_account` est coche
-
-**Logique de sauvegarde :**
-
-1. Cree le profil `Member` (le `member_number` est genere automatiquement)
-2. Si `create_account` est coche : cree un `User` Django avec le courriel comme nom d'utilisateur
-3. Cree automatiquement un enregistrement `DirectoryPrivacy` par defaut
-
-**Validations :**
-
-- Unicite du courriel si un compte est cree
-- Validation du mot de passe via les validateurs Django standard
-- Concordance des deux mots de passe
-
-```python
-from apps.members.forms import MemberRegistrationForm
-
-form = MemberRegistrationForm(data={
-    'first_name': 'Marie',
-    'last_name': 'Tremblay',
-    'email': 'marie@eglise.ca',
-    'phone': '514-555-0199',
-    'birth_date': '1990-05-15',
-    'province': 'QC',
-    'family_status': 'single',
-    'create_account': True,
-    'password': 'MotDePasse123!',
-    'password_confirm': 'MotDePasse123!',
-})
-
-if form.is_valid():
-    member = form.save()
-    # member.member_number == 'MBR-2026-0001'
-    # member.user est cree avec email comme username
-    # DirectoryPrivacy cree automatiquement
-```
-
-#### MemberProfileForm
-
-Formulaire en libre-service pour que les membres mettent a jour leur propre profil. Exclut les champs sensibles (`role`, `notes`, `is_active`, `family`, `joined_date`, `baptism_date`).
-
-**Champs :** `first_name`, `last_name`, `email`, `phone`, `phone_secondary`, `birth_date`, `address`, `city`, `province`, `postal_code`, `photo`, `family_status`
-
-#### MemberAdminForm
-
-Formulaire complet pour le personnel pastoral et administratif. Inclut tous les champs, y compris le role, les notes pastorales et le drapeau actif.
-
-**Champs :** Tous les champs de `MemberProfileForm` + `role`, `family`, `joined_date`, `baptism_date`, `notes`, `is_active`
-
-#### GroupForm
-
-Formulaire de creation/edition de groupes. Le champ `leader` est filtre pour n'afficher que les membres ayant le role `group_leader`, `pastor` ou `admin`.
-
-**Champs :** `name`, `group_type`, `description`, `leader`, `meeting_day`, `meeting_time`, `meeting_location`, `email`
-
-```python
-from apps.members.forms import GroupForm
-
-form = GroupForm()
-# form.fields['leader'].queryset contient uniquement les members
-# avec role in ['group_leader', 'pastor', 'admin']
-```
-
-#### MemberSearchForm
-
-Formulaire de recherche et filtrage (basee sur `forms.Form`, pas `ModelForm`).
-
-**Champs de filtre :**
-
-| Champ | Type | Description |
-| ----- | ---- | ----------- |
-| `search` | `CharField` | Recherche textuelle (nom, courriel, numero) |
-| `role` | `ChoiceField` | Filtrer par role (avec option "Tous les roles") |
-| `family_status` | `ChoiceField` | Filtrer par etat civil |
-| `group` | `ModelChoiceField` | Filtrer par appartenance a un groupe |
-| `birth_month` | `ChoiceField` | Filtrer par mois de naissance (janvier a decembre) |
+**Constraints:** `unique_together = ['member', 'role']`
 
 ---
 
-## Endpoints API
+### Department
 
-L'API REST est construite avec Django REST Framework et utilise des ViewSets avec routeur automatique.
+Organizational department with leader, hierarchy, calendar, and custom task types. Inherits from `BaseModel`.
 
-### Membres (`MemberViewSet`)
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `name` | CharField(200) | Yes | -- | Department name |
+| `description` | TextField | No | blank | Description |
+| `leader` | ForeignKey -> Member | No | NULL | Department leader (related_name: `led_departments`) |
+| `parent_department` | ForeignKey -> self | No | NULL | Parent department for hierarchy (related_name: `sub_departments`) |
+| `meeting_day` | CharField(20) | No | blank | Meeting day |
+| `meeting_time` | TimeField | No | NULL | Meeting time |
+| `meeting_location` | CharField(200) | No | blank | Meeting location |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
 
-| Methode | URL | Description | Permission |
-| ------- | --- | ----------- | ---------- |
-| `GET` | `/api/v1/members/members/` | Liste des membres (filtree par role) | `IsMember` (authentifie) |
-| `POST` | `/api/v1/members/members/` | Inscription d'un nouveau membre | Public (aucune) |
-| `GET` | `/api/v1/members/members/{uuid}/` | Detail d'un membre | `IsMember` |
-| `PUT/PATCH` | `/api/v1/members/members/{uuid}/` | Mise a jour d'un membre | `IsOwnerOrStaff` |
-| `DELETE` | `/api/v1/members/members/{uuid}/` | Supprimer un membre | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/members/members/me/` | Profil du membre connecte | `IsMember` |
-| `PUT/PATCH` | `/api/v1/members/members/me/` | Modifier son propre profil | `IsMember` |
-| `GET` | `/api/v1/members/members/birthdays/` | Anniversaires (filtre `?period=today/week/month`) | `IsMember` |
-| `GET` | `/api/v1/members/members/directory/` | Repertoire avec confidentialite appliquee | `IsMember` |
+**Properties:**
 
-**Filtres disponibles :** `role`, `family_status`, `family`, `is_active`
-**Recherche :** `first_name`, `last_name`, `email`, `member_number`, `phone`
-**Tri :** `last_name`, `first_name`, `created_at`, `birth_date`
+| Property | Return Type | Description |
+|----------|-------------|-------------|
+| `member_count` | `int` | Count of active memberships in this department |
 
-#### Visibilite des donnees selon le role
+**Meta:** Ordered by `['name']`.
 
-| Role | Donnees visibles dans la liste |
-| ---- | ------------------------------ |
-| Admin / Pastor | Tous les membres |
-| Group Leader | Ses propres donnees + les membres de ses groupes |
-| Membre / Volontaire | Ses propres donnees uniquement |
+---
 
-#### Serializers utilises selon l'action
+### DepartmentMembership
+
+Links members to departments with a role. Inherits from `BaseModel`.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `member` | ForeignKey -> Member | Yes | -- | The member (related_name: `department_memberships`) |
+| `department` | ForeignKey -> Department | Yes | -- | The department (related_name: `memberships`) |
+| `role` | CharField(20) | Yes | `member` | Role: `member`, `leader`, `assistant` (choices from `DepartmentRole.CHOICES`) |
+| `joined_date` | DateField | Auto | auto_now_add | Date joined the department |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+
+**Constraints:** `unique_together = ['member', 'department']`
+
+**Meta:** Ordered by `['department__name']`.
+
+---
+
+### DepartmentTaskType
+
+Custom task types specific to a department, used by the worship app for section assignments. Inherits from `BaseModel`.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `department` | ForeignKey -> Department | Yes | -- | Parent department (related_name: `task_types`) |
+| `name` | CharField(100) | Yes | -- | Task type name |
+| `description` | TextField | No | blank | Description |
+| `max_assignees` | PositiveIntegerField | Yes | `1` | Maximum people assignable to this task |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+
+**Constraints:** `unique_together = ['department', 'name']`
+
+**Meta:** Ordered by `['department', 'name']`.
+
+---
+
+### DisciplinaryAction
+
+Tracks disciplinary measures (punishment, exemption, suspension) with an approval workflow. Inherits from `BaseModel`.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `member` | ForeignKey -> Member | Yes | -- | Target member (related_name: `disciplinary_actions`) |
+| `action_type` | CharField(20) | Yes | -- | Type: `punishment`, `exemption`, `suspension` |
+| `reason` | TextField | Yes | -- | Reason for the action |
+| `start_date` | DateField | Yes | -- | Start date of the action |
+| `end_date` | DateField | No | NULL | End date (for temporary actions) |
+| `created_by` | ForeignKey -> Member | Yes | NULL | Staff member who created the action (related_name: `created_disciplinary_actions`) |
+| `approved_by` | ForeignKey -> Member | No | NULL | Staff member who approved/rejected (related_name: `approved_disciplinary_actions`) |
+| `approval_status` | CharField(20) | Yes | `pending` | Status: `pending`, `approved`, `rejected` |
+| `auto_suspend_membership` | BooleanField | Yes | `True` | Whether to auto-suspend the member's account on approval |
+| `notes` | TextField | No | blank | Internal notes |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+
+**Properties:**
+
+| Property | Return Type | Description |
+|----------|-------------|-------------|
+| `is_current` | `bool` | Whether this action is currently in effect (based on start/end dates) |
+
+**Meta:** Ordered by `['-start_date']`.
+
+---
+
+### ProfileModificationRequest
+
+Request from staff asking a member to update their personal information. Inherits from `BaseModel`.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | UUIDField | Auto | uuid4 | Primary key |
+| `target_member` | ForeignKey -> Member | Yes | -- | Member being asked to update (related_name: `modification_requests`) |
+| `requested_by` | ForeignKey -> Member | Yes | NULL | Staff member who made the request (related_name: `sent_modification_requests`) |
+| `message` | TextField | Yes | -- | Description of requested modifications |
+| `status` | CharField(20) | Yes | `pending` | Status: `pending`, `completed`, `cancelled` |
+| `completed_at` | DateTimeField | No | NULL | When the request was completed |
+| `is_active` | BooleanField | Yes | `True` | Inherited from BaseModel |
+| `created_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+| `updated_at` | DateTimeField | Auto | now | Inherited from BaseModel |
+
+**Meta:** Ordered by `['-created_at']`.
+
+---
+
+## Forms
+
+All forms use `W3CRMFormMixin` for automatic Bootstrap CSS class application.
+
+| Form | Model | Fields | Description |
+|------|-------|--------|-------------|
+| `MemberRegistrationForm` | Member | `first_name`, `last_name`, `email`, `phone`, `birth_date`, `address`, `city`, `province`, `postal_code`, `family_status` + `create_account`, `password`, `password_confirm` | Public registration with optional user account creation. Validates email uniqueness, password strength, and match. On save: creates Member, optionally creates Django User, creates DirectoryPrivacy. |
+| `MemberProfileForm` | Member | `first_name`, `last_name`, `email`, `phone`, `phone_secondary`, `birth_date`, `address`, `city`, `province`, `postal_code`, `photo`, `family_status` | Self-service profile update. Excludes sensitive fields (role, notes, is_active, family, joined_date, baptism_date). |
+| `MemberAdminForm` | Member | All profile fields + `role`, `family`, `joined_date`, `baptism_date`, `notes`, `is_active` | Full admin form with all fields including role and pastoral notes. |
+| `MemberStaffForm` | Member | `role`, `family`, `joined_date`, `baptism_date`, `membership_status`, `notes`, `is_active` | Staff form for editing only administrative fields (no personal info). Used when staff edits another member's profile. |
+| `ProfileModificationRequestForm` | ProfileModificationRequest | `message` | Form for staff to request a member to update their info. |
+| `FamilyForm` | Family | `name`, `address`, `city`, `province`, `postal_code`, `notes` | Create/edit families. |
+| `GroupForm` | Group | `name`, `group_type`, `description`, `leader`, `meeting_day`, `meeting_time`, `meeting_location`, `email` | Create/edit groups. The `leader` field is filtered to members with role `group_leader`, `pastor`, or `admin`. |
+| `GroupMembershipForm` | GroupMembership | `member`, `group`, `role`, `notes` | Add a member to a group. When passed a `group` kwarg, hides the group field and excludes members already in the group. |
+| `DirectoryPrivacyForm` | DirectoryPrivacy | `visibility`, `show_email`, `show_phone`, `show_address`, `show_birth_date`, `show_photo` | Manage directory privacy settings. |
+| `MemberSearchForm` | -- (Form) | `search`, `role`, `family_status`, `group`, `birth_month` | Search and filter form for the member list view. |
+| `DepartmentForm` | Department | `name`, `description`, `leader`, `parent_department`, `meeting_day`, `meeting_time`, `meeting_location` | Create/edit departments. Leader filtered to active members with staff-level roles. |
+| `DepartmentTaskTypeForm` | DepartmentTaskType | `name`, `description`, `max_assignees` | Create/edit task types within a department. |
+| `DepartmentMembershipForm` | DepartmentMembership | `member`, `role` | Add a member to a department. When passed a `department` kwarg, excludes already-enrolled members. |
+| `DisciplinaryActionForm` | DisciplinaryAction | `member`, `action_type`, `reason`, `start_date`, `end_date`, `auto_suspend_membership`, `notes` | Create disciplinary actions. Member field filtered to active members. |
+
+## Services
+
+### DisciplinaryService
+
+Located in `apps/members/services.py`. Manages the disciplinary action lifecycle with role-hierarchy enforcement.
+
+**Role Hierarchy** (ascending authority): `member` < `volunteer` < `group_leader` < `deacon` < `treasurer` < `pastor` < `admin`
+
+| Method | Parameters | Returns | Description |
+|--------|-----------|---------|-------------|
+| `can_discipline(actor, target)` | Two Member instances | `bool` | Checks if actor can create a disciplinary action against target. Actor must be in `STAFF_ROLES` and have strictly higher hierarchy than target. |
+| `can_approve(approver, action)` | Member, DisciplinaryAction | `bool` | Checks if approver can approve an action. Must be different from creator and at least pastor level. |
+| `create_action(actor, target, action_type, reason, start_date, end_date, notes, auto_suspend)` | Various | `DisciplinaryAction` | Creates a pending action and sends notifications to all pastors/admins (excluding the actor). Raises `ValueError` if hierarchy check fails. |
+| `approve_action(approver, action)` | Member, DisciplinaryAction | `DisciplinaryAction` | Approves the action. If `auto_suspend_membership` is True and action type is `suspension`, sets the member's `membership_status` to `SUSPENDED` and notifies them. Notifies the action creator. Raises `ValueError` if unauthorized. |
+| `reject_action(approver, action)` | Member, DisciplinaryAction | `DisciplinaryAction` | Rejects the action and notifies the creator. Raises `ValueError` if unauthorized. |
+| `lift_suspension(actor, action)` | Member, DisciplinaryAction | `DisciplinaryAction` | Sets end date to today, reactivates the member if suspended, and notifies them. Only works on approved suspensions. Raises `ValueError` otherwise. |
+
+## Serializers
+
+| Serializer | Model | Purpose | Key Fields |
+|------------|-------|---------|------------|
+| `MemberListSerializer` | Member | Lightweight list/search results | `id`, `member_number`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `role`, `role_display`, `photo`, `age`, `is_active` |
+| `MemberSerializer` | Member | Full detail with related data | All fields + `full_name`, `full_address`, `age`, `role_display`, `family_status_display`, `province_display`, `family_name`, `groups` (method field) |
+| `MemberCreateSerializer` | Member | Member creation | `first_name`, `last_name`, `email`, `phone`, `phone_secondary`, `birth_date`, `address`, `city`, `province`, `postal_code`, `photo`, `family_status`, `family`. On create: also creates `DirectoryPrivacy`. |
+| `MemberProfileSerializer` | Member | Self-service profile update | `first_name`, `last_name`, `email`, `phone`, `phone_secondary`, `birth_date`, `address`, `city`, `province`, `postal_code`, `photo`, `family_status` |
+| `MemberAdminSerializer` | Member | Admin updates with all fields | All writable fields + `full_name`, `notes`, `role`, `is_active`. Read-only: `member_number`, `created_at`, `updated_at` |
+| `BirthdaySerializer` | Member | Birthday-focused data | `id`, `member_number`, `full_name`, `birth_date`, `birth_day` (method), `birth_month` (method), `age`, `photo`, `phone`, `email` |
+| `DirectoryMemberSerializer` | Member | Directory listing with privacy | `id`, `member_number`, `full_name`, `email`, `phone`, `photo`. Applies privacy settings in `to_representation()`: nulls out email/phone/photo based on member's `DirectoryPrivacy` settings. |
+| `FamilySerializer` | Family | Full family with members | `id`, `name`, `address`, `city`, `province`, `postal_code`, `full_address`, `notes`, `member_count`, `members` (nested `MemberListSerializer`), `is_active`, `created_at`, `updated_at` |
+| `FamilyListSerializer` | Family | Lightweight family list | `id`, `name`, `city`, `member_count` |
+| `GroupSerializer` | Group | Full group details | `id`, `name`, `group_type`, `group_type_display`, `description`, `leader`, `leader_name`, `meeting_day`, `meeting_time`, `meeting_location`, `email`, `member_count`, `is_active`, `created_at`, `updated_at` |
+| `GroupListSerializer` | Group | Lightweight group list | `id`, `name`, `group_type`, `group_type_display`, `member_count` |
+| `GroupMembershipSerializer` | GroupMembership | Membership details | `id`, `member`, `member_name`, `group`, `group_name`, `role`, `role_display`, `joined_date`, `notes`, `is_active` |
+| `DirectoryPrivacySerializer` | DirectoryPrivacy | Privacy settings | `id`, `visibility`, `visibility_display`, `show_email`, `show_phone`, `show_address`, `show_birth_date`, `show_photo` |
+
+**Serializer Selection by Action (MemberViewSet):**
 
 | Action | Serializer |
-| ------ | ---------- |
-| `list` | `MemberListSerializer` (resume) |
+|--------|------------|
+| `list` | `MemberListSerializer` |
 | `create` | `MemberCreateSerializer` |
-| `retrieve` | `MemberSerializer` (complet) |
-| `update/partial_update` (staff) | `MemberAdminSerializer` |
-| `update/partial_update` (membre) | `MemberProfileSerializer` |
+| `retrieve` | `MemberSerializer` |
+| `update`/`partial_update` (staff) | `MemberAdminSerializer` |
+| `update`/`partial_update` (member) | `MemberProfileSerializer` |
 | `birthdays` | `BirthdaySerializer` |
 | `directory` | `DirectoryMemberSerializer` |
 
-### Familles (`FamilyViewSet`)
+## API Endpoints
 
-| Methode | URL | Description | Permission |
-| ------- | --- | ----------- | ---------- |
-| `GET` | `/api/v1/members/families/` | Liste des familles | `IsMember` |
-| `POST` | `/api/v1/members/families/` | Creer une famille | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/members/families/{uuid}/` | Detail d'une famille | `IsMember` |
-| `PUT/PATCH` | `/api/v1/members/families/{uuid}/` | Modifier une famille | `IsPastorOrAdmin` |
+The REST API is built with Django REST Framework using ViewSets with an automatic router.
 
-**Recherche :** `name`, `city`
-**Tri :** `name`, `created_at`
+### Members (`MemberViewSet`)
 
-### Groupes (`GroupViewSet`)
+Base path: `/api/v1/members/members/`
 
-| Methode | URL | Description | Permission |
-| ------- | --- | ----------- | ---------- |
-| `GET` | `/api/v1/members/groups/` | Liste des groupes | `IsMember` |
-| `POST` | `/api/v1/members/groups/` | Creer un groupe | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/members/groups/{uuid}/` | Detail d'un groupe | `IsMember` |
-| `PUT/PATCH` | `/api/v1/members/groups/{uuid}/` | Modifier un groupe | `IsPastorOrAdmin` |
-| `DELETE` | `/api/v1/members/groups/{uuid}/` | Supprimer un groupe | `IsPastorOrAdmin` |
-| `GET` | `/api/v1/members/groups/{uuid}/members/` | Membres du groupe | `IsMember` |
-| `POST` | `/api/v1/members/groups/{uuid}/add-member/` | Ajouter un membre au groupe | `IsPastorOrAdmin` |
-| `POST` | `/api/v1/members/groups/{uuid}/remove-member/` | Retirer un membre du groupe | `IsPastorOrAdmin` |
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/members/members/` | List members (filtered by user's role) | `IsMember` |
+| `POST` | `/api/v1/members/members/` | Register a new member | Public (none) |
+| `GET` | `/api/v1/members/members/{uuid}/` | Member detail | `IsMember` |
+| `PUT/PATCH` | `/api/v1/members/members/{uuid}/` | Update a member | `IsOwnerOrStaff` |
+| `DELETE` | `/api/v1/members/members/{uuid}/` | Delete a member | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/members/members/me/` | Current user's profile | `IsMember` |
+| `PUT/PATCH` | `/api/v1/members/members/me/` | Update own profile | `IsMember` |
+| `GET` | `/api/v1/members/members/birthdays/` | Birthdays (`?period=today/week/month&month=1-12`) | `IsMember` |
+| `GET` | `/api/v1/members/members/directory/` | Directory with privacy applied (`?search=...`) | `IsMember` |
 
-**Filtres :** `group_type`, `leader`, `is_active`
-**Recherche :** `name`, `description`
-**Tri :** `name`, `created_at`
+**Filters:** `role`, `family_status`, `family`, `is_active`
+**Search:** `first_name`, `last_name`, `email`, `member_number`, `phone`
+**Ordering:** `last_name`, `first_name`, `created_at`, `birth_date`
 
-### Confidentialite (`DirectoryPrivacyViewSet`)
+**Data Visibility by Role:**
 
-| Methode | URL | Description | Permission |
-| ------- | --- | ----------- | ---------- |
-| `GET` | `/api/v1/members/privacy/` | Parametres de confidentialite | `IsMember` |
-| `GET` | `/api/v1/members/privacy/me/` | Mes parametres | `IsMember` |
-| `PUT/PATCH` | `/api/v1/members/privacy/me/` | Modifier mes parametres | `IsMember` |
+| Role | Visible Members |
+|------|-----------------|
+| Admin / Pastor | All members |
+| Group Leader | Self + members of groups they lead |
+| Member / Volunteer | Self only |
 
-> **Note :** Les membres reguliers ne voient que leurs propres parametres. Le personnel (staff) voit tous les parametres.
+### Families (`FamilyViewSet`)
 
----
+Base path: `/api/v1/members/families/`
 
-## URLs frontend
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/members/families/` | List families | `IsMember` |
+| `POST` | `/api/v1/members/families/` | Create a family | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/members/families/{uuid}/` | Family detail | `IsMember` |
+| `PUT/PATCH` | `/api/v1/members/families/{uuid}/` | Update a family | `IsPastorOrAdmin` |
+| `DELETE` | `/api/v1/members/families/{uuid}/` | Delete a family | `IsPastorOrAdmin` |
 
-Les pages HTML du frontend accessibles par les utilisateurs.
+**Search:** `name`, `city`
+**Ordering:** `name`, `created_at`
 
-| URL | Vue | Description | Acces |
-| --- | --- | ----------- | ----- |
-| `/members/` | `member_list` | Liste de tous les membres | Personnel pastoral |
-| `/members/register/` | `member_create` | Formulaire d'inscription | Public |
-| `/members/{uuid}/` | `member_detail` | Profil detaille d'un membre | Membre concerne ou staff |
-| `/members/{uuid}/edit/` | `member_update` | Modifier un profil | Membre concerne ou staff |
-| `/members/birthdays/` | `birthday_list` | Liste des anniversaires | Membres connectes |
-| `/members/directory/` | `directory` | Repertoire des membres | Membres connectes |
-| `/members/privacy-settings/` | `privacy_settings` | Parametres de confidentialite | Membre connecte |
-| `/members/groups/` | `group_list` | Liste des groupes | Membres connectes |
-| `/members/groups/{uuid}/` | `group_detail` | Detail d'un groupe | Membres connectes |
-| `/members/families/{uuid}/` | `family_detail` | Detail d'une famille | Membres connectes |
+### Groups (`GroupViewSet`)
 
----
+Base path: `/api/v1/members/groups/`
+
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/members/groups/` | List groups | `IsMember` |
+| `POST` | `/api/v1/members/groups/` | Create a group | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/members/groups/{uuid}/` | Group detail | `IsMember` |
+| `PUT/PATCH` | `/api/v1/members/groups/{uuid}/` | Update a group | `IsPastorOrAdmin` |
+| `DELETE` | `/api/v1/members/groups/{uuid}/` | Delete a group | `IsPastorOrAdmin` |
+| `GET` | `/api/v1/members/groups/{uuid}/members/` | List active group members | `IsMember` |
+| `POST` | `/api/v1/members/groups/{uuid}/add-member/` | Add member to group (`{"member": "uuid", "role": "member"}`) | `IsPastorOrAdmin` |
+| `POST` | `/api/v1/members/groups/{uuid}/remove-member/` | Remove member from group (`{"member": "uuid"}`) | `IsPastorOrAdmin` |
+
+**Filters:** `group_type`, `leader`, `is_active`
+**Search:** `name`, `description`
+**Ordering:** `name`, `created_at`
+
+### Directory Privacy (`DirectoryPrivacyViewSet`)
+
+Base path: `/api/v1/members/privacy/`
+
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| `GET` | `/api/v1/members/privacy/` | List privacy settings (staff sees all, members see own) | `IsMember` |
+| `GET` | `/api/v1/members/privacy/{uuid}/` | Privacy settings detail | `IsMember` |
+| `PUT/PATCH` | `/api/v1/members/privacy/{uuid}/` | Update privacy settings | `IsMember` |
+| `GET` | `/api/v1/members/privacy/me/` | Current user's privacy settings | `IsMember` |
+| `PUT/PATCH` | `/api/v1/members/privacy/me/` | Update own privacy settings | `IsMember` |
+
+## Frontend URLs
+
+Base path: `/members/`
+
+### Member Management
+
+| URL | View | Name | Access |
+|-----|------|------|--------|
+| `/members/` | `member_list` | `members:member_list` | Pastor, Admin |
+| `/members/register/` | `member_create` | `members:member_create` | Public |
+| `/members/my-profile/` | `my_profile` | `members:my_profile` | Authenticated (own profile) |
+| `/members/export/` | `member_list_export` | `members:member_list_export` | Pastor, Admin |
+| `/members/birthdays/` | `birthday_list` | `members:birthday_list` | Authenticated |
+| `/members/directory/` | `directory` | `members:directory` | Authenticated |
+| `/members/privacy-settings/` | `privacy_settings` | `members:privacy_settings` | Authenticated (own settings) |
+| `/members/<uuid:pk>/` | `member_detail` | `members:member_detail` | Owner, Staff, Group Leader (if in their group) |
+| `/members/<uuid:pk>/edit/` | `member_update` | `members:member_update` | Owner (profile fields), Staff (admin fields) |
+| `/members/<uuid:pk>/request-modification/` | `request_modification` | `members:request_modification` | Staff |
+
+### Modification Requests
+
+| URL | View | Name | Access |
+|-----|------|------|--------|
+| `/members/modification-requests/` | `modification_request_list` | `members:modification_request_list` | Staff |
+| `/members/modification-requests/<uuid:pk>/complete/` | `complete_modification_request` | `members:complete_modification_request` | Target member only (POST) |
+
+### Groups
+
+| URL | View | Name | Access |
+|-----|------|------|--------|
+| `/members/groups/` | `group_list` | `members:group_list` | Authenticated |
+| `/members/groups/create/` | `group_create` | `members:group_create` | Staff |
+| `/members/groups/<uuid:pk>/` | `group_detail` | `members:group_detail` | Authenticated |
+| `/members/groups/<uuid:pk>/edit/` | `group_edit` | `members:group_edit` | Staff |
+| `/members/groups/<uuid:pk>/delete/` | `group_delete` | `members:group_delete` | Staff |
+| `/members/groups/<uuid:pk>/add-member/` | `group_add_member` | `members:group_add_member` | Staff, Group Leader |
+| `/members/groups/<uuid:pk>/remove-member/<uuid:membership_pk>/` | `group_remove_member` | `members:group_remove_member` | Staff, Group Leader (POST) |
+
+### Families
+
+| URL | View | Name | Access |
+|-----|------|------|--------|
+| `/members/families/` | `family_list` | `members:family_list` | Authenticated |
+| `/members/families/create/` | `family_create` | `members:family_create` | Staff |
+| `/members/families/<uuid:pk>/` | `family_detail` | `members:family_detail` | Authenticated |
+| `/members/families/<uuid:pk>/edit/` | `family_edit` | `members:family_edit` | Staff |
+| `/members/families/<uuid:pk>/delete/` | `family_delete` | `members:family_delete` | Staff |
+
+### Departments
+
+| URL | View | Name | Access |
+|-----|------|------|--------|
+| `/members/departments/` | `department_list` | `members:department_list` | Authenticated |
+| `/members/departments/create/` | `department_create` | `members:department_create` | Pastor, Admin |
+| `/members/departments/<uuid:pk>/` | `department_detail` | `members:department_detail` | Authenticated |
+| `/members/departments/<uuid:pk>/edit/` | `department_edit` | `members:department_edit` | Pastor, Admin |
+| `/members/departments/<uuid:pk>/delete/` | `department_delete` | `members:department_delete` | Pastor, Admin |
+| `/members/departments/<uuid:pk>/add-member/` | `department_add_member` | `members:department_add_member` | Pastor, Admin, Dept Leader |
+| `/members/departments/<uuid:pk>/remove-member/<uuid:membership_pk>/` | `department_remove_member` | `members:department_remove_member` | Pastor, Admin, Dept Leader (POST) |
+| `/members/departments/<uuid:pk>/task-types/` | `department_task_types` | `members:department_task_types` | Pastor, Admin, Dept Leader |
+
+### Disciplinary Actions
+
+| URL | View | Name | Access |
+|-----|------|------|--------|
+| `/members/disciplinary/` | `disciplinary_list` | `members:disciplinary_list` | Staff (`STAFF_ROLES`) |
+| `/members/disciplinary/create/` | `disciplinary_create` | `members:disciplinary_create` | Staff (`STAFF_ROLES`) |
+| `/members/disciplinary/<uuid:pk>/` | `disciplinary_detail` | `members:disciplinary_detail` | Staff (`STAFF_ROLES`) |
+| `/members/disciplinary/<uuid:pk>/approve/` | `disciplinary_approve` | `members:disciplinary_approve` | Pastor, Admin (POST) |
 
 ## Templates
 
-Les fichiers de templates HTML se trouvent dans `templates/members/`.
+### `templates/members/`
 
-| Template | Description | Contexte principal |
-| -------- | ----------- | ------------------ |
-| `member_list.html` | Tableau des membres avec recherche et filtres | Liste de `Member`, formulaire `MemberSearchForm` |
-| `member_detail.html` | Page de profil detaille d'un membre | Instance `Member`, groupes, famille |
-| `member_form.html` | Formulaire de creation et d'edition (partage) | `MemberRegistrationForm`, `MemberProfileForm` ou `MemberAdminForm` |
-| `birthday_list.html` | Liste des anniversaires par periode | Membres avec anniversaires |
-| `directory.html` | Repertoire des membres avec confidentialite | Membres filtres selon la confidentialite |
-| `privacy_settings.html` | Formulaire de parametres de confidentialite | `DirectoryPrivacyForm` |
-| `group_list.html` | Liste de tous les groupes | Liste de `Group` |
-| `group_detail.html` | Detail d'un groupe avec ses membres | Instance `Group`, memberships |
-| `family_detail.html` | Detail d'une famille avec ses membres | Instance `Family`, membres associes |
+| Template | View(s) | Description |
+|----------|---------|-------------|
+| `member_list.html` | `member_list` | Paginated member table with search, role/status filters, and sorting |
+| `member_detail.html` | `member_detail` | Full member profile page with groups and family |
+| `member_form.html` | `member_create`, `member_update` | Shared create/edit form (adapts based on form type) |
+| `my_profile.html` | `my_profile` | Self-service profile page with pending modification requests |
+| `birthday_list.html` | `birthday_list` | Birthday listing by period (today/week/month) |
+| `directory.html` | `directory` | Member directory with privacy-filtered results |
+| `privacy_settings.html` | `privacy_settings` | Privacy settings form |
+| `group_list.html` | `group_list` | List of all active groups with type filter |
+| `group_detail.html` | `group_detail` | Group details with member list |
+| `group_form.html` | `group_create`, `group_edit` | Group create/edit form |
+| `group_delete.html` | `group_delete` | Group delete confirmation |
+| `group_add_member.html` | `group_add_member` | Add member to group form |
+| `family_list.html` | `family_list` | List of all families with search |
+| `family_detail.html` | `family_detail` | Family details with member list |
+| `family_form.html` | `family_create`, `family_edit` | Family create/edit form |
+| `family_delete.html` | `family_delete` | Family delete confirmation |
+| `department_delete.html` | `department_delete` | Department delete confirmation |
+| `disciplinary_list.html` | `disciplinary_list` | Paginated disciplinary action list with status/type/date filters |
+| `disciplinary_form.html` | `disciplinary_create` | Disciplinary action creation form |
+| `disciplinary_detail.html` | `disciplinary_detail` | Disciplinary action details with approve/reject/lift buttons |
+| `request_modification.html` | `request_modification` | Profile modification request form |
+| `modification_request_list.html` | `modification_request_list` | List of all profile modification requests with status filter |
 
----
+### `templates/departments/`
 
-## Exemples d'utilisation complets
+| Template | View(s) | Description |
+|----------|---------|-------------|
+| `department_list.html` | `department_list` | List of all active departments |
+| `department_detail.html` | `department_detail` | Department details with members and task types |
+| `department_form.html` | `department_create`, `department_edit` | Department create/edit form |
+| `department_add_member.html` | `department_add_member` | Add member to department form |
+| `department_task_types.html` | `department_task_types` | Task type management for a department |
 
-### Inscription d'un nouveau membre via l'API
+## Signals
 
-```python
-import requests
+### `create_member_for_superuser`
 
-response = requests.post('http://localhost:8000/api/v1/members/members/', json={
-    'first_name': 'Pierre',
-    'last_name': 'Martin',
-    'email': 'pierre@example.com',
-    'phone': '514-555-0100',
-    'birth_date': '1985-03-22',
-    'province': 'QC',
-    'family_status': 'married',
-})
+| Signal | Sender | Trigger | Behavior |
+|--------|--------|---------|----------|
+| `post_save` | `User` | New superuser created | Auto-creates a `Member` profile with `role=ADMIN`, `membership_status=ACTIVE`. Uses `first_name` / `last_name` from the User (or defaults to "Admin" / capitalized username). Skips if the user already has a `member_profile`. |
 
-# Reponse : 201 Created
-# {
-#     "id": "a1b2c3d4-...",
-#     "member_number": "MBR-2026-0003",
-#     "first_name": "Pierre",
-#     "last_name": "Martin",
-#     ...
-# }
-```
+Located in `apps/members/signals.py`.
 
-### Gestion des groupes via l'API
+## Admin Configuration
 
-```python
-import requests
+### Registered Models and Admin Classes
 
-headers = {'Authorization': 'Token pastor_token_ici'}
+| Model | Admin Class | Parent | Features |
+|-------|-------------|--------|----------|
+| `Member` | `MemberAdmin` | `SoftDeleteModelAdmin` | Full fieldsets (Identification, Personal Info, Address, Church, Notes, Status, Metadata), inlines for DirectoryPrivacy and GroupMembership |
+| `Family` | `FamilyAdmin` | `BaseModelAdmin` | Fieldsets (Name, Address, Notes, Status, Metadata), inline for family members |
+| `Group` | `GroupAdmin` | `BaseModelAdmin` | Fieldsets (Info, Meetings, Contact, Status, Metadata), inline for GroupMembership |
+| `GroupMembership` | `GroupMembershipAdmin` | `BaseModelAdmin` | List display with member, group, role, joined_date, is_active |
+| `DirectoryPrivacy` | `DirectoryPrivacyAdmin` | `BaseModelAdmin` | List display with member, visibility, and show_* fields |
 
-# Creer un groupe
-response = requests.post(
-    'http://localhost:8000/api/v1/members/groups/',
-    headers=headers,
-    json={
-        'name': 'Cellule Rive-Sud',
-        'group_type': 'cell',
-        'leader': 'uuid-du-leader',
-        'meeting_day': 'Jeudi',
-        'meeting_time': '19:30',
-    },
-)
+### Inlines
 
-# Ajouter un membre au groupe
-group_id = response.json()['id']
-requests.post(
-    f'http://localhost:8000/api/v1/members/groups/{group_id}/add-member/',
-    headers=headers,
-    json={'member': 'uuid-du-membre', 'role': 'member'},
-)
-```
+| Inline | Type | Used In | Description |
+|--------|------|---------|-------------|
+| `GroupMembershipInline` | TabularInline | `MemberAdmin`, `GroupAdmin` | Manage member-group assignments with autocomplete |
+| `DirectoryPrivacyInline` | StackedInline | `MemberAdmin` | Edit privacy settings (cannot delete) |
+| `FamilyMemberInline` | TabularInline | `FamilyAdmin` | View/add family members (member_number readonly) |
 
-### Consulter les anniversaires
+### MemberAdmin Detail
 
-```python
-import requests
+- **list_display:** `member_number`, `full_name`, `email`, `phone`, `role`, `family_status`, `is_active`
+- **list_filter:** `role`, `family_status`, `province`, `is_active`, `created_at`
+- **search_fields:** `member_number`, `first_name`, `last_name`, `email`, `phone`
+- **readonly_fields:** `id`, `member_number`, `created_at`, `updated_at`, `deleted_at`
+- **autocomplete_fields:** `user`, `family`
 
-headers = {'Authorization': 'Token mon_token'}
+## Permissions Matrix
 
-# Anniversaires de la semaine
-response = requests.get(
-    'http://localhost:8000/api/v1/members/members/birthdays/?period=week',
-    headers=headers,
-)
+### Frontend Views
 
-# Anniversaires d'un mois specifique
-response = requests.get(
-    'http://localhost:8000/api/v1/members/members/birthdays/?period=month&month=12',
-    headers=headers,
-)
-```
+| Action | Member | Volunteer | Group Leader | Deacon | Treasurer | Pastor | Admin |
+|--------|--------|-----------|-------------|--------|-----------|--------|-------|
+| View member list | -- | -- | -- | Yes | -- | Yes | Yes |
+| View member detail (own) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| View member detail (other) | -- | -- | Own group* | Yes | -- | Yes | Yes |
+| Edit own profile | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Edit other's admin fields | -- | -- | -- | Yes | -- | Yes | Yes |
+| Register (public) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Export member list CSV | -- | -- | -- | -- | -- | Yes | Yes |
+| View birthdays | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| View directory | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Manage own privacy | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| View group list | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| View group detail | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Create/edit/delete group | -- | -- | -- | Yes | -- | Yes | Yes |
+| Add/remove group member | -- | -- | Own group* | Yes | -- | Yes | Yes |
+| View family list | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| View family detail | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Create/edit/delete family | -- | -- | -- | Yes | -- | Yes | Yes |
+| View department list | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| View department detail | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Create/edit/delete department | -- | -- | -- | -- | -- | Yes | Yes |
+| Add/remove dept member | -- | -- | Dept leader* | -- | -- | Yes | Yes |
+| Manage dept task types | -- | -- | Dept leader* | -- | -- | Yes | Yes |
+| View disciplinary list | -- | -- | -- | Yes | -- | Yes | Yes |
+| Create disciplinary action | -- | -- | -- | Yes | -- | Yes | Yes |
+| Approve/reject/lift | -- | -- | -- | -- | -- | Yes | Yes |
+| Request profile modification | -- | -- | -- | Yes | -- | Yes | Yes |
+| View modification requests | -- | -- | -- | Yes | -- | Yes | Yes |
+| Complete modification request | Target member only | | | | | | |
+| View own profile (my_profile) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 
-### Utilisation du repertoire avec confidentialite
+\* Only for groups/departments they lead
 
-```python
-import requests
+### API Endpoints
 
-headers = {'Authorization': 'Token mon_token'}
+| Action | Permission Class | Description |
+|--------|-----------------|-------------|
+| Create member | None (public) | Anyone can register |
+| List members | `IsMember` | Must be authenticated with a member profile |
+| Retrieve member | `IsMember` | Role-based queryset filtering applies |
+| Update member | `IsOwnerOrStaff` | Own profile or staff |
+| Delete member | `IsPastorOrAdmin` | Pastor or admin only |
+| `/me/` | `IsMember` | Authenticated members |
+| `/birthdays/` | `IsMember` | Authenticated members |
+| `/directory/` | `IsMember` | Privacy settings applied to results |
+| List/retrieve family | `IsMember` | Authenticated members |
+| Create/update/delete family | `IsPastorOrAdmin` | Pastor or admin only |
+| List/retrieve group | `IsMember` | Authenticated members |
+| Create/update/delete group | `IsPastorOrAdmin` | Pastor or admin only |
+| Group `/members/` | `IsMember` | Authenticated members |
+| Group `/add-member/`, `/remove-member/` | `IsPastorOrAdmin` | Pastor or admin only |
+| Privacy settings | `IsMember` | Members see only their own; staff sees all |
 
-# Rechercher dans le repertoire
-response = requests.get(
-    'http://localhost:8000/api/v1/members/members/directory/?search=Dupont',
-    headers=headers,
-)
-# Seuls les membres dont la confidentialite autorise la visibilite seront retournes
-```
+## Dependencies
 
-### Creer une vue frontend avec mixins
-
-```python
-from django.views.generic import ListView
-from apps.core.mixins import (
-    PastorRequiredMixin,
-    ChurchContextMixin,
-    PageTitleMixin,
-    BreadcrumbMixin,
-)
-from apps.members.models import Member
-
-class ListeMembresView(
-    PastorRequiredMixin,
-    ChurchContextMixin,
-    PageTitleMixin,
-    BreadcrumbMixin,
-    ListView,
-):
-    model = Member
-    template_name = 'members/member_list.html'
-    context_object_name = 'members'
-    page_title = "Liste des membres"
-
-    def get_breadcrumbs(self):
-        return [
-            ('Accueil', '/'),
-            ('Membres', None),
-        ]
-```
-
----
+- **core**: `BaseModel`, `SoftDeleteModel`, constants (`Roles`, `FamilyStatus`, `GroupType`, `PrivacyLevel`, `Province`, `MembershipStatus`, `DepartmentRole`, `DisciplinaryType`, `ApprovalStatus`, `ModificationRequestStatus`), `validate_image_file`, `generate_member_number`, `get_today_birthdays`, `get_week_birthdays`, `get_month_birthdays`, `export_queryset_csv`, permissions (`IsMember`, `IsPastor`, `IsAdmin`, `IsPastorOrAdmin`, `IsOwnerOrStaff`, `CanViewMember`), mixins (`W3CRMFormMixin`, `PastorRequiredMixin`, `MemberRequiredMixin`, `ChurchContextMixin`, `OwnerOrStaffRequiredMixin`), admin (`SoftDeleteModelAdmin`, `BaseModelAdmin`)
+- **communication**: `Notification` model (used by `DisciplinaryService` for approval notifications, suspension notifications, and action result notifications)
+- **django.contrib.auth**: `User` model (one-to-one link from Member, superuser signal)
 
 ## Tests
 
-Lancer les tests de l'application `members` :
+**345 tests** across 8 test files, located in `apps/members/tests/`.
+
+| File | Description |
+|------|-------------|
+| `factories.py` | Test data factories for Member, Family, Group, GroupMembership, DirectoryPrivacy, Department, DepartmentMembership, DepartmentTaskType, DisciplinaryAction, ProfileModificationRequest |
+| `test_models.py` | Model creation, auto-generated member numbers, soft delete/restore, property calculations (age, full_name, full_address), constraints (unique_together), member_count properties |
+| `test_forms.py` | Form validation (registration with account creation, password validation, email uniqueness), leader field filtering in GroupForm/DepartmentForm, GroupMembershipForm exclusion of existing members, W3CRMFormMixin CSS application |
+| `test_serializers.py` | Serializer output verification, privacy-respecting directory serializer, birthday serializer computed fields, read-only field enforcement |
+| `test_views_api.py` | API CRUD operations, role-based queryset filtering, permission enforcement, custom actions (me, birthdays, directory), group member management endpoints |
+| `test_views_api_extended.py` | Extended API tests for edge cases and additional scenarios |
+| `test_views_frontend.py` | Frontend view access control, form rendering and submission, pagination, search/filter functionality, redirect behavior for unauthorized access |
+| `test_disciplinary.py` | DisciplinaryService hierarchy enforcement, create/approve/reject/lift workflows, notification creation, auto-suspension on approval, error handling for invalid operations |
+| `test_profile.py` | Profile modification request workflow (create, complete), my_profile view, staff-only access to modification request list |
+
+Run tests:
 
 ```bash
-# Tous les tests members
+# All members tests
 pytest apps/members/ -v
 
-# Tests specifiques par categorie
-pytest apps/members/ -v -k "test_member_model"
-pytest apps/members/ -v -k "test_member_api"
-pytest apps/members/ -v -k "test_group"
-pytest apps/members/ -v -k "test_family"
-pytest apps/members/ -v -k "test_privacy"
-pytest apps/members/ -v -k "test_forms"
+# By category
+pytest apps/members/tests/test_models.py -v
+pytest apps/members/tests/test_forms.py -v
+pytest apps/members/tests/test_views_api.py -v
+pytest apps/members/tests/test_views_frontend.py -v
+pytest apps/members/tests/test_disciplinary.py -v
+pytest apps/members/tests/test_profile.py -v
 
-# Avec couverture de code
+# With coverage
 pytest apps/members/ -v --cov=apps.members --cov-report=html
 ```
-
-### Scenarios de tests recommandes
-
-#### Tests des modeles
-
-- Creation de membre avec generation automatique du numero
-- Suppression logique et restauration
-- Calcul de l'age et des proprietes
-- Contrainte d'unicite `member_number`
-- Contrainte `unique_together` sur `GroupMembership`
-
-#### Tests de l'API
-
-- Inscription publique (POST sans authentification)
-- Visibilite des donnees par role (admin voit tout, membre voit seulement lui-meme)
-- Endpoint `/me/` pour le profil de l'utilisateur connecte
-- Filtres, recherche et tri
-- Gestion des groupes (ajout/retrait de membres)
-- Confidentialite du repertoire (public, group, private)
-- Gestion des anniversaires par periode
-
-#### Tests des formulaires
-
-- Validation de `MemberRegistrationForm` avec creation de compte
-- Validation des mots de passe (concordance, force)
-- Filtrage du champ `leader` dans `GroupForm`
-- Application automatique des classes CSS par `W3CRMFormMixin`
-
----
-
-## Arborescence des fichiers
-
-```text
-apps/members/
-    __init__.py
-    admin.py               # Configuration Django admin
-    forms.py               # 8 formulaires (tous avec W3CRMFormMixin)
-    models.py              # Member, Family, Group, GroupMembership, DirectoryPrivacy
-    serializers.py         # Serializers DRF (Member*, Family*, Group*, etc.)
-    urls.py                # Routeur API + URLs frontend
-    views_api.py           # ViewSets DRF (Member, Family, Group, DirectoryPrivacy)
-    views_frontend.py      # Vues frontend (templates HTML)
-
-templates/members/
-    birthday_list.html
-    directory.html
-    family_detail.html
-    group_detail.html
-    group_list.html
-    member_detail.html
-    member_form.html
-    member_list.html
-    privacy_settings.html
-    my_profile.html
-    request_modification.html
-    disciplinary_list.html
-    disciplinary_form.html
-    disciplinary_detail.html
-
-templates/departments/
-    department_list.html
-    department_detail.html
-    department_form.html
-    department_add_member.html
-    department_task_types.html
-```
-
----
-
-## Recent Additions
-
-The following features were added after the initial README was written.
-
-### New Models
-
-#### MemberRole
-Allows members to hold multiple roles simultaneously (in addition to their primary `role` field).
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `member` | ForeignKey → Member | The member |
-| `role` | CharField (Roles.CHOICES) | Additional role |
-
-Constraints: `unique_together = ['member', 'role']`. Related name: `additional_roles`.
-
-#### Department
-Organizational departments (e.g., Louange, Accueil, Technique).
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | CharField(200) | Department name |
-| `description` | TextField | Description (optional) |
-| `leader` | ForeignKey → Member | Department leader (nullable) |
-| `parent_department` | ForeignKey → self | Hierarchical parent (nullable) |
-| `meeting_day` | CharField(20) | Meeting day (optional) |
-| `meeting_time` | TimeField | Meeting time (nullable) |
-| `meeting_location` | CharField(200) | Meeting location (optional) |
-
-Property: `member_count` → count of active members.
-
-#### DepartmentMembership
-Links members to departments with a role.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `member` | ForeignKey → Member | The member |
-| `department` | ForeignKey → Department | The department |
-| `role` | CharField | `member`, `leader`, or `assistant` |
-| `joined_date` | DateField | Auto-set on creation |
-
-Constraints: `unique_together = ['member', 'department']`.
-
-#### DepartmentTaskType
-Types of tasks within a department (used by worship app for section assignments).
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `department` | ForeignKey → Department | Parent department |
-| `name` | CharField(100) | Task name |
-| `description` | TextField | Description (optional) |
-| `max_assignees` | PositiveIntegerField | Max people per task (default: 1) |
-
-Constraints: `unique_together = ['department', 'name']`.
-
-#### DisciplinaryAction
-Tracks disciplinary measures against members with approval workflow.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `member` | ForeignKey → Member | Target member |
-| `action_type` | CharField | `punishment`, `exemption`, `suspension` |
-| `reason` | TextField | Reason for action |
-| `start_date` | DateField | Start date |
-| `end_date` | DateField | End date (nullable, for temporary actions) |
-| `created_by` | ForeignKey → Member | Initiator |
-| `approved_by` | ForeignKey → Member | Approver (nullable) |
-| `approval_status` | CharField | `pending`, `approved`, `rejected` |
-| `auto_suspend_membership` | BooleanField | Auto-suspend member account (default: True) |
-| `notes` | TextField | Internal notes (optional) |
-
-Property: `is_current` → whether action is currently in effect.
-
-#### ProfileModificationRequest
-Staff requests a member to update their profile.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `target_member` | ForeignKey → Member | Member asked to update |
-| `requested_by` | ForeignKey → Member | Staff member requesting |
-| `message` | TextField | What needs to be modified |
-| `status` | CharField | `pending`, `completed`, `cancelled` |
-| `completed_at` | DateTimeField | When completed (nullable) |
-
-### New Member Properties
-- `all_roles` → `set`: Union of primary role and all additional MemberRole entries
-- `has_role(role)` → `bool`: Checks primary + additional roles
-- `is_staff_member` → `bool`: Whether member has any staff role
-
-### New Forms
-- `DepartmentForm` — Create/edit departments (with leader filtered to staff)
-- `DepartmentTaskTypeForm` — Create/edit task types
-- `DepartmentMembershipForm` — Add member to department (excludes already-enrolled)
-- `DisciplinaryActionForm` — Create disciplinary action (with date widgets)
-- `ProfileModificationRequestForm` — Request profile modification (message field)
-
-### New Frontend Views (13 views)
-
-**Department views:**
-- `department_list` — `/members/departments/` — List all departments
-- `department_detail` — `/members/departments/<pk>/` — Department details with members and tasks
-- `department_create` — `/members/departments/create/` — Create department (admin/pastor)
-- `department_edit` — `/members/departments/<pk>/edit/` — Edit department (admin/pastor)
-- `department_add_member` — `/members/departments/<pk>/add-member/` — Add member to department
-- `department_task_types` — `/members/departments/<pk>/task-types/` — Manage task types
-
-**Disciplinary views:**
-- `disciplinary_list` — `/members/disciplinary/` — List actions with status/type filters
-- `disciplinary_create` — `/members/disciplinary/create/` — Create action (staff only)
-- `disciplinary_detail` — `/members/disciplinary/<pk>/` — Action details with approval options
-- `disciplinary_approve` — `/members/disciplinary/<pk>/approve/` — POST: approve/reject/lift
-
-**Profile views:**
-- `my_profile` — `/members/my-profile/` — Self-service profile page
-- `request_modification` — `/members/<pk>/request-modification/` — Staff requests update
-- `complete_modification_request` — `/members/modification-requests/<pk>/complete/` — Member marks complete
-
-### New Service: DisciplinaryService
-Located in `apps/members/services.py`. Manages disciplinary action lifecycle:
-- `can_discipline(actor, target)` — Role hierarchy check
-- `can_approve(approver, action)` — Approval authorization check
-- `create_action(...)` — Create pending action, notify pastors/admins
-- `approve_action(approver, action)` — Approve + auto-suspend if applicable
-- `reject_action(approver, action)` — Reject action
-- `lift_suspension(actor, action)` — Lift suspension, reactivate member
-
-### New Signal
-`create_member_for_superuser` — Auto-creates active admin Member profile for new superusers.

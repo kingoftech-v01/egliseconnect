@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/events/">Événements</a></li>
+            <li class="breadcrumb-item"><a href="/events/{{ event.pk }}/">{{ event.title }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Liste d'attente</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Liste d'attente - {{ event.title }}</h4>
+                        <span class="badge badge-primary light">{{ entries|length }} en attente</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Membre</th>
+                                        <th>Ajouté le</th>
+                                        <th>Statut</th>
+                                        {% if is_staff %}<th>Actions</th>{% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in entries %}
+                                    <tr>
+                                        <td>#{{ entry.position }}</td>
+                                        <td>{{ entry.member.full_name }}</td>
+                                        <td>{{ entry.added_at|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            {% if entry.promoted_at %}
+                                            <span class="badge badge-success light">Promu le {{ entry.promoted_at|date:"d/m/Y" }}</span>
+                                            {% else %}
+                                            <span class="badge badge-warning light">En attente</span>
+                                            {% endif %}
+                                        </td>
+                                        {% if is_staff %}
+                                        <td>
+                                            {% if not entry.promoted_at %}
+                                            <form method="post" action="/events/{{ event.pk }}/waitlist/{{ entry.pk }}/promote/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-xs" title="Promouvoir">
+                                                    <i class="fas fa-arrow-up"></i> Promouvoir
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="{% if is_staff %}5{% else %}4{% endif %}" class="text-center py-4">Liste d'attente vide.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <a href="/events/{{ event.pk }}/" class="btn btn-outline-secondary btn-sm mt-3">
+                            <i class="fas fa-arrow-left me-1"></i>Retour à l'événement
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Historique enfants{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Historique enfants</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Historique enfants</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Historique des enregistrements enfants</h4>
+                                <a href="/attendance/child/checkin/" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Nouveau</a>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Enfant</th>
+                                        <th>Parent</th>
+                                        <th>Session</th>
+                                        <th>Arrivee</th>
+                                        <th>Sortie</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for checkin in checkins %}
+                                    <tr>
+                                        <td>{{ checkin.child.full_name }}</td>
+                                        <td>{{ checkin.parent_member.full_name }}</td>
+                                        <td>{{ checkin.session.name }}</td>
+                                        <td>{{ checkin.check_in_time|date:"d/m H:i" }}</td>
+                                        <td>{% if checkin.check_out_time %}{{ checkin.check_out_time|date:"H:i" }}{% else %}-{% endif %}</td>
+                                        <td>
+                                            {% if checkin.is_checked_out %}
+                                            <span class="badge bg-secondary">Sorti</span>
+                                            {% else %}
+                                            <span class="badge bg-success">Present</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center text-muted">Aucun enregistrement.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

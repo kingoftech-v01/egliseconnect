@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Repetitions</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <form method="get" class="d-flex gap-2">
+                                <a href="/worship/rehearsals/?upcoming=1" class="btn btn-outline-info btn-sm"><i class="fas fa-calendar me-1"></i> A venir</a>
+                                <a href="/worship/rehearsals/" class="btn btn-outline-secondary btn-sm">Toutes</a>
+                            </form>
+                            {% if is_staff %}
+                            <a href="/worship/rehearsals/create/" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Nouvelle repetition</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Horaire</th>
+                                        <th>Lieu</th>
+                                        <th>Culte associe</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rehearsal in rehearsals %}
+                                    <tr>
+                                        <td><strong>{{ rehearsal.date|date:"d/m/Y" }}</strong></td>
+                                        <td>{{ rehearsal.start_time|time:"H:i" }}{% if rehearsal.end_time %} - {{ rehearsal.end_time|time:"H:i" }}{% endif %}</td>
+                                        <td>{{ rehearsal.location|default:"-" }}</td>
+                                        <td>
+                                            {% if rehearsal.service %}
+                                            <a href="/worship/services/{{ rehearsal.service.pk }}/">{{ rehearsal.service }}</a>
+                                            {% else %}-{% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/worship/rehearsals/{{ rehearsal.pk }}/" class="btn btn-primary btn-sm" title="Detail"><i class="fas fa-eye"></i></a>
+                                            {% if is_staff %}
+                                            <a href="/worship/rehearsals/{{ rehearsal.pk }}/edit/" class="btn btn-warning btn-sm" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center py-4">Aucune repetition.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

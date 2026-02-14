@@ -14,6 +14,54 @@
         </ol>
     </div>
     <div class="container-fluid">
+        <!-- Statistics Summary (item 22) -->
+        <div class="row mb-3">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0 text-primary">{{ total_count }}</h2>
+                            <span class="text-muted">Total presences</span>
+                        </div>
+                        <i class="bi bi-calendar-check fs-1 text-primary"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0 text-success">{{ attendance_rate }}%</h2>
+                            <span class="text-muted">Taux (90 jours)</span>
+                        </div>
+                        <i class="bi bi-percent fs-1 text-success"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0 text-info">{{ current_streak }}</h2>
+                            <span class="text-muted">Serie actuelle (sem.)</span>
+                        </div>
+                        <i class="bi bi-fire fs-1 text-info"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0 text-warning">{{ longest_streak }}</h2>
+                            <span class="text-muted">Meilleure serie (sem.)</span>
+                        </div>
+                        <i class="bi bi-trophy fs-1 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -41,6 +89,12 @@
                                         <td>
                                             {% if record.method == 'qr_scan' %}
                                             <span class="badge bg-success">QR</span>
+                                            {% elif record.method == 'nfc' %}
+                                            <span class="badge bg-primary">NFC</span>
+                                            {% elif record.method == 'kiosk' %}
+                                            <span class="badge bg-warning">Kiosque</span>
+                                            {% elif record.method == 'geo' %}
+                                            <span class="badge bg-secondary">Geo</span>
                                             {% else %}
                                             <span class="badge bg-info">Manuel</span>
                                             {% endif %}
@@ -94,13 +148,6 @@
                     </ul>
                 </nav>
                 {% endif %}
-
-                <!-- Total Summary -->
-                <div class="row">
-                    <div class="col-12">
-                        <p class="text-muted text-end">Total des presences : <strong>{{ total_count }}</strong></p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/help-requests/meals/">Repas</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Détail</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="heading mb-0">Repas pour {{ train.recipient.full_name }}</h4>
+                <div>
+                    {% if train.status == 'active' %}<span class="badge badge-success">Actif</span>
+                    {% elif train.status == 'completed' %}<span class="badge badge-secondary">Terminé</span>
+                    {% elif train.status == 'cancelled' %}<span class="badge badge-danger">Annulé</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <p><strong>Période :</strong> {{ train.start_date|date:"d/m/Y" }} - {{ train.end_date|date:"d/m/Y" }}</p>
+                    </div>
+                    <div class="col-md-8">
+                        <p><strong>Raison :</strong> {{ train.reason }}</p>
+                    </div>
+                </div>
+                {% if train.dietary_restrictions %}
+                <div class="alert alert-warning">
+                    <strong><i class="fa fa-exclamation-triangle me-1"></i> Restrictions alimentaires :</strong>
+                    {{ train.dietary_restrictions }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Calendar of dates -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Calendrier des repas</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Date</th><th>Volontaire</th><th>Statut</th></tr></thead>
+                    <tbody>
+                        {% for day in calendar_dates %}
+                        <tr>
+                            <td>{{ day.date|date:"l d/m/Y" }}</td>
+                            <td>
+                                {% if day.signup %}
+                                    {{ day.signup.volunteer.full_name }}
+                                    {% if day.signup.notes %}<br><small class="text-muted">{{ day.signup.notes }}</small>{% endif %}
+                                {% else %}
+                                    <span class="text-muted">Non assigné</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if day.signup %}
+                                    {% if day.signup.confirmed %}
+                                        <span class="badge badge-success">Confirmé</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">En attente</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-secondary">Libre</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sign-up form -->
+        {% if signup_form %}
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">S'inscrire pour un repas</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/help-requests/meals/{{ train.pk }}/signup/">
+                    {% csrf_token %}
+                    {% for field in signup_form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">S'inscrire</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="mt-3 mb-4">
+            <a href="/help-requests/meals/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

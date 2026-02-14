@@ -1,0 +1,17 @@
+{% comment %}
+Reusable campaign thermometer widget.
+Usage: {% include 'payments/_campaign_thermometer.html' with campaign=campaign %}
+{% endcomment %}
+<div class="campaign-thermometer">
+    <div class="progress" style="height: 20px;">
+        <div class="progress-bar {% if campaign.progress_percentage >= 100 %}bg-success{% elif campaign.progress_percentage >= 50 %}bg-primary{% else %}bg-warning{% endif %}"
+             role="progressbar"
+             style="width: {{ campaign.progress_percentage }}%"
+             aria-valuenow="{{ campaign.progress_percentage }}"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             title="{{ campaign.progress_percentage }}% atteint">
+            {{ campaign.progress_percentage }}%
+        </div>
+    </div>
+</div>

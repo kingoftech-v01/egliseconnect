@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}{% if field_obj %}Modifier le champ{% else %}Nouveau champ{% endif %}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{% if field_obj %}Modifier le champ{% else %}Nouveau champ{% endif %}</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/form-fields/">Champs</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{% if field_obj %}Modifier{% else %}Creer{% endif %}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">
+                            {% if field_obj %}Modifier : {{ field_obj.label }}{% else %}Nouveau champ personnalise{% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                            <div class="alert alert-danger">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                    <p><strong>{{ field.label }}:</strong> {{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label class="form-label">Libelle</label>
+                                {{ form.label }}
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Type de champ</label>
+                                    {{ form.field_type }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Ordre</label>
+                                    {{ form.order }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Obligatoire</label>
+                                    <div class="form-check mt-2">
+                                        {{ form.is_required }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Options (JSON)</label>
+                                {{ form.options }}
+                                <small class="form-text text-muted">Pour les listes deroulantes, entrez un tableau JSON: ["Option 1", "Option 2"]</small>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Champ conditionnel</label>
+                                    {{ form.conditional_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Valeur conditionnelle</label>
+                                    {{ form.conditional_value }}
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/admin/form-fields/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>{% if field_obj %}Enregistrer{% else %}Creer{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

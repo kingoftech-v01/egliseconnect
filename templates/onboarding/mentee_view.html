@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Mon mentor{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Mon mentor</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/dashboard/">Mon parcours</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mentor</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        {% if assignment %}
+        <div class="row">
+            <div class="col-xl-6 col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="fas fa-user-friends me-2"></i>Votre mentor</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            {% if assignment.mentor.photo %}
+                            <img src="{{ assignment.mentor.photo.url }}" class="rounded-circle" width="100" height="100" alt="Photo mentor">
+                            {% else %}
+                            <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width:100px;height:100px;">
+                                <i class="fas fa-user text-white" style="font-size:2.5rem;"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <h4>{{ assignment.mentor.full_name }}</h4>
+                        {% if assignment.mentor.email %}
+                        <p><i class="fas fa-envelope me-2"></i><a href="mailto:{{ assignment.mentor.email }}">{{ assignment.mentor.email }}</a></p>
+                        {% endif %}
+                        {% if assignment.mentor.phone %}
+                        <p><i class="fas fa-phone me-2"></i><a href="tel:{{ assignment.mentor.phone }}">{{ assignment.mentor.phone }}</a></p>
+                        {% endif %}
+                        <hr>
+                        <p class="text-muted mb-1"><strong>Debut:</strong> {{ assignment.start_date|date:"d/m/Y" }}</p>
+                        <p class="text-muted mb-1"><strong>Suivis:</strong> {{ assignment.check_in_count }}</p>
+                        {% if assignment.notes %}
+                        <p class="text-muted"><strong>Notes:</strong> {{ assignment.notes }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-xl-6 col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-user-friends text-muted mb-3" style="font-size:3rem;"></i>
+                        <h5 class="text-muted">Aucun mentor assigne</h5>
+                        <p class="text-muted">Un mentor vous sera assigne prochainement pour vous accompagner.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

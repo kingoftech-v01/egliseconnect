@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Leaderboard -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="heading mb-0"><i class="fas fa-trophy text-warning me-2"></i>Tableau d'honneur</h4>
+                <a href="/volunteers/volunteer-of-month/" class="btn btn-warning btn-sm"><i class="fas fa-star me-1"></i> Benevole du mois</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table">
+                    <thead><tr><th>#</th><th>Benevole</th><th>Heures totales</th></tr></thead>
+                    <tbody>
+                        {% for entry in leaderboard %}
+                        <tr>
+                            <td>
+                                {% if forloop.counter <= 3 %}
+                                    <span class="badge badge-warning">{{ forloop.counter }}</span>
+                                {% else %}
+                                    {{ forloop.counter }}
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.member_name }} {{ entry.member_last }}</td>
+                            <td>{{ entry.total_hours }}h</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center">Aucune donnee disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- My Achievements -->
+        {% if my_achievements %}
+        <div class="card mb-3">
+            <div class="card-header"><h4 class="heading mb-0"><i class="fas fa-medal me-2"></i>Mes jalons atteints</h4></div>
+            <div class="card-body">
+                {% for achievement in my_achievements %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="me-3">
+                        {% if achievement.milestone.badge_icon %}
+                            <i class="{{ achievement.milestone.badge_icon }} fa-2x text-success"></i>
+                        {% else %}
+                            <i class="fas fa-award fa-2x text-success"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <strong>{{ achievement.milestone.name }}</strong>
+                        <br><small class="text-muted">Atteint le {{ achievement.achieved_at|date:"d/m/Y" }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Achievements (all) -->
+        <div class="card mb-3">
+            <div class="card-header"><h4 class="heading mb-0">Jalons recents</h4></div>
+            <div class="card-body p-0">
+                <table class="table">
+                    <thead><tr><th>Benevole</th><th>Jalon</th><th>Date</th></tr></thead>
+                    <tbody>
+                        {% for a in recent_achievements %}
+                        <tr>
+                            <td>{{ a.member.full_name }}</td>
+                            <td>{{ a.milestone.name }}</td>
+                            <td>{{ a.achieved_at|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center">Aucun jalon atteint.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Available Milestones -->
+        <div class="card">
+            <div class="card-header"><h4 class="heading mb-0">Jalons disponibles</h4></div>
+            <div class="card-body p-0">
+                <table class="table">
+                    <thead><tr><th>Jalon</th><th>Type</th><th>Seuil</th><th>Description</th></tr></thead>
+                    <tbody>
+                        {% for m in milestones %}
+                        <tr>
+                            <td>{{ m.name }}</td>
+                            <td>{{ m.get_milestone_type_display }}</td>
+                            <td>{{ m.threshold }}</td>
+                            <td>{{ m.description|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center">Aucun jalon defini.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

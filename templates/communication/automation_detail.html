@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/communication/automations/">Automatisations</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2>{{ stats.total }}</h2>
+                        <p class="mb-0 text-muted">Total inscrits</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2 class="text-primary">{{ stats.active }}</h2>
+                        <p class="mb-0 text-muted">Actifs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2 class="text-success">{{ stats.completed }}</h2>
+                        <p class="mb-0 text-muted">Completes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2 class="text-danger">{{ stats.cancelled }}</h2>
+                        <p class="mb-0 text-muted">Annules</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Automation Info -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="heading mb-0">{{ automation.name }}</h4>
+                <div>
+                    {% if automation.is_active %}
+                        <span class="badge badge-success">Actif</span>
+                    {% else %}
+                        <span class="badge badge-secondary">Inactif</span>
+                    {% endif %}
+                    <span class="badge badge-info ms-1">{{ automation.get_trigger_type_display }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if automation.description %}
+                <p>{{ automation.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Steps -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="heading mb-0">Etapes de la sequence</h4>
+                <a href="/communication/automations/{{ automation.pk }}/steps/add/" class="btn btn-sm btn-primary">
+                    <i class="fa fa-plus me-1"></i> Ajouter une etape
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Delai</th>
+                            <th>Canal</th>
+                            <th>Sujet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for step in steps %}
+                        <tr>
+                            <td>{{ step.order }}</td>
+                            <td>
+                                {% if step.delay_days == 0 %}Immediat{% else %}{{ step.delay_days }} jour(s){% endif %}
+                            </td>
+                            <td>{{ step.get_channel_display }}</td>
+                            <td>{{ step.subject }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">Aucune etape definie.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Enrollments -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Inscriptions recentes</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Membre</th>
+                            <th>Etape</th>
+                            <th>Statut</th>
+                            <th>Debute le</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in enrollments %}
+                        <tr>
+                            <td>{{ enrollment.member.full_name }}</td>
+                            <td>Etape {{ enrollment.current_step }}</td>
+                            <td>{{ enrollment.get_status_display }}</td>
+                            <td>{{ enrollment.started_at|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">Aucune inscription.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a href="/communication/automations/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

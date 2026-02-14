@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/events/">Événements</a></li>
+            <li class="breadcrumb-item"><a href="/events/{{ event.pk }}/">{{ event.title }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Répondre</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ survey.title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for question in survey.questions_json %}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    {{ forloop.counter }}. {{ question.question }}
+                                    {% if question.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {% if question.type == 'rating' %}
+                                <div class="d-flex gap-2">
+                                    {% for i in "12345" %}
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="q_{{ forloop.parentloop.counter }}" value="{{ i }}" id="q{{ forloop.parentloop.counter }}_{{ i }}" {% if question.required %}required{% endif %}>
+                                        <label class="form-check-label" for="q{{ forloop.parentloop.counter }}_{{ i }}">{{ i }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% elif question.type == 'multiple_choice' %}
+                                {% for option in question.options %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="q_{{ forloop.parentloop.counter }}" value="{{ option }}" id="q{{ forloop.parentloop.counter }}_{{ forloop.counter }}" {% if question.required %}required{% endif %}>
+                                    <label class="form-check-label" for="q{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{{ option }}</label>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <textarea name="q_{{ forloop.counter }}" class="form-control" rows="3" {% if question.required %}required{% endif %}></textarea>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="/events/{{ event.pk }}/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Soumettre
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

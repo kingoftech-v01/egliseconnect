@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import IsPastor, IsAdmin, IsTreasurer
 from .services import DashboardService, ReportService
+from .models import ReportSchedule, SavedReport
 from .serializers import (
     DashboardSummarySerializer,
     MemberStatsSerializer,
@@ -18,6 +19,8 @@ from .serializers import (
     AttendanceReportSerializer,
     DonationReportSerializer,
     VolunteerReportSerializer,
+    ReportScheduleSerializer,
+    SavedReportSerializer,
 )
 
 
@@ -153,3 +156,32 @@ class TreasurerDonationReportView(APIView):
         data = ReportService.get_donation_report(year)
         serializer = DonationReportSerializer(data)
         return Response(serializer.data)
+
+
+class ReportScheduleViewSet(viewsets.ModelViewSet):
+    """CRUD API for report schedules."""
+    serializer_class = ReportScheduleSerializer
+    permission_classes = [IsAuthenticated, IsPastor | IsAdmin]
+
+    def get_queryset(self):
+        return ReportSchedule.objects.all()
+
+    def perform_create(self, serializer):
+        member = getattr(self.request.user, 'member_profile', None)
+        instance = serializer.save(created_by=member)
+        if not instance.next_run_at:
+            instance.next_run_at = instance.compute_next_run()
+            instance.save(update_fields=['next_run_at'])
+
+
+class SavedReportViewSet(viewsets.ModelViewSet):
+    """CRUD API for saved reports."""
+    serializer_class = SavedReportSerializer
+    permission_classes = [IsAuthenticated, IsPastor | IsAdmin]
+
+    def get_queryset(self):
+        return SavedReport.objects.all()
+
+    def perform_create(self, serializer):
+        member = getattr(self.request.user, 'member_profile', None)
+        serializer.save(created_by=member)

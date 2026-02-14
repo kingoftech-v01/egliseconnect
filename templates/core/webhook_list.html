@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row page-titles">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Accueil</a></li>
+                <li class="breadcrumb-item active">Webhooks</li>
+            </ol>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title">{{ page_title }}</h4>
+                        <a href="/settings/webhooks/create/" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Nouveau webhook
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if endpoints %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>URL</th>
+                                        <th>Événements</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for endpoint in endpoints %}
+                                    <tr>
+                                        <td>{{ endpoint.name }}</td>
+                                        <td><code>{{ endpoint.url|truncatechars:50 }}</code></td>
+                                        <td>{{ endpoint.events|length }} événement{{ endpoint.events|length|pluralize }}</td>
+                                        <td>
+                                            {% if endpoint.is_active %}
+                                            <span class="badge badge-success">Actif</span>
+                                            {% else %}
+                                            <span class="badge badge-danger">Inactif</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="/settings/webhooks/{{ endpoint.pk }}/edit/" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                            <a href="/settings/webhooks/{{ endpoint.pk }}/deliveries/" class="btn btn-sm btn-outline-info"><i class="fas fa-history"></i></a>
+                                            <a href="/settings/webhooks/{{ endpoint.pk }}/delete/" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Aucun webhook configuré.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

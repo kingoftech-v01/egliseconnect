@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row page-titles">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="/settings/webhooks/">Webhooks</a></li>
+                <li class="breadcrumb-item active">Supprimer</li>
+            </ol>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Confirmer la suppression</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Voulez-vous vraiment supprimer le webhook <strong>{{ webhook.name }}</strong>?</p>
+                        <p class="text-muted"><code>{{ webhook.url }}</code></p>
+
+                        <form method="POST">
+                            {% csrf_token %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger">Supprimer</button>
+                                <a href="/settings/webhooks/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

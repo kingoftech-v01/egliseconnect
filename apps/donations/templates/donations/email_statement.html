@@ -1,0 +1,11 @@
+<html>
+<body style="font-family: sans-serif; color: #333;">
+    <h2>{{ church_name }} - Releve de dons</h2>
+    <p>Bonjour {{ member.full_name }},</p>
+    <p>Veuillez trouver ci-joint votre releve de dons pour la periode {{ statement.get_period_display }} {{ statement.year }}.</p>
+    <p><strong>Montant total : {{ statement.total_amount }} $</strong></p>
+    <p>Periode : {{ statement.start_date|date:"d/m/Y" }} au {{ statement.end_date|date:"d/m/Y" }}</p>
+    <p>Merci pour votre generosite!</p>
+    <p>{{ church_name }}</p>
+</body>
+</html>

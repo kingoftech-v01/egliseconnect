@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Mon parcours{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Mon parcours</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/dashboard/">Adhesion</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Parcours</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="fas fa-map-signs me-2"></i>Votre parcours d'integration</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Journey Steps -->
+                        <div class="row">
+                            {% for step in steps %}
+                            <div class="col-md-2 text-center mb-4">
+                                <div class="position-relative">
+                                    {% if step.status == 'completed' %}
+                                    <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center mx-auto" style="width:60px;height:60px;">
+                                        <i class="fas fa-check text-white" style="font-size:1.5rem;"></i>
+                                    </div>
+                                    {% elif step.status == 'current' %}
+                                    <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mx-auto" style="width:60px;height:60px;animation:pulse 2s infinite;">
+                                        <i class="{{ step.icon }} text-white" style="font-size:1.5rem;"></i>
+                                    </div>
+                                    {% else %}
+                                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mx-auto" style="width:60px;height:60px;">
+                                        <i class="{{ step.icon }} text-muted" style="font-size:1.5rem;"></i>
+                                    </div>
+                                    {% endif %}
+                                    <p class="mt-2 mb-0 small {% if step.status == 'current' %}fw-bold text-primary{% elif step.status == 'completed' %}text-success{% else %}text-muted{% endif %}">
+                                        {{ step.label }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        {% if whats_next %}
+                        <div class="alert alert-info">
+                            <h5><i class="{{ whats_next.icon }} me-2"></i>{{ whats_next.title }}</h5>
+                            <p class="mb-2">{{ whats_next.description }}</p>
+                            {% if whats_next.action_url %}
+                            <a href="{{ whats_next.action_url }}" class="btn btn-primary btn-sm">
+                                {{ whats_next.action_label }}
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if estimated_completion %}
+                        <div class="mt-3">
+                            <p class="text-muted">
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                <strong>Fin estimee:</strong> {{ estimated_completion|date:"d/m/Y" }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(78, 115, 223, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0); }
+}
+</style>
+{% endblock %}

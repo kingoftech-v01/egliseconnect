@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+        <a href="/members/custom-fields/create/" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Nouveau champ
+        </a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Champs personnalises ({{ custom_fields|length }})</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Obligatoire</th>
+                                        <th>Ordre</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for field in custom_fields %}
+                                    <tr>
+                                        <td>{{ field.name }}</td>
+                                        <td><span class="badge bg-info">{{ field.get_field_type_display }}</span></td>
+                                        <td>
+                                            {% if field.is_required %}
+                                            <span class="badge bg-warning">Oui</span>
+                                            {% else %}
+                                            <span class="text-muted">Non</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ field.order }}</td>
+                                        <td>
+                                            <a href="/members/custom-fields/{{ field.pk }}/edit/" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="post" action="/members/custom-fields/{{ field.pk }}/delete/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Supprimer ce champ?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">Aucun champ personnalise.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

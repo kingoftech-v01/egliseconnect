@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item"><a href="/payments/history/">{% trans "Historique" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">{{ page_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted">{% trans "Membre" %}</td>
+                                <td>{{ payment.member.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">{% trans "Montant" %}</td>
+                                <td><strong>{{ payment.amount_display }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">{% trans "Type de don" %}</td>
+                                <td>{{ payment.get_donation_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">{% trans "Statut" %}</td>
+                                <td>
+                                    {% if payment.status == 'succeeded' %}
+                                    <span class="badge badge-success">{{ payment.get_status_display }}</span>
+                                    {% elif payment.status == 'failed' %}
+                                    <span class="badge badge-danger">{{ payment.get_status_display }}</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">{{ payment.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">{% trans "Date" %}</td>
+                                <td>{{ payment.created_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            {% if payment.campaign %}
+                            <tr>
+                                <td class="text-muted">{% trans "Campagne" %}</td>
+                                <td>{{ payment.campaign.name }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if payment.stripe_receipt_url %}
+                            <tr>
+                                <td class="text-muted">{% trans "Reçu Stripe" %}</td>
+                                <td>
+                                    <a href="{{ payment.stripe_receipt_url }}" target="_blank" class="btn btn-outline-primary btn-xs">
+                                        <i class="fa fa-receipt me-1"></i>{% trans "Voir le reçu" %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td class="text-muted">{% trans "Référence" %}</td>
+                                <td><code>{{ payment.stripe_payment_intent_id }}</code></td>
+                            </tr>
+                        </table>
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="/payments/history/" class="btn btn-outline-secondary">
+                                <i class="fa fa-arrow-left me-1"></i>{% trans "Retour" %}
+                            </a>
+                            <a href="/payments/donate/" class="btn btn-primary">
+                                <i class="fa fa-heart me-1"></i>{% trans "Faire un don" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

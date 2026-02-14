@@ -19,7 +19,11 @@ from apps.core.permissions import (
 from apps.core.constants import Roles, PaymentMethod
 from apps.core.utils import generate_receipt_number
 
-from .models import Donation, DonationCampaign, TaxReceipt
+from .models import (
+    Donation, DonationCampaign, TaxReceipt,
+    Pledge, PledgeFulfillment, GivingStatement, GivingGoal,
+    DonationImport, DonationImportRow, MatchingCampaign, CryptoDonation,
+)
 from .serializers import (
     DonationSerializer,
     DonationListSerializer,
@@ -31,6 +35,19 @@ from .serializers import (
     TaxReceiptSerializer,
     TaxReceiptListSerializer,
     DonationSummarySerializer,
+    PledgeSerializer,
+    PledgeListSerializer,
+    PledgeFulfillmentSerializer,
+    GivingStatementSerializer,
+    GivingStatementListSerializer,
+    GivingGoalSerializer,
+    DonationImportSerializer,
+    DonationImportRowSerializer,
+    MatchingCampaignSerializer,
+    CryptoDonationSerializer,
+    GivingTrendSerializer,
+    DonorRetentionSerializer,
+    TopDonorSerializer,
 )
 
 
@@ -355,3 +372,257 @@ class TaxReceiptViewSet(viewsets.ModelViewSet):
         )
 
         return receipt
+
+
+class PledgeViewSet(viewsets.ModelViewSet):
+    """CRUD operations for pledges."""
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'frequency', 'campaign', 'member']
+    search_fields = ['member__first_name', 'member__last_name', 'notes']
+    ordering_fields = ['amount', 'start_date', 'created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return Pledge.objects.all().select_related('member', 'campaign')
+        if hasattr(user, 'member_profile'):
+            member = user.member_profile
+            if member.role in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
+                return Pledge.objects.all().select_related('member', 'campaign')
+            return Pledge.objects.filter(member=member).select_related('campaign')
+        return Pledge.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PledgeListSerializer
+        return PledgeSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'create']:
+            return [IsMember()]
+        return [IsFinanceStaff()]
+
+
+class GivingStatementViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only viewset for giving statements."""
+
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['year', 'period', 'member']
+    ordering = ['-year', '-generated_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return GivingStatement.objects.all().select_related('member')
+        if hasattr(user, 'member_profile'):
+            member = user.member_profile
+            if member.role in [Roles.TREASURER, Roles.ADMIN]:
+                return GivingStatement.objects.all().select_related('member')
+            return GivingStatement.objects.filter(member=member)
+        return GivingStatement.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return GivingStatementListSerializer
+        return GivingStatementSerializer
+
+    def get_permissions(self):
+        return [IsMember()]
+
+    @action(detail=False, methods=['post'], url_path='generate')
+    def generate(self, request):
+        """Generate statements for a year/period."""
+        from .services_statement import StatementService
+
+        year = request.data.get('year', timezone.now().year)
+        period = request.data.get('period', 'annual')
+
+        try:
+            year = int(year)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Annee invalide.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        generated = StatementService.bulk_generate(year, period)
+        return Response({
+            'generated_count': len(generated),
+            'year': year,
+            'period': period,
+        })
+
+
+class GivingGoalViewSet(viewsets.ModelViewSet):
+    """CRUD for giving goals."""
+
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['year', 'member']
+    ordering = ['-year']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return GivingGoal.objects.all().select_related('member')
+        if hasattr(user, 'member_profile'):
+            member = user.member_profile
+            if member.role in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
+                return GivingGoal.objects.all().select_related('member')
+            return GivingGoal.objects.filter(member=member)
+        return GivingGoal.objects.none()
+
+    def get_serializer_class(self):
+        return GivingGoalSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'create', 'update', 'partial_update']:
+            return [IsMember()]
+        return [IsFinanceStaff()]
+
+
+class DonationImportViewSet(viewsets.ModelViewSet):
+    """Donation import management."""
+
+    serializer_class = DonationImportSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['status']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return DonationImport.objects.all().select_related('imported_by')
+
+    def get_permissions(self):
+        return [IsFinanceStaff()]
+
+    @action(detail=True, methods=['post'], url_path='process')
+    def process(self, request, pk=None):
+        """Validate and import rows."""
+        donation_import = self.get_object()
+
+        from .services_import import DonationImportService
+        valid, invalid = DonationImportService.validate_rows(donation_import)
+        imported, skipped = DonationImportService.import_rows(donation_import)
+
+        return Response({
+            'valid': valid,
+            'invalid': invalid,
+            'imported': imported,
+            'skipped': skipped,
+        })
+
+    @action(detail=True, methods=['get'], url_path='rows')
+    def rows(self, request, pk=None):
+        """Get import rows."""
+        donation_import = self.get_object()
+        rows = donation_import.rows.all()
+        serializer = DonationImportRowSerializer(rows, many=True)
+        return Response(serializer.data)
+
+
+class MatchingCampaignViewSet(viewsets.ModelViewSet):
+    """Matching campaign management."""
+
+    queryset = MatchingCampaign.objects.all().select_related('campaign')
+    serializer_class = MatchingCampaignSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['campaign']
+    search_fields = ['matcher_name']
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [IsMember()]
+        return [IsFinanceStaff()]
+
+
+class CryptoDonationViewSet(viewsets.ModelViewSet):
+    """Crypto donation management."""
+
+    serializer_class = CryptoDonationSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['status', 'crypto_type']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return CryptoDonation.objects.all().select_related('member')
+        if hasattr(user, 'member_profile'):
+            member = user.member_profile
+            if member.role in [Roles.TREASURER, Roles.PASTOR, Roles.ADMIN]:
+                return CryptoDonation.objects.all().select_related('member')
+            return CryptoDonation.objects.filter(member=member)
+        return CryptoDonation.objects.none()
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'create']:
+            return [IsMember()]
+        return [IsFinanceStaff()]
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'member_profile'):
+            serializer.save(member=self.request.user.member_profile)
+        else:
+            serializer.save()
+
+
+class AnalyticsViewSet(viewsets.ViewSet):
+    """Giving analytics API."""
+
+    permission_classes = [IsFinanceStaff]
+
+    @action(detail=False, methods=['get'], url_path='trends')
+    def trends(self, request):
+        """Get giving trends."""
+        from .services_analytics import GivingAnalyticsService
+
+        period = request.query_params.get('period', 'monthly')
+        year = request.query_params.get('year')
+        if year:
+            try:
+                year = int(year)
+            except (ValueError, TypeError):
+                year = None
+
+        data = GivingAnalyticsService.giving_trends(period, year)
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='retention')
+    def retention(self, request):
+        """Get donor retention metrics."""
+        from .services_analytics import GivingAnalyticsService
+
+        year = int(request.query_params.get('year', timezone.now().year))
+        data = GivingAnalyticsService.donor_retention(year)
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='top-donors')
+    def top_donors(self, request):
+        """Get top donors."""
+        from .services_analytics import GivingAnalyticsService
+
+        year = int(request.query_params.get('year', timezone.now().year))
+        limit = int(request.query_params.get('limit', 10))
+        data = GivingAnalyticsService.top_donors(year, limit)
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def dashboard(self, request):
+        """Get full dashboard data."""
+        from .services_analytics import GivingAnalyticsService
+
+        year = int(request.query_params.get('year', timezone.now().year))
+        data = GivingAnalyticsService.dashboard_summary(year)
+
+        # Serialize dates for JSON
+        for item in data.get('monthly_trends', []):
+            if item.get('period'):
+                item['period'] = item['period'].isoformat()
+
+        for key in ['current_data', 'previous_data']:
+            for item in data.get('yoy_comparison', {}).get(key, []):
+                if item.get('month'):
+                    item['month'] = item['month'].isoformat()
+
+        return Response(data)

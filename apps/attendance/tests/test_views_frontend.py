@@ -1,5 +1,7 @@
 """Tests for attendance frontend views - targeting 99% coverage."""
 import datetime
+import json
+from datetime import timedelta
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -666,3 +668,96 @@ class TestMyHistoryView:
         resp = client.get(self.url)
         assert resp.status_code == 200
         assert resp.context['member'] == member
+
+
+# ---------------------------------------------------------------------------
+# process_checkin_ajax view (AJAX endpoint)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestProcessCheckinAjax:
+    """Test the AJAX endpoint for continuous QR scanning."""
+
+    def test_success(self, client, admin_user):
+        user, member = admin_user
+        client.force_login(user)
+        session = AttendanceSessionFactory(is_open=True)
+        qr = MemberQRCodeFactory()
+        response = client.post(
+            '/attendance/scanner/checkin-ajax/',
+            data=json.dumps({'qr_code': qr.code, 'session_id': str(session.pk)}),
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert qr.member.full_name in data['member_name']
+        assert AttendanceRecord.objects.filter(session=session, member=qr.member).exists()
+
+    def test_invalid_qr(self, client, admin_user):
+        user, member = admin_user
+        client.force_login(user)
+        session = AttendanceSessionFactory(is_open=True)
+        response = client.post(
+            '/attendance/scanner/checkin-ajax/',
+            data=json.dumps({'qr_code': 'FAKE-CODE', 'session_id': str(session.pk)}),
+            content_type='application/json',
+        )
+        data = response.json()
+        assert data['status'] == 'error'
+        assert 'invalide' in data['message']
+
+    def test_expired_qr(self, client, admin_user):
+        user, member = admin_user
+        client.force_login(user)
+        session = AttendanceSessionFactory(is_open=True)
+        qr = MemberQRCodeFactory()
+        qr.expires_at = timezone.now() - timedelta(days=1)
+        qr.save(update_fields=['expires_at'])
+        response = client.post(
+            '/attendance/scanner/checkin-ajax/',
+            data=json.dumps({'qr_code': qr.code, 'session_id': str(session.pk)}),
+            content_type='application/json',
+        )
+        data = response.json()
+        assert data['status'] == 'error'
+        assert 'expiré' in data['message'] or 'expir' in data['message'].lower()
+
+    def test_duplicate(self, client, admin_user):
+        user, member = admin_user
+        client.force_login(user)
+        session = AttendanceSessionFactory(is_open=True)
+        qr = MemberQRCodeFactory()
+        # First check-in
+        AttendanceRecord.objects.create(session=session, member=qr.member, method=CheckInMethod.QR_SCAN)
+        response = client.post(
+            '/attendance/scanner/checkin-ajax/',
+            data=json.dumps({'qr_code': qr.code, 'session_id': str(session.pk)}),
+            content_type='application/json',
+        )
+        data = response.json()
+        assert data['status'] == 'duplicate'
+
+    def test_closed_session(self, client, admin_user):
+        user, member = admin_user
+        client.force_login(user)
+        session = AttendanceSessionFactory(is_open=False)
+        qr = MemberQRCodeFactory()
+        response = client.post(
+            '/attendance/scanner/checkin-ajax/',
+            data=json.dumps({'qr_code': qr.code, 'session_id': str(session.pk)}),
+            content_type='application/json',
+        )
+        data = response.json()
+        assert data['status'] == 'error'
+        assert 'fermée' in data['message'] or 'ferm' in data['message'].lower()
+
+    def test_regular_member_denied(self, client, member_user):
+        user, member = member_user
+        client.force_login(user)
+        response = client.post(
+            '/attendance/scanner/checkin-ajax/',
+            data=json.dumps({'qr_code': 'any', 'session_id': 'any'}),
+            content_type='application/json',
+        )
+        assert response.status_code == 403

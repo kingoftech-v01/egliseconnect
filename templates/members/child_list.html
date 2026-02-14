@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/families/{{ family.pk }}/">{{ family.name }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Enfants</a></li>
+        </ol>
+        <a href="/members/families/{{ family.pk }}/children/create/" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Ajouter un enfant
+        </a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Enfants ({{ children|length }})</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Date de naissance</th>
+                                        <th>Age</th>
+                                        <th>Allergies</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for child in children %}
+                                    <tr>
+                                        <td>{{ child.full_name }}</td>
+                                        <td>{% if child.date_of_birth %}{{ child.date_of_birth }}{% else %}-{% endif %}</td>
+                                        <td>{{ child.age|default:"-" }}</td>
+                                        <td>{{ child.allergies|default:"-"|truncatewords:10 }}</td>
+                                        <td>
+                                            <a href="/members/children/{{ child.pk }}/edit/" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="/members/children/{{ child.pk }}/delete/" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Aucun enfant enregistre.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

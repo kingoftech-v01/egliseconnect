@@ -5,10 +5,10 @@
 <div class="content-body">
     <div class="page-titles">
         <ol class="breadcrumb">
-            <li><h5 class="bc-title">{{ page_title|default:"Détail de la newsletter" }}</h5></li>
+            <li><h5 class="bc-title">{{ page_title|default:"Detail de la newsletter" }}</h5></li>
             <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
             <li class="breadcrumb-item"><a href="/communication/newsletters/">Newsletters</a></li>
-            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title|default:"Détail" }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title|default:"Detail" }}</a></li>
         </ol>
     </div>
     <div class="container-fluid">
@@ -17,7 +17,7 @@
                 <h4 class="heading mb-0">{{ newsletter.subject }}</h4>
                 <div>
                     {% if newsletter.status == 'sent' %}
-                        <span class="badge badge-success">Envoyée</span>
+                        <span class="badge badge-success">Envoyee</span>
                     {% elif newsletter.status == 'draft' %}
                         <span class="badge badge-warning">Brouillon</span>
                         {% if is_staff %}
@@ -31,12 +31,15 @@
                                 <i class="fa fa-paper-plane me-1"></i> Envoyer
                             </button>
                         </form>
+                        <button type="button" class="btn btn-sm btn-info ms-1" data-bs-toggle="collapse" data-bs-target="#scheduleForm">
+                            <i class="fa fa-clock me-1"></i> Planifier
+                        </button>
                         <a href="/communication/newsletters/{{ newsletter.pk }}/delete/" class="btn btn-sm btn-outline-danger ms-1">
                             <i class="fa fa-trash me-1"></i> Supprimer
                         </a>
                         {% endif %}
                     {% elif newsletter.status == 'scheduled' %}
-                        <span class="badge badge-info">Planifiée</span>
+                        <span class="badge badge-info">Planifiee</span>
                         {% if is_staff %}
                         <form method="post" action="/communication/newsletters/{{ newsletter.pk }}/send/" class="d-inline ms-2">
                             {% csrf_token %}
@@ -51,6 +54,28 @@
                     {% endif %}
                 </div>
             </div>
+
+            {% if is_staff and newsletter.status == 'draft' %}
+            <!-- Schedule Form (collapsible) -->
+            <div class="collapse" id="scheduleForm">
+                <div class="card-body border-top bg-light">
+                    <form method="post" action="/communication/newsletters/{{ newsletter.pk }}/send/" class="row g-3 align-items-end">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="schedule">
+                        <div class="col-md-6">
+                            <label class="form-label" for="scheduled_for">Date et heure de planification</label>
+                            <input type="datetime-local" class="form-control" name="scheduled_for" id="scheduled_for" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fa fa-clock me-1"></i> Confirmer la planification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-6">
@@ -59,10 +84,10 @@
                     <div class="col-md-6">
                         <p class="mb-1"><strong>Nombre de destinataires :</strong> {{ newsletter.recipients_count|default:"0" }}</p>
                         {% if newsletter.scheduled_for %}
-                        <p class="mb-1"><strong>Planifiée pour :</strong> {{ newsletter.scheduled_for|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-1"><strong>Planifiee pour :</strong> {{ newsletter.scheduled_for|date:"d/m/Y H:i" }}</p>
                         {% endif %}
                         {% if newsletter.sent_at %}
-                        <p class="mb-1"><strong>Envoyée le :</strong> {{ newsletter.sent_at|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-1"><strong>Envoyee le :</strong> {{ newsletter.sent_at|date:"d/m/Y H:i" }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -75,7 +100,7 @@
 
         <div class="mt-3">
             <a href="/communication/newsletters/" class="btn btn-secondary">
-                <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                <i class="fa fa-arrow-left me-1"></i> Retour a la liste
             </a>
         </div>
     </div>

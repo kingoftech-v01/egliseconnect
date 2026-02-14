@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}{{ sequence.name }}{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ sequence.name }}</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/admin/welcome-sequences/">Sequences</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Detail</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-10 mx-auto">
+                <!-- Sequence Info -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ sequence.name }}</h4>
+                        {% if sequence.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p>{{ sequence.description|default:"Aucune description." }}</p>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Etapes de la sequence</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Ordre</th>
+                                        <th>Jour</th>
+                                        <th>Canal</th>
+                                        <th>Sujet</th>
+                                        <th>Corps</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for step in steps %}
+                                    <tr>
+                                        <td>{{ step.order }}</td>
+                                        <td><span class="badge bg-info">J+{{ step.day_offset }}</span></td>
+                                        <td>{{ step.get_channel_display }}</td>
+                                        <td><strong>{{ step.subject }}</strong></td>
+                                        <td>{{ step.body|truncatewords:15 }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-3">Aucune etape.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Step Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Ajouter une etape</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% if step_form.errors %}
+                            <div class="alert alert-danger">
+                                {% for field in step_form %}
+                                    {% for error in field.errors %}
+                                    <p><strong>{{ field.label }}:</strong> {{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Jour (apres inscription)</label>
+                                    {{ step_form.day_offset }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Canal</label>
+                                    {{ step_form.channel }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Ordre</label>
+                                    {{ step_form.order }}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Sujet</label>
+                                {{ step_form.subject }}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Corps du message</label>
+                                {{ step_form.body }}
+                                <small class="form-text text-muted">Utilisez &#123;&#123; member_name &#125;&#125; pour le nom du membre.</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Ajouter l'etape
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

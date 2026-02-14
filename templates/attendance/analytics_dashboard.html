@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Analytiques de presence{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Analytiques de presence</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Analytiques</a></li>
+        </ol>
+        <a href="/attendance/predictions/" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-graph-up me-1"></i>Predictions
+        </a>
+    </div>
+    <div class="container-fluid">
+        <!-- Growth Indicators -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted mb-1">Moyenne recente</p>
+                                <h3 class="mb-0">{{ growth.current_avg }}</h3>
+                            </div>
+                            <div class="icon-box bg-primary-light rounded-circle">
+                                <i class="bi bi-people fs-4 text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted mb-1">Moyenne precedente</p>
+                                <h3 class="mb-0">{{ growth.previous_avg }}</h3>
+                            </div>
+                            <div class="icon-box bg-info-light rounded-circle">
+                                <i class="bi bi-clock-history fs-4 text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted mb-1">Evolution</p>
+                                <h3 class="mb-0 {% if growth.trend == 'growth' %}text-success{% elif growth.trend == 'decline' %}text-danger{% endif %}">
+                                    {% if growth.trend == 'growth' %}<i class="bi bi-arrow-up"></i>{% elif growth.trend == 'decline' %}<i class="bi bi-arrow-down"></i>{% else %}<i class="bi bi-dash"></i>{% endif %}
+                                    {{ growth.change_pct }}%
+                                </h3>
+                            </div>
+                            <div class="icon-box {% if growth.trend == 'growth' %}bg-success-light{% elif growth.trend == 'decline' %}bg-danger-light{% else %}bg-secondary-light{% endif %} rounded-circle">
+                                <i class="bi bi-graph-up fs-4 {% if growth.trend == 'growth' %}text-success{% elif growth.trend == 'decline' %}text-danger{% else %}text-secondary{% endif %}"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted mb-1">Duree moy. session</p>
+                                <h3 class="mb-0">{{ duration_report.avg_minutes }} min</h3>
+                            </div>
+                            <div class="icon-box bg-warning-light rounded-circle">
+                                <i class="bi bi-hourglass-split fs-4 text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Weekly Trends Chart -->
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Tendances hebdomadaires</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trendsChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Average by Type Chart -->
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Moyenne par type</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="typeChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Seasonal Trends Chart -->
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Tendances saisonnieres</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="seasonalChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duration Report -->
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Rapport de duree</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Duree moyenne</span>
+                                <strong>{{ duration_report.avg_minutes }} min</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Enregistrements avec sortie</span>
+                                <strong>{{ duration_report.total_records }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Departs anticipes</span>
+                                <strong>{{ duration_report.early_departures }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Weekly Trends Chart
+var trendsCtx = document.getElementById('trendsChart').getContext('2d');
+new Chart(trendsCtx, {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels|safe }},
+        datasets: [{
+            label: 'Presences',
+            data: {{ trend_data|safe }},
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.3,
+            fill: true,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+    }
+});
+
+// Average by Type Chart
+var typeCtx = document.getElementById('typeChart').getContext('2d');
+new Chart(typeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ type_labels|safe }},
+        datasets: [{
+            data: {{ type_data|safe }},
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+            ],
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+    }
+});
+
+// Seasonal Trends Chart
+var seasonalCtx = document.getElementById('seasonalChart').getContext('2d');
+new Chart(seasonalCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ seasonal_labels|safe }},
+        datasets: [{
+            label: 'Moyenne',
+            data: {{ seasonal_data|safe }},
+            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            borderColor: 'rgb(153, 102, 255)',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+    }
+});
+</script>
+{% endblock %}

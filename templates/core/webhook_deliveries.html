@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row page-titles">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="/settings/webhooks/">Webhooks</a></li>
+                <li class="breadcrumb-item active">Livraisons</li>
+            </ol>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Livraisons - {{ webhook.name }}</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if deliveries %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Événement</th>
+                                        <th>Statut</th>
+                                        <th>Code</th>
+                                        <th>Tentatives</th>
+                                        <th>Erreur</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in deliveries %}
+                                    <tr>
+                                        <td>{{ d.created_at|date:"d/m/Y H:i:s" }}</td>
+                                        <td><code>{{ d.event }}</code></td>
+                                        <td>
+                                            {% if d.status == 'success' %}
+                                            <span class="badge badge-success">Succès</span>
+                                            {% elif d.status == 'failed' %}
+                                            <span class="badge badge-danger">Échoué</span>
+                                            {% elif d.status == 'retrying' %}
+                                            <span class="badge badge-warning">Nouvelle tentative</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary">En attente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ d.response_code|default:"-" }}</td>
+                                        <td>{{ d.attempts }}</td>
+                                        <td>{{ d.error_message|truncatechars:80 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Aucune livraison enregistrée.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

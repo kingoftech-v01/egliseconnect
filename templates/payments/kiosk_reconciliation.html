@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Emplacement" %}</th>
+                                <th>{% trans "Transactions" %}</th>
+                                <th>{% trans "Montant total" %}</th>
+                                <th>{% trans "Statut" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr>
+                                <td>{{ session.session_date|date:"d/m/Y" }}</td>
+                                <td>{{ session.location|default:"-" }}</td>
+                                <td>{{ session.total_transactions }}</td>
+                                <td>{{ session.total_amount }} CAD</td>
+                                <td>
+                                    {% if session.reconciled %}
+                                    <span class="badge badge-success">{% trans "Réconcilié" %}</span>
+                                    {% else %}
+                                    <span class="badge badge-warning">{% trans "En attente" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">{% trans "Aucune session de kiosque." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="row page-titles">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Accueil</a></li>
+                <li class="breadcrumb-item active">Clés API</li>
+            </ol>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title">{{ page_title }}</h4>
+                        <form method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="create">
+                            <input type="text" name="name" placeholder="Nom de l'application" class="form-control form-control-sm d-inline-block" style="width:200px;" required>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i> Créer
+                            </button>
+                        </form>
+                    </div>
+                    <div class="card-body">
+                        {% if applications %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Client ID</th>
+                                        <th>Client Secret</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for app in applications %}
+                                    <tr>
+                                        <td>{{ app.name }}</td>
+                                        <td><code>{{ app.client_id }}</code></td>
+                                        <td><code>{{ app.client_secret|truncatechars:20 }}</code></td>
+                                        <td>
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Révoquer cette application?');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="revoke">
+                                                <input type="hidden" name="app_id" value="{{ app.pk }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Révoquer</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Aucune application API configurée.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Documentation API</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Utilisez OAuth2 Client Credentials pour accéder aux API EgliseConnect.</p>
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><a href="/api/docs/" target="_blank"><i class="fas fa-book me-2"></i>Documentation Swagger</a></li>
+                            <li class="mb-2"><a href="/api/redoc/" target="_blank"><i class="fas fa-file-alt me-2"></i>Documentation ReDoc</a></li>
+                            <li class="mb-2"><a href="/api/schema/" target="_blank"><i class="fas fa-code me-2"></i>Schéma OpenAPI</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

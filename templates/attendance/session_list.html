@@ -14,6 +14,39 @@
         </ol>
     </div>
     <div class="container-fluid">
+        <!-- Filter Form (item 20) -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" action="/attendance/sessions/" class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Type de session</label>
+                                <select name="session_type" class="form-select">
+                                    <option value="">Tous les types</option>
+                                    {% for value, label in session_types %}
+                                    <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Date de debut</label>
+                                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Date de fin</label>
+                                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+                                <a href="/attendance/sessions/" class="btn btn-outline-secondary">Reinitialiser</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -86,7 +119,7 @@
                     <ul class="pagination justify-content-center">
                         {% if sessions.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ sessions.previous_page_number }}">Precedent</a>
+                            <a class="page-link" href="?page={{ sessions.previous_page_number }}{% if selected_type %}&session_type={{ selected_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Precedent</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled">
@@ -99,14 +132,14 @@
                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                         {% elif num > sessions.number|add:'-3' and num < sessions.number|add:'3' %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            <a class="page-link" href="?page={{ num }}{% if selected_type %}&session_type={{ selected_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ num }}</a>
                         </li>
                         {% endif %}
                         {% endfor %}
 
                         {% if sessions.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ sessions.next_page_number }}">Suivant</a>
+                            <a class="page-link" href="?page={{ sessions.next_page_number }}{% if selected_type %}&session_type={{ selected_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Suivant</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled">
