@@ -50,3 +50,30 @@ stripe>=7.0
 
 # PDF Generation
 xhtml2pdf>=0.2.11
+
+# Real-Time (WebSocket)
+channels>=4.0
+channels-redis>=4.1
+daphne>=4.0
+
+# SMS
+twilio>=8.0
+
+# Crypto Payments
+coinbase-commerce>=1.0
+
+# Push Notifications
+pywebpush>=1.14
+py-vapid>=1.9
+
+# OAuth2
+django-oauth-toolkit>=2.3
+
+# Excel Export
+openpyxl>=3.1
+
+# iCalendar
+icalendar>=5.0
+
+# Feature Flags
+django-waffle>=4.1

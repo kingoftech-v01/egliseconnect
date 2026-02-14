@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/merge/">Doublons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Fusionner</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-5">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Membre A</h4></div>
+                    <div class="card-body">
+                        <h5>{{ member_a.full_name }}</h5>
+                        <p class="text-muted">{{ member_a.member_number }}</p>
+                        <ul class="list-unstyled">
+                            <li><strong>Courriel:</strong> {{ member_a.email|default:"-" }}</li>
+                            <li><strong>Telephone:</strong> {{ member_a.phone|default:"-" }}</li>
+                            <li><strong>Adresse:</strong> {{ member_a.address|default:"-" }}</li>
+                            <li><strong>Role:</strong> {{ member_a.get_role_display }}</li>
+                            <li><strong>Groupes:</strong> {{ member_a.group_memberships.count }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 d-flex align-items-center justify-content-center">
+                <i class="fas fa-exchange-alt text-primary" style="font-size: 2rem;"></i>
+            </div>
+            <div class="col-xl-5">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Membre B</h4></div>
+                    <div class="card-body">
+                        <h5>{{ member_b.full_name }}</h5>
+                        <p class="text-muted">{{ member_b.member_number }}</p>
+                        <ul class="list-unstyled">
+                            <li><strong>Courriel:</strong> {{ member_b.email|default:"-" }}</li>
+                            <li><strong>Telephone:</strong> {{ member_b.phone|default:"-" }}</li>
+                            <li><strong>Adresse:</strong> {{ member_b.address|default:"-" }}</li>
+                            <li><strong>Role:</strong> {{ member_b.get_role_display }}</li>
+                            <li><strong>Groupes:</strong> {{ member_b.group_memberships.count }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Choisir le membre principal</h4></div>
+                    <div class="card-body">
+                        <p class="text-muted">Le membre secondaire sera desactive et ses donnees seront transferees au membre principal.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="primary" id="primary_a" value="{{ member_a.pk }}" checked>
+                                    <label class="form-check-label" for="primary_a">Garder <strong>{{ member_a.full_name }}</strong> ({{ member_a.member_number }})</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="primary" id="primary_b" value="{{ member_b.pk }}">
+                                    <label class="form-check-label" for="primary_b">Garder <strong>{{ member_b.full_name }}</strong> ({{ member_b.member_number }})</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Confirmer la fusion? Cette action est irreversible.')">Confirmer la fusion</button>
+                            <a href="/members/merge/" class="btn btn-outline-secondary ms-2">Annuler</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

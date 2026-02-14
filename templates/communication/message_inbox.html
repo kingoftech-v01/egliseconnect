@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'inbox' %}active{% endif %}" href="/communication/messages/?tab=inbox">Recus</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'sent' %}active{% endif %}" href="/communication/messages/?tab=sent">Envoyes</a>
+                        </li>
+                    </ul>
+                </div>
+                <a href="/communication/messages/compose/" class="btn btn-primary btn-sm">
+                    <i class="fa fa-pen me-1"></i> Nouveau message
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            {% if tab == 'inbox' %}
+                            <th>De</th>
+                            {% else %}
+                            <th>A</th>
+                            {% endif %}
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in messages_list %}
+                        <tr class="{% if tab == 'inbox' and not msg.read_at %}table-active{% endif %}">
+                            {% if tab == 'inbox' %}
+                            <td><strong>{{ msg.sender.full_name }}</strong></td>
+                            {% else %}
+                            <td>{{ msg.recipient.full_name }}</td>
+                            {% endif %}
+                            <td>
+                                <a href="/communication/messages/{{ msg.pk }}/">{{ msg.body|truncatewords:10 }}</a>
+                            </td>
+                            <td>{{ msg.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if msg.read_at %}
+                                    <span class="badge badge-secondary">Lu</span>
+                                {% else %}
+                                    <span class="badge badge-primary">Non lu</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">Aucun message.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

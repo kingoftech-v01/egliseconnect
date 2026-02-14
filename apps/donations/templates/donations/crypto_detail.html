@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/history/">Mes dons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card h-auto">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">
+                            <i class="fab fa-bitcoin text-warning me-2"></i>
+                            Details du don crypto
+                        </h4>
+                        {% if crypto.status == 'pending' %}
+                        <span class="badge badge-warning light">En attente</span>
+                        {% elif crypto.status == 'confirmed' %}
+                        <span class="badge badge-success light">Confirme</span>
+                        {% elif crypto.status == 'failed' %}
+                        <span class="badge badge-danger light">Echoue</span>
+                        {% elif crypto.status == 'expired' %}
+                        <span class="badge badge-secondary light">Expire</span>
+                        {% else %}
+                        <span class="badge badge-info light">{{ crypto.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                {% if crypto.member %}
+                                <li>
+                                    <span>Membre</span>
+                                    <p>{{ crypto.member.full_name }}</p>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <span>Type de cryptomonnaie</span>
+                                    <p>{{ crypto.get_crypto_type_display|default:crypto.crypto_type }}</p>
+                                </li>
+                                <li>
+                                    <span>Montant crypto</span>
+                                    <p><strong>{{ crypto.amount_crypto }} {{ crypto.crypto_type }}</strong></p>
+                                </li>
+                                {% if crypto.amount_cad %}
+                                <li>
+                                    <span>Equivalent CAD</span>
+                                    <p>{{ crypto.amount_cad }} $</p>
+                                </li>
+                                {% endif %}
+                                {% if crypto.wallet_address %}
+                                <li>
+                                    <span>Adresse du portefeuille</span>
+                                    <p><code style="word-break:break-all;">{{ crypto.wallet_address }}</code></p>
+                                </li>
+                                {% endif %}
+                                {% if crypto.coinbase_charge_id %}
+                                <li>
+                                    <span>ID Coinbase</span>
+                                    <p><code>{{ crypto.coinbase_charge_id }}</code></p>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <span>Date de creation</span>
+                                    <p>{{ crypto.created_at|date:"d/m/Y H:i" }}</p>
+                                </li>
+                                {% if crypto.donation %}
+                                <li>
+                                    <span>Don associe</span>
+                                    <p>
+                                        <a href="/donations/{{ crypto.donation.pk }}/">
+                                            {{ crypto.donation.donation_number }}
+                                        </a>
+                                    </p>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-start">
+                    <a href="/donations/history/" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Retour aux dons
+                    </a>
+                    <a href="/donations/crypto/donate/" class="btn btn-primary ms-2">
+                        <i class="fab fa-bitcoin me-1"></i> Nouveau don crypto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

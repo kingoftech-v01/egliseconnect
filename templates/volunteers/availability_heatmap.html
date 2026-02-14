@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header"><h4 class="heading mb-0">{{ page_title }}</h4></div>
+            <div class="card-body">
+                <div class="row">
+                    {% for day_name, count in heatmap.items %}
+                    <div class="col-md-3 col-sm-4 mb-3">
+                        <div class="card {% if count >= 5 %}bg-success{% elif count >= 3 %}bg-info{% elif count >= 1 %}bg-warning{% else %}bg-light{% endif %} {% if count >= 1 %}text-white{% endif %}">
+                            <div class="card-body text-center py-3">
+                                <h5 class="mb-1">{{ day_name }}</h5>
+                                <h3 class="mb-0">{{ count }}</h3>
+                                <small>benevoles disponibles</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

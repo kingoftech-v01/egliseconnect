@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Retrait enfant{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Retrait enfant</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Retrait enfant</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-5 col-lg-6 col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="bi bi-shield-check me-2"></i>Retrait securise</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-4">Entrez le code de securite a 6 chiffres imprime sur le recu d'enregistrement.</p>
+                        <form method="post" action="/attendance/child/checkout/">
+                            {% csrf_token %}
+                            <div class="mb-4">
+                                <label class="form-label" for="security-code">Code de securite</label>
+                                <input type="text" name="security_code" id="security-code" class="form-control form-control-lg text-center"
+                                    placeholder="000000" pattern="[0-9]{6}" inputmode="numeric" maxlength="6"
+                                    autocomplete="off" required style="letter-spacing: 0.5em; font-size: 2rem;">
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100 btn-lg">
+                                <i class="bi bi-box-arrow-right me-2"></i>Retirer l'enfant
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

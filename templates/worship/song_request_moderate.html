@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/song-requests/">Demandes de chants</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Moderer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Moderer la demande</h4></div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Chant</span><span>{{ song_request.song_title }}</span></li>
+                                <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Artiste</span><span>{{ song_request.artist|default:"-" }}</span></li>
+                                <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Demande par</span><span>{{ song_request.requested_by.full_name }}</span></li>
+                                <li class="list-group-item d-flex justify-content-between"><span class="fw-bold">Votes</span><span>{{ song_request.votes }}</span></li>
+                                {% if song_request.notes %}
+                                <li class="list-group-item"><span class="fw-bold">Notes:</span><br>{{ song_request.notes }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                            {% endfor %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
+                                <a href="/worship/song-requests/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

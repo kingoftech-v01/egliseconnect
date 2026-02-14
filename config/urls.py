@@ -44,7 +44,10 @@ from apps.worship.urls import frontend_urlpatterns as worship_frontend
 from apps.core.views_audit import LoginAuditViewSet
 from apps.core import views_frontend_audit as core_frontend_audit
 from apps.core.views_frontend_search import search_view as core_search_view
+from apps.core.views_frontend_search import search_autocomplete as core_search_autocomplete
 from apps.core.views_pwa import service_worker, offline, manifest
+from apps.core.urls import frontend_urlpatterns as core_frontend
+from apps.core.urls import api_urlpatterns as core_api
 
 # Audit API router
 audit_router = DefaultRouter()
@@ -64,6 +67,7 @@ api_v1_patterns = [
     path('payments/', include((payments_api, 'payments'))),
     path('worship/', include((worship_api, 'worship'))),
     path('audit/', include((audit_router.urls, 'audit'))),
+    path('core/', include((core_api, 'core'))),
 ]
 
 
@@ -95,11 +99,15 @@ urlpatterns = [
     path('offline/', offline, name='offline'),
     path('admin/', admin.site.urls),
     path('api/v1/', include((api_v1_patterns, 'api'), namespace='v1')),
+    # API v2 namespace (mirrors v1 for now, will diverge as v2 endpoints are added)
+    path('api/v2/', include((api_v1_patterns, 'api_v2'), namespace='v2')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     re_path(r'^departments/(?P<rest>.*)$', RedirectView.as_view(url='/members/departments/%(rest)s', permanent=False)),
     path('search/', core_search_view, name='search'),
+    path('search/autocomplete/', core_search_autocomplete, name='search_autocomplete'),
+    path('settings/', include((core_frontend, 'settings'))),
     path('', RedirectView.as_view(url='/onboarding/dashboard/', permanent=False), name='home'),
     path('', include((frontend_patterns, 'frontend'))),
     path('accounts/', include('allauth.urls')),

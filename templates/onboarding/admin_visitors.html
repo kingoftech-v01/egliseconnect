@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Suivi des visiteurs{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Suivi des visiteurs</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Visiteurs</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Stats cards -->
+        {% if visitor_stats %}
+        <div class="row mb-4">
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3"><i class="fas fa-users text-primary" style="font-size:2rem;"></i></div>
+                        <div>
+                            <h3 class="mb-0">{{ visitor_stats.total_visitors }}</h3>
+                            <small class="text-muted">Total visiteurs</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3"><i class="fas fa-exchange-alt text-success" style="font-size:2rem;"></i></div>
+                        <div>
+                            <h3 class="mb-0">{{ visitor_stats.converted }}</h3>
+                            <small class="text-muted">Convertis</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3"><i class="fas fa-hourglass-half text-warning" style="font-size:2rem;"></i></div>
+                        <div>
+                            <h3 class="mb-0">{{ visitor_stats.pending }}</h3>
+                            <small class="text-muted">En attente</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3"><i class="fas fa-percentage text-info" style="font-size:2rem;"></i></div>
+                        <div>
+                            <h3 class="mb-0">{{ visitor_stats.conversion_rate }}%</h3>
+                            <small class="text-muted">Taux de conversion</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption d-flex justify-content-between align-items-center">
+                                <h4 class="heading mb-0">Liste des suivis</h4>
+                                <a href="/onboarding/admin/visitors/create/" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Nouveau suivi
+                                </a>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Visiteur</th>
+                                        <th>Courriel</th>
+                                        <th>Telephone</th>
+                                        <th>Premiere visite</th>
+                                        <th>Statut</th>
+                                        <th>Assigne a</th>
+                                        <th>Converti</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for v in visitors %}
+                                    <tr>
+                                        <td><strong>{{ v.visitor_name }}</strong></td>
+                                        <td>{{ v.visitor_email|default:"-" }}</td>
+                                        <td>{{ v.visitor_phone|default:"-" }}</td>
+                                        <td>{{ v.first_visit_date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if v.status == 'pending' %}
+                                            <span class="badge bg-warning">En attente</span>
+                                            {% elif v.status == 'in_progress' %}
+                                            <span class="badge bg-info">En cours</span>
+                                            {% elif v.status == 'completed' %}
+                                            <span class="badge bg-success">Termine</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">{{ v.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ v.assigned_to.full_name|default:"-" }}</td>
+                                        <td>
+                                            {% if v.converted_at %}
+                                            <span class="badge bg-success">{{ v.converted_at|date:"d/m/Y" }}</span>
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            Aucun suivi de visiteur.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

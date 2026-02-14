@@ -8,6 +8,7 @@ from .models import (
     Member, Family, Group, GroupMembership, DirectoryPrivacy,
     Department, DepartmentMembership, DepartmentTaskType,
     DisciplinaryAction, ProfileModificationRequest,
+    Child, PastoralCare, BackgroundCheck, CustomField, CustomFieldValue,
 )
 
 User = get_user_model()
@@ -399,3 +400,210 @@ class DisciplinaryActionForm(W3CRMFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['member'].queryset = Member.objects.filter(is_active=True)
         self.fields['end_date'].required = False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Child / Dependent Forms
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ChildForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating/editing child profiles."""
+
+    class Meta:
+        model = Child
+        fields = [
+            'first_name', 'last_name', 'date_of_birth',
+            'allergies', 'medical_notes', 'authorized_pickups', 'photo',
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'allergies': forms.Textarea(attrs={'rows': 2}),
+            'medical_notes': forms.Textarea(attrs={'rows': 2}),
+            'authorized_pickups': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Pastoral Care Forms
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class PastoralCareForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating/editing pastoral care records."""
+
+    class Meta:
+        model = PastoralCare
+        fields = [
+            'member', 'care_type', 'assigned_to', 'date',
+            'notes', 'follow_up_date', 'status',
+        ]
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'follow_up_date': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['member'].queryset = Member.objects.filter(is_active=True)
+        from apps.core.constants import Roles
+        self.fields['assigned_to'].queryset = Member.objects.filter(
+            role__in=Roles.STAFF_ROLES, is_active=True
+        )
+        self.fields['assigned_to'].required = False
+        self.fields['follow_up_date'].required = False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Background Check Forms
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class BackgroundCheckForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating/editing background check records."""
+
+    class Meta:
+        model = BackgroundCheck
+        fields = [
+            'member', 'status', 'check_date', 'expiry_date',
+            'provider', 'reference_number', 'notes',
+        ]
+        widgets = {
+            'check_date': forms.DateInput(attrs={'type': 'date'}),
+            'expiry_date': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['member'].queryset = Member.objects.filter(is_active=True)
+        self.fields['check_date'].required = False
+        self.fields['expiry_date'].required = False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Import Wizard Form
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class MemberImportForm(W3CRMFormMixin, forms.Form):
+    """Form for uploading CSV/Excel file for member import."""
+
+    file = forms.FileField(
+        label=_('Fichier CSV ou Excel'),
+        help_text=_('Formats acceptés: .csv, .xlsx')
+    )
+
+
+class MemberImportMappingForm(W3CRMFormMixin, forms.Form):
+    """Dynamic form for mapping CSV columns to Member fields."""
+
+    def __init__(self, *args, csv_columns=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if csv_columns:
+            member_fields = [
+                ('', _('-- Ignorer --')),
+                ('first_name', _('Prénom')),
+                ('last_name', _('Nom')),
+                ('email', _('Courriel')),
+                ('phone', _('Téléphone')),
+                ('birth_date', _('Date de naissance')),
+                ('address', _('Adresse')),
+                ('city', _('Ville')),
+                ('province', _('Province')),
+                ('postal_code', _('Code postal')),
+                ('role', _('Rôle')),
+                ('family_status', _('État civil')),
+            ]
+            for col in csv_columns:
+                self.fields[f'col_{col}'] = forms.ChoiceField(
+                    choices=member_fields,
+                    required=False,
+                    label=col,
+                )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Custom Field Forms
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class CustomFieldForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for creating/editing custom field definitions."""
+
+    class Meta:
+        model = CustomField
+        fields = ['name', 'field_type', 'options_json', 'is_required', 'order']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['options_json'].widget = forms.Textarea(attrs={
+            'rows': 3,
+            'class': 'form-control',
+            'placeholder': _('["Option 1", "Option 2", "Option 3"]'),
+        })
+        self.fields['options_json'].required = False
+
+
+class CustomFieldValueForm(W3CRMFormMixin, forms.ModelForm):
+    """Form for setting a custom field value for a member."""
+
+    class Meta:
+        model = CustomFieldValue
+        fields = ['value']
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Group Extended Form (with lifecycle_stage)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class GroupExtendedForm(W3CRMFormMixin, forms.ModelForm):
+    """Extended group form including lifecycle stage."""
+
+    class Meta:
+        model = Group
+        fields = [
+            'name', 'group_type', 'description', 'leader',
+            'meeting_day', 'meeting_time', 'meeting_location',
+            'email', 'lifecycle_stage',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'meeting_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.core.constants import Roles
+        self.fields['leader'].queryset = Member.objects.filter(
+            role__in=[Roles.GROUP_LEADER, Roles.PASTOR, Roles.ADMIN]
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Group Finder Search Form
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class GroupFinderForm(W3CRMFormMixin, forms.Form):
+    """Search form for the group finder."""
+
+    search = forms.CharField(
+        required=False,
+        label=_('Recherche'),
+        widget=forms.TextInput(attrs={'placeholder': _('Nom du groupe, description...')})
+    )
+
+    group_type = forms.ChoiceField(
+        required=False,
+        label=_('Type'),
+        choices=[('', _('Tous les types'))] + list(Group._meta.get_field('group_type').choices)
+    )
+
+    meeting_day = forms.CharField(
+        required=False,
+        label=_('Jour de réunion'),
+        widget=forms.TextInput(attrs={'placeholder': _('Ex: Mercredi')})
+    )

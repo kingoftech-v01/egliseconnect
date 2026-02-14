@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Doublons</a></li>
+        </ol>
+        <a href="/members/merge/history/" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-history me-1"></i>Historique
+        </a>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Doublons potentiels ({{ duplicates|length }})</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre A</th>
+                                        <th>Membre B</th>
+                                        <th>Score</th>
+                                        <th>Raisons</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for a, b, score, reasons in duplicates %}
+                                    <tr>
+                                        <td><a href="/members/{{ a.pk }}/">{{ a.full_name }}</a><br><small class="text-muted">{{ a.email }}</small></td>
+                                        <td><a href="/members/{{ b.pk }}/">{{ b.full_name }}</a><br><small class="text-muted">{{ b.email }}</small></td>
+                                        <td>
+                                            {% if score >= 0.8 %}
+                                            <span class="badge bg-danger">{{ score|floatformat:0 }}%</span>
+                                            {% elif score >= 0.6 %}
+                                            <span class="badge bg-warning">{{ score|floatformat:0 }}%</span>
+                                            {% else %}
+                                            <span class="badge bg-info">{{ score|floatformat:0 }}%</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{% for r in reasons %}{{ r }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                                        <td><a href="/members/merge/{{ a.pk }}/{{ b.pk }}/" class="btn btn-sm btn-outline-primary">Fusionner</a></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">Aucun doublon detecte.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

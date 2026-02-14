@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/history/">Mes dons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">
+                            <i class="fab fa-bitcoin text-warning me-2"></i>
+                            Don en cryptomonnaie
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <strong>Note :</strong> Les dons en cryptomonnaie sont traites via Coinbase Commerce.
+                            La conversion en CAD sera effectuee au moment de la confirmation.
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Initier le don
+                            </button>
+                            <a href="/donations/history/" class="btn btn-outline-secondary ms-2">Annuler</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Adresses de portefeuille</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if wallet_addresses.BTC %}
+                        <div class="mb-3">
+                            <h6><i class="fab fa-bitcoin text-warning me-1"></i> Bitcoin (BTC)</h6>
+                            <code class="d-block p-2 bg-light rounded" style="word-break:break-all;">{{ wallet_addresses.BTC }}</code>
+                        </div>
+                        {% endif %}
+                        {% if wallet_addresses.ETH %}
+                        <div class="mb-3">
+                            <h6><i class="fab fa-ethereum text-primary me-1"></i> Ethereum (ETH)</h6>
+                            <code class="d-block p-2 bg-light rounded" style="word-break:break-all;">{{ wallet_addresses.ETH }}</code>
+                        </div>
+                        {% endif %}
+                        {% if not wallet_addresses.BTC and not wallet_addresses.ETH %}
+                        <p class="text-muted">Les adresses de portefeuille ne sont pas encore configurees. Contactez l'administrateur.</p>
+                        {% endif %}
+                        <p class="text-muted mt-3">
+                            <small>Vous pouvez aussi envoyer directement a ces adresses et nous contacter pour la confirmation.</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

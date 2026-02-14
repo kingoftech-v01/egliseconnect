@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/">Membres</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Importer</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Etape 1: Telecharger le fichier</h4></div>
+                    <div class="card-body">
+                        <p class="text-muted">Selectionnez un fichier CSV ou Excel (.xlsx) contenant les donnees des membres a importer.</p>
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                {% if field.errors %}<div class="text-danger">{{ field.errors.0 }}</div>{% endif %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Suivant</button>
+                            <a href="/members/" class="btn btn-outline-secondary ms-2">Annuler</a>
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Historique</h4></div>
+                    <div class="card-body">
+                        <a href="/members/import/history/" class="btn btn-outline-info btn-sm">Voir l'historique d'importation</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/events/">Événements</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <a href="/events/bookings/create/" class="btn btn-success btn-sm">
+                    <i class="fa fa-plus me-1"></i> Nouvelle réservation
+                </a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Salle</th>
+                                        <th>Début</th>
+                                        <th>Fin</th>
+                                        <th>Événement</th>
+                                        <th>Réservé par</th>
+                                        <th>Statut</th>
+                                        {% if is_staff %}<th>Actions</th>{% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for booking in bookings %}
+                                    <tr>
+                                        <td>{{ booking.room.name }}</td>
+                                        <td>{{ booking.start_datetime|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ booking.end_datetime|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            {% if booking.event %}
+                                            <a href="/events/{{ booking.event.pk }}/">{{ booking.event.title }}</a>
+                                            {% else %}-{% endif %}
+                                        </td>
+                                        <td>{{ booking.booked_by.full_name|default:"-" }}</td>
+                                        <td>
+                                            <span class="badge badge-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning{% elif booking.status == 'cancelled' %}secondary{% else %}danger{% endif %} light">
+                                                {{ booking.get_status_display }}
+                                            </span>
+                                        </td>
+                                        {% if is_staff %}
+                                        <td>
+                                            {% if booking.status == 'pending' %}
+                                            <form method="post" action="/events/bookings/{{ booking.pk }}/approve/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-xs" title="Approuver"><i class="fas fa-check"></i></button>
+                                            </form>
+                                            <form method="post" action="/events/bookings/{{ booking.pk }}/reject/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-xs" title="Rejeter"><i class="fas fa-times"></i></button>
+                                            </form>
+                                            {% elif booking.status == 'confirmed' %}
+                                            <form method="post" action="/events/bookings/{{ booking.pk }}/cancel/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-xs" title="Annuler"><i class="fas fa-ban"></i></button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="{% if is_staff %}7{% else %}6{% endif %}" class="text-center py-4">Aucune réservation.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

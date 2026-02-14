@@ -42,6 +42,13 @@
                         </div>
                         <small class="text-muted d-block mt-2">Si le scanner ne fonctionne pas, donnez ce code a la personne au check-in.</small>
 
+                        <!-- Download Button (item 56) -->
+                        <div class="mt-3">
+                            <a href="{{ qr.qr_image.url }}" download="mon-qr-code.png" class="btn btn-outline-success">
+                                <i class="bi bi-download me-1"></i>Telecharger le QR code
+                            </a>
+                        </div>
+
                         <!-- Expiry Info -->
                         <div class="alert alert-info mb-3 mt-3">
                             <i class="bi bi-clock me-2"></i>

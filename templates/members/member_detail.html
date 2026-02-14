@@ -84,6 +84,63 @@
 
             <!-- Details Panels -->
             <div class="col-xl-8 col-lg-7">
+                <!-- Engagement Score -->
+                {% if engagement_score %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="heading mb-0">Score d'engagement</h4>
+                            {% if engagement_score.total_score >= 70 %}
+                            <span class="badge bg-success fs-6">{{ engagement_score.total_score|floatformat:0 }}/100 - {{ engagement_score.level }}</span>
+                            {% elif engagement_score.total_score >= 40 %}
+                            <span class="badge bg-warning fs-6">{{ engagement_score.total_score|floatformat:0 }}/100 - {{ engagement_score.level }}</span>
+                            {% else %}
+                            <span class="badge bg-danger fs-6">{{ engagement_score.total_score|floatformat:0 }}/100 - {{ engagement_score.level }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-3 text-center">
+                                <small class="text-muted d-block">Presence</small>
+                                <strong>{{ engagement_score.attendance_score|floatformat:0 }}</strong>
+                            </div>
+                            <div class="col-3 text-center">
+                                <small class="text-muted d-block">Dons</small>
+                                <strong>{{ engagement_score.giving_score|floatformat:0 }}</strong>
+                            </div>
+                            <div class="col-3 text-center">
+                                <small class="text-muted d-block">Benevolat</small>
+                                <strong>{{ engagement_score.volunteering_score|floatformat:0 }}</strong>
+                            </div>
+                            <div class="col-3 text-center">
+                                <small class="text-muted d-block">Groupes</small>
+                                <strong>{{ engagement_score.group_score|floatformat:0 }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Background Check Status -->
+                {% if latest_background_check %}
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="heading mb-1">Verification des antecedents</h4>
+                            <small class="text-muted">{{ latest_background_check.get_status_display }} - {{ latest_background_check.check_date|date:"d/m/Y"|default:"-" }}</small>
+                        </div>
+                        {% if latest_background_check.is_expired %}
+                        <span class="badge bg-danger">Expire</span>
+                        {% elif latest_background_check.status == 'cleared' %}
+                        <span class="badge bg-success">Valide</span>
+                        {% elif latest_background_check.status == 'pending' %}
+                        <span class="badge bg-warning">En attente</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ latest_background_check.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Groups -->
                 <div class="card">
                     <div class="card-body p-0">
@@ -117,6 +174,37 @@
                     </div>
                 </div>
 
+                <!-- Department Memberships -->
+                {% if department_memberships %}
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Departements</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Departement</th>
+                                        <th>Role</th>
+                                        <th>Depuis</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dm in department_memberships %}
+                                    <tr>
+                                        <td><a href="/members/departments/{{ dm.department.pk }}/">{{ dm.department.name }}</a></td>
+                                        <td>{{ dm.get_role_display }}</td>
+                                        <td>{{ dm.joined_date|date:"d/m/Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Family Members -->
                 {% if member.family %}
                 <div class="card">
@@ -144,6 +232,47 @@
                                     {% empty %}
                                     <tr>
                                         <td colspan="3" class="text-center text-muted">Aucun autre membre dans cette famille.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Disciplinary History (staff only) -->
+                {% if disciplinary_actions %}
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Historique disciplinaire</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for da in disciplinary_actions %}
+                                    <tr>
+                                        <td>{{ da.get_action_type_display }}</td>
+                                        <td>{{ da.start_date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if da.approval_status == 'approved' %}
+                                            <span class="badge bg-success">Approuve</span>
+                                            {% elif da.approval_status == 'pending' %}
+                                            <span class="badge bg-warning">En attente</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">{{ da.get_approval_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><a href="/members/disciplinary/{{ da.pk }}/" class="btn btn-outline-primary btn-sm">Voir</a></td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

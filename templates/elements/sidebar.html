@@ -52,7 +52,22 @@
 
             <li><a href="/attendance/my-history/" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" stroke="#888888"/><path d="M10 5v5l3.33 1.67" stroke="#888888" stroke-linecap="round"/></svg></div>
-                <span class="nav-text">Mes présences</span>
+                <span class="nav-text">Mes presences</span>
+            </a></li>
+
+            <li><a href="/onboarding/mentee/" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="3" stroke="#888888"/><circle cx="14" cy="7" r="3" stroke="#888888"/><path d="M2 18c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="#888888" stroke-linecap="round"/></svg></div>
+                <span class="nav-text">Mon mentor</span>
+            </a></li>
+
+            <li><a href="/onboarding/documents/" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.67 1.67H5a1.67 1.67 0 00-1.67 1.66v13.34A1.67 1.67 0 005 18.33h10a1.67 1.67 0 001.67-1.66V6.67l-5-5z" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.67 1.67v5h5" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="nav-text">Documents</span>
+            </a></li>
+
+            <li><a href="/onboarding/achievements/" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="8" r="6" stroke="#888888"/><path d="M7 18h6M10 14v4" stroke="#888888" stroke-linecap="round"/></svg></div>
+                <span class="nav-text">Mes badges</span>
             </a></li>
             {% endif %}
 
@@ -64,6 +79,7 @@
                 <span class="nav-text">Tableau de bord</span>
             </a></li>
 
+            {# --- Membres --- #}
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="7" r="4" stroke="#888888"/><path d="M3 18c0-3.87 3.13-7 7-7s7 3.13 7 7" stroke="#888888" stroke-linecap="round"/></svg></div>
                 <span class="nav-text">Membres</span>
@@ -74,10 +90,19 @@
                     <li><a href="/members/directory/">Annuaire</a></li>
                     <li><a href="/members/groups/">Groupes</a></li>
                     <li><a href="/members/birthdays/">Anniversaires</a></li>
-                    <li><a href="/members/departments/">Départements</a></li>
+                    <li><a href="/members/departments/">Departements</a></li>
+                    <li><a href="/members/pastoral-care/">Soins pastoraux</a></li>
+                    <li><a href="/members/engagement/">Engagement</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/members/background-checks/">Verifications</a></li>
+                    <li><a href="/members/custom-fields/">Champs personnalises</a></li>
+                    <li><a href="/members/import/">Import/Export</a></li>
+                    <li><a href="/members/merge/">Fusion de doublons</a></li>
+                    {% endif %}
                 </ul>
             </li>
 
+            {# --- Dons --- #}
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.46 13.71c.01-1.58-.62-2.83-1.86-3.72-.96-.68-2.13-1.04-3.26-1.38C4 7.9 3.3 7.52 3.3 6.4c0-1.26 1.63-1.7 3.03-1.7 1.02 0 2.19.32 2.91.79l1.44-2.23A7.7 7.7 0 007.15 2.08V0H4.49v2.23C2.13 2.75.64 4.29.64 6.4c0 1.47.61 2.64 1.82 3.46.92.63 2.03.97 3.11 1.3 2.31.7 3.25 1.12 3.24 2.53v.01c0 1.18-1.57 1.6-2.91 1.6-1.27 0-2.65-.56-3.43-1.38L.54 15.75a7.1 7.1 0 003.95 2.08V20h2.66v-2.13c2.62-.37 4.31-1.95 4.31-4.16z" fill="#888888"/></svg></div>
                 <span class="nav-text">Dons</span>
@@ -86,26 +111,40 @@
                     <li><a href="/payments/donate/">Faire un don</a></li>
                     <li><a href="/donations/history/">Historique dons</a></li>
                     <li><a href="/payments/history/">Historique paiements</a></li>
-                    <li><a href="/payments/recurring/">Dons récurrents</a></li>
+                    <li><a href="/payments/recurring/">Dons recurrents</a></li>
                     <li><a href="/donations/admin/">Administration</a></li>
                     <li><a href="/donations/campaigns/">Campagnes</a></li>
-                    <li><a href="/donations/receipts/">Reçus fiscaux</a></li>
-                    {% if mp.role == 'admin' or mp.role == 'pastor' %}
-                    <li><a href="/donations/delegations/">Délégations finance</a></li>
+                    <li><a href="/donations/receipts/">Recus fiscaux</a></li>
+                    <li><a href="/donations/pledges/">Promesses de dons</a></li>
+                    <li><a href="/donations/statements/">Releves</a></li>
+                    <li><a href="/donations/goals/">Objectifs</a></li>
+                    <li><a href="/donations/analytics/">Analytique</a></li>
+                    {% if mp.is_staff_member or mp.role == 'treasurer' %}
+                    <li><a href="/donations/imports/">Import</a></li>
+                    <li><a href="/donations/kiosk/">Borne de don</a></li>
+                    <li><a href="/donations/delegations/">Delegations finance</a></li>
                     {% endif %}
                 </ul>
             </li>
 
+            {# --- Evenements --- #}
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="3.33" width="15" height="15" rx="1.67" stroke="#888888"/><path d="M13.33 1.67V5M6.67 1.67V5M2.5 8.33h15" stroke="#888888" stroke-linecap="round"/></svg></div>
-                <span class="nav-text">Événements</span>
+                <span class="nav-text">Evenements</span>
             </a>
                 <ul aria-expanded="false">
                     <li><a href="/events/">Liste</a></li>
                     <li><a href="/events/calendar/">Calendrier</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/events/create/">Creer un evenement</a></li>
+                    <li><a href="/events/rooms/">Salles &amp; installations</a></li>
+                    <li><a href="/events/templates/">Modeles</a></li>
+                    <li><a href="/events/surveys/">Sondages</a></li>
+                    {% endif %}
                 </ul>
             </li>
 
+            {# --- Cultes --- #}
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18.5l-4-4M15 18.5l4-4M10 2.5v3M4.93 4.93l2.12 2.12M15.07 4.93l-2.12 2.12M3.5 10.5h3M13.5 10.5h3M10 7.5a3 3 0 100 6 3 3 0 000-6z" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                 <span class="nav-text">Cultes</span>
@@ -113,13 +152,19 @@
                 <ul aria-expanded="false">
                     <li><a href="/worship/services/">Services</a></li>
                     <li><a href="/worship/my-assignments/">Mes assignations</a></li>
-                    {% if mp.role == 'admin' or mp.role == 'pastor' or mp.role == 'deacon' %}
-                    <li><a href="/worship/services/create/">Créer un culte</a></li>
-                    <li><a href="/worship/eligible/">Listes d'éligibilité</a></li>
+                    <li><a href="/worship/sermons/">Predications</a></li>
+                    <li><a href="/worship/songs/">Chants</a></li>
+                    <li><a href="/worship/calendar/">Calendrier de planification</a></li>
+                    <li><a href="/worship/song-requests/">Requetes de chants</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/worship/services/create/">Creer un culte</a></li>
+                    <li><a href="/worship/eligible/">Listes d'eligibilite</a></li>
+                    <li><a href="/worship/rehearsals/">Repetitions</a></li>
                     {% endif %}
                 </ul>
             </li>
 
+            {# --- Volontaires --- #}
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.75" y="3.67" width="14.5" height="16.5" rx="1.83" stroke="#888888"/><path d="M8.25 10.08l2.75 2.75 8.25-8.25" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                 <span class="nav-text">Volontaires</span>
@@ -128,12 +173,20 @@
                     <li><a href="/volunteers/positions/">Positions</a></li>
                     <li><a href="/volunteers/schedule/">Horaires</a></li>
                     <li><a href="/volunteers/my-schedule/">Mon planning</a></li>
-                    <li><a href="/volunteers/availability/">Disponibilités</a></li>
-                    <li><a href="/volunteers/planned-absences/">Absences prévues</a></li>
-                    <li><a href="/volunteers/swap-requests/">Échanges</a></li>
+                    <li><a href="/volunteers/availability/">Disponibilites</a></li>
+                    <li><a href="/volunteers/planned-absences/">Absences prevues</a></li>
+                    <li><a href="/volunteers/swap-requests/">Echanges</a></li>
+                    <li><a href="/volunteers/hours/">Heures de service</a></li>
+                    <li><a href="/volunteers/skills/">Competences</a></li>
+                    <li><a href="/volunteers/milestones/">Reconnaissance</a></li>
+                    <li><a href="/volunteers/announcements/">Annonces d'equipe</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/volunteers/background-checks/">Verifications</a></li>
+                    {% endif %}
                 </ul>
             </li>
 
+            {# --- Communication --- #}
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 12.5a1.67 1.67 0 01-1.67 1.67H5.83L2.5 17.5V4.17c0-.92.75-1.67 1.67-1.67h11.66c.92 0 1.67.75 1.67 1.67v8.33z" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                 <span class="nav-text">Communication</span>
@@ -141,20 +194,80 @@
                 <ul aria-expanded="false">
                     <li><a href="/communication/newsletters/">Bulletins</a></li>
                     <li><a href="/communication/notifications/">Notifications</a></li>
-                    <li><a href="/communication/preferences/">Préférences</a></li>
+                    <li><a href="/communication/preferences/">Preferences</a></li>
+                    <li><a href="/communication/messages/">Messagerie</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/communication/sms/">SMS</a></li>
+                    <li><a href="/communication/push/">Notifications push</a></li>
+                    <li><a href="/communication/automations/">Automatisation</a></li>
+                    <li><a href="/communication/email-templates/">Modeles email</a></li>
+                    <li><a href="/communication/analytics/">Analytique</a></li>
+                    {% endif %}
                 </ul>
             </li>
 
-            <li><a href="/help-requests/" aria-expanded="false">
+            {# --- Demandes d'aide --- #}
+            <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8.33" stroke="#888888"/><path d="M7.58 7.5a2.5 2.5 0 014.86.83c0 1.67-2.5 2.5-2.5 2.5" stroke="#888888" stroke-linecap="round"/><circle cx="10" cy="14.17" r=".42" fill="#888888"/></svg></div>
                 <span class="nav-text">Demandes d'aide</span>
-            </a></li>
+            </a>
+                <ul aria-expanded="false">
+                    <li><a href="/help-requests/">Toutes les demandes</a></li>
+                    <li><a href="/help-requests/prayers/">Prieres</a></li>
+                    <li><a href="/help-requests/meal-trains/">Repas solidaires</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/help-requests/care/">Soins pastoraux</a></li>
+                    <li><a href="/help-requests/care-teams/">Equipe de soins</a></li>
+                    <li><a href="/help-requests/benevolence/">Benevolence</a></li>
+                    <li><a href="/help-requests/crisis/">Protocoles de crise</a></li>
+                    {% endif %}
+                </ul>
+            </li>
 
-            <li><a href="/attendance/my-history/" aria-expanded="false">
+            {# --- Mes presences --- #}
+            <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" stroke="#888888"/><path d="M10 5v5l3.33 1.67" stroke="#888888" stroke-linecap="round"/></svg></div>
-                <span class="nav-text">Mes présences</span>
-            </a></li>
+                <span class="nav-text">Mes presences</span>
+            </a>
+                <ul aria-expanded="false">
+                    <li><a href="/attendance/my-history/">Mon historique</a></li>
+                    <li><a href="/attendance/my-qr/">Mon code QR</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/attendance/child/checkin/">Check-in enfants</a></li>
+                    <li><a href="/attendance/kiosk/">Kiosque</a></li>
+                    <li><a href="/attendance/analytics/">Analytique</a></li>
+                    <li><a href="/attendance/alerts/">Alertes d'absence</a></li>
+                    <li><a href="/attendance/visitors/">Visiteurs</a></li>
+                    {% endif %}
+                </ul>
+            </li>
 
+            {# --- Paiements --- #}
+            <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="16" height="11" rx="2" stroke="#888888"/><path d="M2 9h16" stroke="#888888"/></svg></div>
+                <span class="nav-text">Paiements</span>
+            </a>
+                <ul aria-expanded="false">
+                    <li><a href="/payments/donate/">Faire un don</a></li>
+                    <li><a href="/payments/history/">Historique paiements</a></li>
+                    <li><a href="/payments/recurring/">Dons recurrents</a></li>
+                    <li><a href="/payments/statements/">Releves</a></li>
+                    <li><a href="/payments/goals/">Objectifs</a></li>
+                    <li><a href="/payments/campaigns/">Campagnes</a></li>
+                    <li><a href="/payments/plans/">Plans de paiement</a></li>
+                    <li><a href="/payments/employer-match/">Jumelage employeur</a></li>
+                    <li><a href="/payments/crypto/">Don crypto</a></li>
+                    {% if mp.is_staff_member or mp.role == 'treasurer' %}
+                    <li><a href="/payments/kiosk/">Kiosque de dons</a></li>
+                    <li><a href="/payments/kiosk/reconciliation/">Reconciliation kiosque</a></li>
+                    <li><a href="/payments/statements/generate/">Generer releves</a></li>
+                    <li><a href="/payments/goals/summary/">Resume objectifs</a></li>
+                    <li><a href="/payments/webhook-errors/">Erreurs webhook</a></li>
+                    {% endif %}
+                </ul>
+            </li>
+
+            {# --- Rapports --- #}
             <li class="menu-title">RAPPORTS</li>
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.67 17.5H3.33" stroke="#888888" stroke-linecap="round"/><rect x="3.33" y="14.17" width="3.33" height="3.33" rx=".83" stroke="#888888"/><rect x="8.33" y="10.83" width="3.33" height="6.67" rx=".83" stroke="#888888"/><rect x="13.33" y="7.5" width="3.33" height="10" rx=".83" stroke="#888888"/></svg></div>
@@ -163,19 +276,28 @@
                 <ul aria-expanded="false">
                     <li><a href="/reports/members/">Statistiques membres</a></li>
                     <li><a href="/reports/donations/">Rapport dons</a></li>
-                    <li><a href="/reports/attendance/">Présence</a></li>
+                    <li><a href="/reports/attendance/">Presence</a></li>
                     <li><a href="/reports/volunteers/">Volontaires</a></li>
                     <li><a href="/reports/birthdays/">Anniversaires</a></li>
+                    <li><a href="/reports/yoy/">Comparaison annuelle</a></li>
+                    <li><a href="/reports/giving-trends/">Tendances des dons</a></li>
+                    <li><a href="/reports/pipeline/">Pipeline d'integration</a></li>
+                    <li><a href="/reports/health-scorecard/">Tableau de sante</a></li>
+                    <li><a href="/reports/predictions/">Previsions</a></li>
+                    {% if mp.is_staff_member %}
+                    <li><a href="/reports/schedules/">Rapports planifies</a></li>
+                    <li><a href="/reports/saved/">Rapports sauvegardes</a></li>
+                    {% endif %}
                 </ul>
             </li>
             {% endif %}
 
             {# === ADMIN SECTION === #}
-            {% if mp.role == 'admin' or mp.role == 'pastor' or mp.role == 'deacon' %}
+            {% if mp.is_staff_member %}
             <li class="menu-title">ADMINISTRATION</li>
             <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
                 <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.67 10H13.33L11.67 17.5 8.33 2.5 6.67 10H3.33" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                <span class="nav-text">Adhésions</span>
+                <span class="nav-text">Adhesions</span>
             </a>
                 <ul aria-expanded="false">
                     <li><a href="/onboarding/admin/pipeline/">Pipeline</a></li>
@@ -185,6 +307,21 @@
                     <li><a href="/attendance/sessions/">Sessions</a></li>
                     <li><a href="/onboarding/admin/invitations/">Codes d'invitation</a></li>
                     <li><a href="/members/disciplinary/">Actions disciplinaires</a></li>
+                    <li><a href="/onboarding/mentor/dashboard/">Mentor dashboard</a></li>
+                    <li><a href="/onboarding/admin/visitors/">Admin visiteurs</a></li>
+                </ul>
+            </li>
+
+            <li><a class="has-arrow" href="javascript:void(0);" aria-expanded="false">
+                <div class="menu-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 1.67A8.33 8.33 0 1018.33 10 8.33 8.33 0 0010 1.67zM10 5v5l4.17 2.08" stroke="#888888" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="nav-text">Systeme</span>
+            </a>
+                <ul aria-expanded="false">
+                    <li><a href="/attendance/kiosk/admin/">Kiosques</a></li>
+                    <li><a href="/core/branding/">Configuration</a></li>
+                    <li><a href="/core/webhooks/">Webhooks</a></li>
+                    <li><a href="/core/audit-log/">Journal d'audit</a></li>
+                    <li><a href="/core/feature-flags/">Feature flags</a></li>
                 </ul>
             </li>
             {% endif %}

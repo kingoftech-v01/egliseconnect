@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/history/">Mes dons</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{% if existing %}Modifier mon objectif{% else %}Definir un objectif{% endif %}</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if existing %}
+                        <div class="alert alert-info mb-3">
+                            <strong>Objectif actuel :</strong> {{ existing.target_amount }} $ pour {{ existing.year }}<br>
+                            <strong>Progression :</strong> {{ existing.current_amount }} $ ({{ existing.progress_percentage }}%)
+                        </div>
+                        {% endif %}
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                            <a href="/donations/history/" class="btn btn-outline-secondary ms-2">Annuler</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

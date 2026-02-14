@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label">Recherche</label>
+                                <input type="text" name="search" class="form-control" placeholder="Nom du groupe, description..." value="{{ search }}">
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.group_type }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.meeting_day }}
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary">Chercher</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            {% for group in groups %}
+            <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">{{ group.name }}</h5>
+                            <span class="badge bg-primary">{{ group.get_group_type_display }}</span>
+                        </div>
+                        {% if group.description %}
+                        <p class="text-muted small mb-3">{{ group.description|truncatewords:25 }}</p>
+                        {% endif %}
+                        <ul class="list-unstyled small text-muted">
+                            {% if group.leader %}<li><i class="fas fa-user me-1"></i>Leader: {{ group.leader.full_name }}</li>{% endif %}
+                            {% if group.meeting_day %}<li><i class="fas fa-calendar me-1"></i>{{ group.meeting_day }}{% if group.meeting_time %} a {{ group.meeting_time|time:"H:i" }}{% endif %}</li>{% endif %}
+                            {% if group.meeting_location %}<li><i class="fas fa-map-marker-alt me-1"></i>{{ group.meeting_location }}</li>{% endif %}
+                            <li><i class="fas fa-users me-1"></i>{{ group.member_count }} membre{{ group.member_count|pluralize:"s" }}</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <a href="/members/groups/{{ group.pk }}/" class="btn btn-outline-primary btn-sm w-100">Voir le groupe</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <p class="text-muted">Aucun groupe trouve.</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

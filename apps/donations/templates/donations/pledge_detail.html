@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/pledges/">Engagements</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-8">
+                <div class="card h-auto">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Details de l'engagement</h4>
+                        {% if is_finance %}
+                        <div>
+                            <a href="/donations/pledges/{{ pledge.pk }}/edit/" class="btn btn-sm btn-warning me-1">
+                                <i class="fas fa-edit me-1"></i>Modifier
+                            </a>
+                            <a href="/donations/pledges/{{ pledge.pk }}/delete/" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash me-1"></i>Supprimer
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="c-details">
+                            <ul>
+                                <li><span>Membre</span><p>{{ pledge.member.full_name }}</p></li>
+                                <li><span>Montant</span><p><strong>{{ pledge.amount }} $</strong></p></li>
+                                <li><span>Frequence</span><p>{{ pledge.get_frequency_display }}</p></li>
+                                <li><span>Date de debut</span><p>{{ pledge.start_date|date:"d/m/Y" }}</p></li>
+                                <li><span>Date de fin</span><p>{% if pledge.end_date %}{{ pledge.end_date|date:"d/m/Y" }}{% else %}Non definie{% endif %}</p></li>
+                                <li><span>Statut</span><p>{{ pledge.get_status_display }}</p></li>
+                                {% if pledge.campaign %}
+                                <li><span>Campagne</span><p><a href="/donations/campaigns/{{ pledge.campaign.pk }}/">{{ pledge.campaign.name }}</a></p></li>
+                                {% endif %}
+                                {% if pledge.notes %}
+                                <li><span>Notes</span><p>{{ pledge.notes }}</p></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-4">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Progression</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="mb-3">{{ pledge.progress_percentage }}%</h2>
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                 style="width: {{ pledge.progress_percentage }}%;"
+                                 aria-valuenow="{{ pledge.progress_percentage }}"
+                                 aria-valuemin="0" aria-valuemax="100">
+                                {{ pledge.progress_percentage }}%
+                            </div>
+                        </div>
+                        <p class="text-muted">
+                            {{ pledge.fulfilled_amount }} $ realise sur {{ pledge.amount }} $<br>
+                            Reste : {{ pledge.remaining_amount }} $
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Fulfillments -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Dons lies</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Don</th>
+                                        <th>Montant applique</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for f in fulfillments %}
+                                    <tr>
+                                        <td>{{ f.date|date:"d/m/Y" }}</td>
+                                        <td><a href="/donations/{{ f.donation.pk }}/">{{ f.donation.donation_number }}</a></td>
+                                        <td><strong>{{ f.amount }} $</strong></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center py-4">Aucun don lie a cet engagement.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

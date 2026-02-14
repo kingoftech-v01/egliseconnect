@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block title %}Enregistrement enfant{% endblock %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Enregistrement enfant</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/attendance/">Presence</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Enfants</a></li>
+        </ol>
+        <div class="d-flex gap-2">
+            <a href="/attendance/child/checkout/" class="btn btn-sm btn-outline-warning"><i class="bi bi-box-arrow-right me-1"></i>Retrait enfant</a>
+            <a href="/attendance/child/history/" class="btn btn-sm btn-outline-info"><i class="bi bi-clock-history me-1"></i>Historique</a>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Enregistrer un enfant</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/attendance/child/checkin/">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label" for="session-select">Session</label>
+                                <select name="session_id" id="session-select" class="form-select" required>
+                                    <option value="">-- Choisir une session --</option>
+                                    {% for session in sessions %}
+                                    <option value="{{ session.pk }}">{{ session.name }} - {{ session.date|date:"d/m/Y" }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="child-select">Enfant</label>
+                                <select name="child_id" id="child-select" class="form-select" required>
+                                    <option value="">-- Choisir un enfant --</option>
+                                    {% for child in children %}
+                                    <option value="{{ child.pk }}" data-allergies="{{ child.allergies }}" data-medical="{{ child.medical_notes }}" data-pickups="{{ child.authorized_pickups }}">{{ child.full_name }} ({{ child.family.name }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="parent-select">Parent / Tuteur</label>
+                                <select name="parent_member_id" id="parent-select" class="form-select" required>
+                                    <option value="">-- Choisir un parent --</option>
+                                    {% for member in members %}
+                                    <option value="{{ member.pk }}">{{ member.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Allergy/Medical Alert Banner (item 4) -->
+                            <div id="medical-alert" class="alert alert-danger d-none mb-3">
+                                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Alertes medicales</h5>
+                                <div id="allergy-info"></div>
+                                <div id="medical-info"></div>
+                            </div>
+
+                            <!-- Authorized Pickups (item 5) -->
+                            <div id="pickup-info" class="alert alert-info d-none mb-3">
+                                <h6><i class="bi bi-person-check me-2"></i>Personnes autorisees au retrait:</h6>
+                                <div id="pickup-list"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>Enregistrer l'enfant
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+document.getElementById('child-select').addEventListener('change', function() {
+    var selected = this.options[this.selectedIndex];
+    var allergies = selected.getAttribute('data-allergies') || '';
+    var medical = selected.getAttribute('data-medical') || '';
+    var pickups = selected.getAttribute('data-pickups') || '';
+
+    var alertDiv = document.getElementById('medical-alert');
+    var allergyDiv = document.getElementById('allergy-info');
+    var medicalDiv = document.getElementById('medical-info');
+    var pickupDiv = document.getElementById('pickup-info');
+    var pickupList = document.getElementById('pickup-list');
+
+    if (allergies || medical) {
+        alertDiv.classList.remove('d-none');
+        allergyDiv.innerHTML = allergies ? '<p><strong>Allergies:</strong> ' + allergies + '</p>' : '';
+        medicalDiv.innerHTML = medical ? '<p><strong>Notes medicales:</strong> ' + medical + '</p>' : '';
+    } else {
+        alertDiv.classList.add('d-none');
+    }
+
+    if (pickups) {
+        pickupDiv.classList.remove('d-none');
+        pickupList.innerHTML = '<p>' + pickups + '</p>';
+    } else {
+        pickupDiv.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

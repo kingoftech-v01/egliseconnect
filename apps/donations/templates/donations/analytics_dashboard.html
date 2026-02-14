@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Year Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 me-2">Annee :</label>
+                            <input type="number" name="year" value="{{ year }}" class="form-control form-control-sm" style="width:100px;">
+                            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-3">
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Total des dons</h6>
+                        <h3 class="text-primary mb-0">{{ data.total_amount|default:"0" }} $</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Nombre de dons</h6>
+                        <h3 class="text-info mb-0">{{ data.total_count|default:"0" }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Don moyen</h6>
+                        <h3 class="text-success mb-0">{{ data.avg_amount|default:"0" }} $</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card h-auto">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-1">Donateurs uniques</h6>
+                        <h3 class="text-warning mb-0">{{ data.unique_donors|default:"0" }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-3">
+            <div class="col-xl-8 col-lg-12">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Tendances mensuelles {{ year }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyTrendsChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-12">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Retention des donateurs</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if data.retention %}
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nouveaux donateurs</span>
+                                <strong class="text-success">{{ data.retention.new_donors }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Donateurs recurrents</span>
+                                <strong class="text-primary">{{ data.retention.returning_donors }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Donateurs perdus</span>
+                                <strong class="text-danger">{{ data.retention.lapsed_donors }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Taux de retention</span>
+                                <strong>{{ data.retention.retention_rate }}%</strong>
+                            </li>
+                        </ul>
+                        {% else %}
+                        <p class="text-muted text-center">Pas de donnees disponibles.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- YoY Comparison -->
+        <div class="row mb-3">
+            <div class="col-xl-8 col-lg-12">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Comparaison annuelle ({{ year }} vs {{ data.yoy_comparison.previous_year|default:year|add:"-1" }})</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="yoyChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-12">
+                <div class="card h-auto">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Nouveaux donateurs</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if data.first_time_donors %}
+                        <ul class="list-group list-group-flush">
+                            {% for donor in data.first_time_donors %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>{{ donor.member_name }}</span>
+                                <small class="text-muted">{{ donor.first_donation_date|date:"d/m/Y" }}</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted text-center">Aucun nouveau donateur en {{ year }}.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Donors -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Top donateurs {{ year }}</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Membre</th>
+                                        <th>Total</th>
+                                        <th>Nombre de dons</th>
+                                        <th>Don moyen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for donor in data.top_donors %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ donor.member_name }}</td>
+                                        <td><strong>{{ donor.total_amount }} $</strong></td>
+                                        <td>{{ donor.donation_count }}</td>
+                                        <td>-</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">Aucun don en {{ year }}.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Trends Chart
+    var monthlyCtx = document.getElementById('monthlyTrendsChart');
+    if (monthlyCtx) {
+        new Chart(monthlyCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {{ monthly_labels_json|safe }},
+                datasets: [{
+                    label: 'Dons mensuels ($)',
+                    data: {{ monthly_amounts_json|safe }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return value + ' $'; }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // YoY Comparison Chart
+    var yoyCtx = document.getElementById('yoyChart');
+    if (yoyCtx) {
+        var months = ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
+        new Chart(yoyCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: '{{ year }}',
+                        data: {{ yoy_current_json|safe }},
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '{{ year|add:"-1" }}',
+                        data: {{ yoy_previous_json|safe }},
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return value + ' $'; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

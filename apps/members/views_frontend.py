@@ -22,13 +22,15 @@ from apps.core.utils import (
     get_month_birthdays,
 )
 
-from apps.core.export import export_queryset_csv
-from apps.core.constants import ApprovalStatus
+from apps.core.export import export_queryset_csv, export_queryset_excel, export_queryset_pdf
+from apps.core.constants import ApprovalStatus, CareStatus
 
 from .models import (
     Member, Family, Group, GroupMembership, DirectoryPrivacy,
     Department, DepartmentMembership, DepartmentTaskType,
     DisciplinaryAction, ProfileModificationRequest,
+    Child, PastoralCare, BackgroundCheck, ImportHistory,
+    MemberMergeLog, CustomField, CustomFieldValue, MemberEngagementScore,
 )
 from .forms import (
     MemberRegistrationForm,
@@ -45,6 +47,13 @@ from .forms import (
     DepartmentTaskTypeForm,
     DepartmentMembershipForm,
     DisciplinaryActionForm,
+    ChildForm,
+    PastoralCareForm,
+    BackgroundCheckForm,
+    MemberImportForm,
+    MemberImportMappingForm,
+    CustomFieldForm,
+    GroupFinderForm,
 )
 from .services import DisciplinaryService
 
@@ -161,10 +170,38 @@ def member_detail(request, pk):
     if member.family:
         family_members = member.family.members.exclude(id=member.id)
 
+    # Department memberships
+    department_memberships = member.department_memberships.filter(
+        is_active=True
+    ).select_related('department')
+
+    # Engagement score
+    engagement_score = None
+    try:
+        engagement_score = member.engagement_score
+    except MemberEngagementScore.DoesNotExist:
+        pass
+
+    # Latest background check
+    latest_background_check = member.background_checks.first()
+
+    # Disciplinary history (staff only)
+    disciplinary_actions = []
+    is_staff_viewer = (
+        request.user.is_staff
+        or (current_member and current_member.role in Roles.STAFF_ROLES)
+    )
+    if is_staff_viewer:
+        disciplinary_actions = member.disciplinary_actions.all()[:10]
+
     context = {
         'member': member,
         'groups': groups,
         'family_members': family_members,
+        'department_memberships': department_memberships,
+        'engagement_score': engagement_score,
+        'latest_background_check': latest_background_check,
+        'disciplinary_actions': disciplinary_actions,
         'is_own_profile': is_own_profile,
         'can_edit_admin_fields': can_edit_admin_fields and not is_own_profile,
         'page_title': member.full_name,
@@ -428,9 +465,10 @@ def group_detail(request, pk):
 
 @login_required
 def family_detail(request, pk):
-    """Display family details with members."""
+    """Display family details with members and children."""
     family = get_object_or_404(Family, pk=pk)
     members = family.members.filter(is_active=True)
+    children = family.children.filter(is_active=True)
 
     is_family_member = False
     if hasattr(request.user, 'member_profile'):
@@ -439,6 +477,7 @@ def family_detail(request, pk):
     context = {
         'family': family,
         'members': members,
+        'children': children,
         'is_family_member': is_family_member,
         'page_title': family.name,
     }
@@ -1162,7 +1201,7 @@ def modification_request_list(request):
 
 @login_required
 def member_list_export(request):
-    """Export member list to CSV (pastor/admin only)."""
+    """Export member list to CSV/Excel/PDF (pastor/admin only)."""
     member = getattr(request.user, 'member_profile', None)
     if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
         messages.error(request, _('Accès non autorisé.'))
@@ -1204,4 +1243,907 @@ def member_list_export(request):
         'Statut',
     ]
 
+    export_format = request.GET.get('format', 'csv')
+
+    if export_format == 'excel':
+        return export_queryset_excel(members, fields, 'membres', headers=headers)
+    elif export_format == 'pdf':
+        return export_queryset_pdf(members, fields, 'membres', headers=headers)
+
     return export_queryset_csv(members, fields, 'membres', headers=headers)
+
+
+# ==============================================================================
+# Child / Dependent CRUD views
+# ==============================================================================
+
+
+@login_required
+def child_list(request, family_pk):
+    """List children for a family."""
+    family = get_object_or_404(Family, pk=family_pk)
+    children = family.children.filter(is_active=True)
+
+    context = {
+        'family': family,
+        'children': children,
+        'page_title': _('Enfants - ') + family.name,
+    }
+    return render(request, 'members/child_list.html', context)
+
+
+@login_required
+def child_create(request, family_pk):
+    """Create a new child profile in a family."""
+    family = get_object_or_404(Family, pk=family_pk)
+
+    member = getattr(request.user, 'member_profile', None)
+    if not member or (not _is_staff(member) and member.family != family):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect(f'/members/families/{family_pk}/')
+
+    if request.method == 'POST':
+        form = ChildForm(request.POST, request.FILES)
+        if form.is_valid():
+            child = form.save(commit=False)
+            child.family = family
+            child.save()
+            messages.success(request, _('Enfant ajouté avec succès.'))
+            return redirect(f'/members/families/{family_pk}/')
+    else:
+        form = ChildForm(initial={'family': family})
+
+    context = {
+        'form': form,
+        'family': family,
+        'page_title': _('Ajouter un enfant'),
+    }
+    return render(request, 'members/child_form.html', context)
+
+
+@login_required
+def child_edit(request, pk):
+    """Edit a child profile."""
+    child = get_object_or_404(Child, pk=pk)
+
+    member = getattr(request.user, 'member_profile', None)
+    if not member or (not _is_staff(member) and member.family != child.family):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect(f'/members/families/{child.family_id}/')
+
+    if request.method == 'POST':
+        form = ChildForm(request.POST, request.FILES, instance=child)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Profil enfant modifié avec succès.'))
+            return redirect(f'/members/families/{child.family_id}/')
+    else:
+        form = ChildForm(instance=child)
+
+    context = {
+        'form': form,
+        'child': child,
+        'page_title': _('Modifier ') + child.full_name,
+    }
+    return render(request, 'members/child_form.html', context)
+
+
+@login_required
+def child_delete(request, pk):
+    """Delete a child profile (POST confirmation)."""
+    child = get_object_or_404(Child, pk=pk)
+
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect(f'/members/families/{child.family_id}/')
+
+    if request.method == 'POST':
+        family_pk = child.family_id
+        child.delete()
+        messages.success(request, _('Enfant supprimé.'))
+        return redirect(f'/members/families/{family_pk}/')
+
+    context = {
+        'child': child,
+        'page_title': _('Supprimer l\'enfant'),
+    }
+    return render(request, 'members/child_delete.html', context)
+
+
+# ==============================================================================
+# Pastoral Care CRUD views
+# ==============================================================================
+
+
+@login_required
+def care_list(request):
+    """List all pastoral care records (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    cares = PastoralCare.objects.filter(is_active=True).select_related(
+        'member', 'assigned_to'
+    )
+
+    status_filter = request.GET.get('status')
+    if status_filter:
+        cares = cares.filter(status=status_filter)
+
+    care_type_filter = request.GET.get('care_type')
+    if care_type_filter:
+        cares = cares.filter(care_type=care_type_filter)
+
+    paginator = Paginator(cares, 20)
+    page = request.GET.get('page', 1)
+    cares_page = paginator.get_page(page)
+
+    context = {
+        'cares': cares_page,
+        'status_filter': status_filter or '',
+        'care_type_filter': care_type_filter or '',
+        'page_title': _('Soins pastoraux'),
+    }
+    return render(request, 'members/care_list.html', context)
+
+
+@login_required
+def care_create(request):
+    """Create a new pastoral care record (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    if request.method == 'POST':
+        form = PastoralCareForm(request.POST)
+        if form.is_valid():
+            care = form.save(commit=False)
+            if not care.assigned_to:
+                care.assigned_to = member
+            care.save()
+            messages.success(request, _('Soin pastoral créé.'))
+            return redirect(f'/members/care/{care.pk}/')
+    else:
+        form = PastoralCareForm(initial={
+            'assigned_to': member,
+            'date': timezone.now().date(),
+        })
+
+    context = {
+        'form': form,
+        'page_title': _('Nouveau soin pastoral'),
+    }
+    return render(request, 'members/care_form.html', context)
+
+
+@login_required
+def care_detail(request, pk):
+    """View pastoral care record details (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    care = get_object_or_404(
+        PastoralCare.objects.select_related('member', 'assigned_to'),
+        pk=pk
+    )
+
+    context = {
+        'care': care,
+        'page_title': str(care),
+    }
+    return render(request, 'members/care_detail.html', context)
+
+
+@login_required
+def care_edit(request, pk):
+    """Edit a pastoral care record (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    care = get_object_or_404(PastoralCare, pk=pk)
+
+    if request.method == 'POST':
+        form = PastoralCareForm(request.POST, instance=care)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Soin pastoral modifié.'))
+            return redirect(f'/members/care/{care.pk}/')
+    else:
+        form = PastoralCareForm(instance=care)
+
+    context = {
+        'form': form,
+        'care': care,
+        'page_title': _('Modifier le soin pastoral'),
+    }
+    return render(request, 'members/care_form.html', context)
+
+
+@login_required
+def care_dashboard(request):
+    """Pastoral care dashboard for pastors."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    from datetime import date
+
+    open_cares = PastoralCare.objects.filter(
+        status__in=[CareStatus.OPEN, CareStatus.FOLLOW_UP],
+        is_active=True,
+    ).select_related('member', 'assigned_to')
+
+    overdue = open_cares.filter(follow_up_date__lt=date.today())
+    recent = PastoralCare.objects.filter(is_active=True).select_related(
+        'member', 'assigned_to'
+    ).order_by('-date')[:10]
+
+    my_cares = open_cares.filter(assigned_to=member)
+
+    context = {
+        'open_count': open_cares.count(),
+        'overdue_cares': overdue,
+        'recent_cares': recent,
+        'my_cares': my_cares,
+        'page_title': _('Tableau de bord pastoral'),
+    }
+    return render(request, 'members/care_dashboard.html', context)
+
+
+# ==============================================================================
+# Background Check views
+# ==============================================================================
+
+
+@login_required
+def background_check_list(request):
+    """List all background checks (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    checks = BackgroundCheck.objects.filter(is_active=True).select_related('member')
+
+    status_filter = request.GET.get('status')
+    if status_filter:
+        checks = checks.filter(status=status_filter)
+
+    paginator = Paginator(checks, 20)
+    page = request.GET.get('page', 1)
+    checks_page = paginator.get_page(page)
+
+    context = {
+        'checks': checks_page,
+        'status_filter': status_filter or '',
+        'page_title': _('Vérifications des antécédents'),
+    }
+    return render(request, 'members/background_check_list.html', context)
+
+
+@login_required
+def background_check_create(request):
+    """Create a new background check record (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    if request.method == 'POST':
+        form = BackgroundCheckForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Vérification créée.'))
+            return redirect('/members/background-checks/')
+    else:
+        form = BackgroundCheckForm()
+
+    context = {
+        'form': form,
+        'page_title': _('Nouvelle vérification'),
+    }
+    return render(request, 'members/background_check_form.html', context)
+
+
+@login_required
+def background_check_detail(request, pk):
+    """View background check details (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    check = get_object_or_404(BackgroundCheck.objects.select_related('member'), pk=pk)
+
+    context = {
+        'check': check,
+        'page_title': str(check),
+    }
+    return render(request, 'members/background_check_detail.html', context)
+
+
+@login_required
+def background_check_edit(request, pk):
+    """Edit a background check record (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    check = get_object_or_404(BackgroundCheck, pk=pk)
+
+    if request.method == 'POST':
+        form = BackgroundCheckForm(request.POST, instance=check)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Vérification modifiée.'))
+            return redirect(f'/members/background-checks/{check.pk}/')
+    else:
+        form = BackgroundCheckForm(instance=check)
+
+    context = {
+        'form': form,
+        'check': check,
+        'page_title': _('Modifier la vérification'),
+    }
+    return render(request, 'members/background_check_form.html', context)
+
+
+# ==============================================================================
+# Member Import Wizard views
+# ==============================================================================
+
+
+@login_required
+def import_upload(request):
+    """Step 1: Upload CSV/Excel file for member import."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    if request.method == 'POST':
+        form = MemberImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            from .services_import import MemberImportService
+            try:
+                uploaded_file = request.FILES['file']
+                headers, rows = MemberImportService.parse_file(uploaded_file)
+                request.session['import_headers'] = headers
+                request.session['import_rows'] = rows
+                request.session['import_filename'] = uploaded_file.name
+                return redirect('/members/import/map/')
+            except ValueError as e:
+                messages.error(request, str(e))
+    else:
+        form = MemberImportForm()
+
+    context = {
+        'form': form,
+        'page_title': _('Importer des membres - Étape 1'),
+    }
+    return render(request, 'members/import_upload.html', context)
+
+
+@login_required
+def import_map(request):
+    """Step 2: Map CSV columns to member fields."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    headers = request.session.get('import_headers')
+    if not headers:
+        messages.error(request, _('Aucun fichier à importer.'))
+        return redirect('/members/import/')
+
+    if request.method == 'POST':
+        form = MemberImportMappingForm(request.POST, csv_columns=headers)
+        if form.is_valid():
+            mapping = {}
+            for col in headers:
+                field_key = f'col_{col}'
+                if field_key in form.cleaned_data:
+                    mapping[col] = form.cleaned_data[field_key]
+            request.session['import_mapping'] = mapping
+            return redirect('/members/import/preview/')
+    else:
+        form = MemberImportMappingForm(csv_columns=headers)
+
+    context = {
+        'form': form,
+        'headers': headers,
+        'page_title': _('Importer des membres - Étape 2'),
+    }
+    return render(request, 'members/import_map.html', context)
+
+
+@login_required
+def import_preview(request):
+    """Step 3: Preview import results and confirm."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    rows = request.session.get('import_rows')
+    mapping = request.session.get('import_mapping')
+    if not rows or not mapping:
+        messages.error(request, _('Données manquantes.'))
+        return redirect('/members/import/')
+
+    from .services_import import MemberImportService
+    preview = MemberImportService.validate_preview(rows, mapping)
+    valid_count = sum(1 for r in preview if r['valid'])
+    error_count = sum(1 for r in preview if not r['valid'])
+
+    if request.method == 'POST':
+        # Execute import
+        history = MemberImportService.execute_import(preview, imported_by=member)
+        history.filename = request.session.get('import_filename', 'import')
+        history.save()
+
+        # Clean up session
+        for key in ['import_headers', 'import_rows', 'import_mapping', 'import_filename']:
+            request.session.pop(key, None)
+
+        messages.success(
+            request,
+            _('Importation terminée: %(success)d réussis, %(errors)d erreurs.') % {
+                'success': history.success_count,
+                'errors': history.error_count,
+            }
+        )
+        return redirect('/members/import/history/')
+
+    context = {
+        'preview': preview[:50],  # Show first 50 rows
+        'valid_count': valid_count,
+        'error_count': error_count,
+        'total': len(preview),
+        'page_title': _('Importer des membres - Aperçu'),
+    }
+    return render(request, 'members/import_preview.html', context)
+
+
+@login_required
+def import_history(request):
+    """View import history."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    history = ImportHistory.objects.filter(is_active=True).select_related(
+        'imported_by'
+    ).order_by('-created_at')
+
+    context = {
+        'history': history,
+        'page_title': _('Historique d\'importation'),
+    }
+    return render(request, 'members/import_history.html', context)
+
+
+# ==============================================================================
+# Member Merge & Dedup views
+# ==============================================================================
+
+
+@login_required
+def merge_find_duplicates(request):
+    """Find potential duplicate members (admin/pastor only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    from .services_merge import MemberMergeService
+    duplicates = MemberMergeService.find_duplicates()
+
+    context = {
+        'duplicates': duplicates,
+        'page_title': _('Doublons potentiels'),
+    }
+    return render(request, 'members/merge_duplicates.html', context)
+
+
+@login_required
+def merge_wizard(request, pk_a, pk_b):
+    """Merge wizard: select primary record and confirm merge."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    member_a = get_object_or_404(Member, pk=pk_a)
+    member_b = get_object_or_404(Member, pk=pk_b)
+
+    if request.method == 'POST':
+        primary_pk = request.POST.get('primary')
+        if str(primary_pk) == str(pk_a):
+            primary, secondary = member_a, member_b
+        else:
+            primary, secondary = member_b, member_a
+
+        from .services_merge import MemberMergeService
+        log = MemberMergeService.merge_members(primary, secondary, merged_by=member)
+        messages.success(
+            request,
+            _('Fusion réussie. %(secondary)s a été fusionné dans %(primary)s.') % {
+                'primary': primary.full_name,
+                'secondary': secondary.full_name,
+            }
+        )
+        return redirect(f'/members/{primary.pk}/')
+
+    context = {
+        'member_a': member_a,
+        'member_b': member_b,
+        'page_title': _('Fusionner des membres'),
+    }
+    return render(request, 'members/merge_wizard.html', context)
+
+
+@login_required
+def merge_history(request):
+    """View merge audit trail."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/')
+
+    logs = MemberMergeLog.objects.filter(is_active=True).select_related(
+        'primary_member', 'merged_by'
+    ).order_by('-created_at')
+
+    context = {
+        'logs': logs,
+        'page_title': _('Historique de fusion'),
+    }
+    return render(request, 'members/merge_history.html', context)
+
+
+# ==============================================================================
+# Group Finder & Lifecycle views
+# ==============================================================================
+
+
+@login_required
+def group_finder(request):
+    """Public group finder for members to search for groups."""
+    form = GroupFinderForm(request.GET)
+
+    groups = Group.objects.filter(
+        is_active=True,
+        lifecycle_stage__in=['launching', 'active'],
+    ).select_related('leader')
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        groups = groups.filter(
+            Q(name__icontains=search) |
+            Q(description__icontains=search)
+        )
+
+    group_type = request.GET.get('group_type')
+    if group_type:
+        groups = groups.filter(group_type=group_type)
+
+    meeting_day = request.GET.get('meeting_day', '').strip()
+    if meeting_day:
+        groups = groups.filter(meeting_day__icontains=meeting_day)
+
+    context = {
+        'groups': groups,
+        'form': form,
+        'search': search,
+        'page_title': _('Trouver un groupe'),
+    }
+    return render(request, 'members/group_finder.html', context)
+
+
+# ==============================================================================
+# Custom Fields management views
+# ==============================================================================
+
+
+@login_required
+def custom_field_list(request):
+    """Manage custom member fields (admin only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role != Roles.ADMIN:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    fields = CustomField.objects.filter(is_active=True)
+
+    context = {
+        'custom_fields': fields,
+        'page_title': _('Champs personnalisés'),
+    }
+    return render(request, 'members/custom_field_list.html', context)
+
+
+@login_required
+def custom_field_create(request):
+    """Create a new custom field (admin only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role != Roles.ADMIN:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    if request.method == 'POST':
+        form = CustomFieldForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Champ personnalisé créé.'))
+            return redirect('/members/custom-fields/')
+    else:
+        form = CustomFieldForm()
+
+    context = {
+        'form': form,
+        'page_title': _('Nouveau champ personnalisé'),
+    }
+    return render(request, 'members/custom_field_form.html', context)
+
+
+@login_required
+def custom_field_edit(request, pk):
+    """Edit a custom field (admin only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role != Roles.ADMIN:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    field = get_object_or_404(CustomField, pk=pk)
+
+    if request.method == 'POST':
+        form = CustomFieldForm(request.POST, instance=field)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Champ personnalisé modifié.'))
+            return redirect('/members/custom-fields/')
+    else:
+        form = CustomFieldForm(instance=field)
+
+    context = {
+        'form': form,
+        'field': field,
+        'page_title': _('Modifier le champ personnalisé'),
+    }
+    return render(request, 'members/custom_field_form.html', context)
+
+
+@login_required
+@require_POST
+def custom_field_delete(request, pk):
+    """Delete a custom field (admin only, POST)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role != Roles.ADMIN:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    field = get_object_or_404(CustomField, pk=pk)
+    field.is_active = False
+    field.save()
+    messages.success(request, _('Champ personnalisé supprimé.'))
+    return redirect('/members/custom-fields/')
+
+
+# ==============================================================================
+# Member Engagement Score views
+# ==============================================================================
+
+
+@login_required
+def engagement_dashboard(request):
+    """View engagement scores for all members (staff only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/reports/')
+
+    scores = MemberEngagementScore.objects.filter(
+        member__is_active=True
+    ).select_related('member').order_by('-total_score')
+
+    # At-risk members (score < 30)
+    at_risk = scores.filter(total_score__lt=30)
+
+    paginator = Paginator(scores, 20)
+    page = request.GET.get('page', 1)
+    scores_page = paginator.get_page(page)
+
+    context = {
+        'scores': scores_page,
+        'at_risk_count': at_risk.count(),
+        'total_count': scores.count(),
+        'page_title': _('Scores d\'engagement'),
+    }
+    return render(request, 'members/engagement_dashboard.html', context)
+
+
+@login_required
+def engagement_recalculate(request):
+    """Trigger recalculation of engagement scores (admin only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/engagement/')
+
+    if request.method == 'POST':
+        from .services_engagement import EngagementScoreService
+        scores = EngagementScoreService.calculate_for_all()
+        messages.success(
+            request,
+            _('%(count)d scores recalculés.') % {'count': len(scores)}
+        )
+
+    return redirect('/members/engagement/')
+
+
+# ==============================================================================
+# Church Directory (opt-in public)
+# ==============================================================================
+
+
+@login_required
+def directory_public(request):
+    """Opt-in public directory with photo grid view."""
+    search = request.GET.get('search', '').strip()
+    view_mode = request.GET.get('view', 'grid')
+    group_filter = request.GET.get('group')
+    page = request.GET.get('page', 1)
+
+    members = Member.objects.filter(
+        is_active=True,
+        privacy_settings__visibility='public',
+        privacy_settings__show_photo=True,
+    ).select_related('privacy_settings')
+
+    if search:
+        members = members.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search)
+        )
+
+    if group_filter:
+        members = members.filter(group_memberships__group_id=group_filter)
+
+    members = members.order_by('last_name', 'first_name')
+
+    paginator = Paginator(members, 24)
+    members_page = paginator.get_page(page)
+
+    context = {
+        'members': members_page,
+        'search': search,
+        'view_mode': view_mode,
+        'groups': Group.objects.filter(is_active=True),
+        'page_title': _('Annuaire public'),
+    }
+    return render(request, 'members/directory_public.html', context)
+
+
+@login_required
+def directory_export_pdf(request):
+    """Export public directory to PDF."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/directory/')
+
+    members = Member.objects.filter(
+        is_active=True,
+    ).order_by('last_name', 'first_name')
+
+    fields = ['first_name', 'last_name', 'email', 'phone']
+    headers = ['Prénom', 'Nom', 'Courriel', 'Téléphone']
+
+    return export_queryset_pdf(members, fields, 'annuaire', headers=headers)
+
+
+# ==============================================================================
+# Family Dashboard & Merge
+# ==============================================================================
+
+
+@login_required
+def family_dashboard(request, pk):
+    """Family dashboard showing members, giving summary, attendance."""
+    family = get_object_or_404(Family, pk=pk)
+    members = family.members.filter(is_active=True)
+    children = family.children.filter(is_active=True)
+
+    context = {
+        'family': family,
+        'members': members,
+        'children': children,
+        'page_title': _('Tableau de bord - ') + family.name,
+    }
+    return render(request, 'members/family_dashboard.html', context)
+
+
+@login_required
+def family_merge(request):
+    """Merge two families (admin/pastor only)."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or member.role not in [Roles.PASTOR, Roles.ADMIN]:
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect('/members/families/')
+
+    if request.method == 'POST':
+        family_a_pk = request.POST.get('family_a')
+        family_b_pk = request.POST.get('family_b')
+
+        if family_a_pk and family_b_pk and family_a_pk != family_b_pk:
+            family_a = get_object_or_404(Family, pk=family_a_pk)
+            family_b = get_object_or_404(Family, pk=family_b_pk)
+
+            # Move all members from family_b to family_a
+            family_b.members.update(family=family_a)
+            # Move children
+            family_b.children.update(family=family_a)
+
+            # Merge address if family_a has none
+            if not family_a.address and family_b.address:
+                family_a.address = family_b.address
+                family_a.city = family_b.city
+                family_a.province = family_b.province
+                family_a.postal_code = family_b.postal_code
+                family_a.save()
+
+            # Deactivate family_b
+            family_b.is_active = False
+            family_b.save()
+
+            messages.success(
+                request,
+                _('%(b)s a été fusionnée dans %(a)s.') % {
+                    'a': family_a.name, 'b': family_b.name,
+                }
+            )
+            return redirect(f'/members/families/{family_a.pk}/')
+        else:
+            messages.error(request, _('Veuillez sélectionner deux familles différentes.'))
+
+    families = Family.objects.filter(is_active=True)
+
+    context = {
+        'families': families,
+        'page_title': _('Fusionner des familles'),
+    }
+    return render(request, 'members/family_merge.html', context)
+
+
+@login_required
+def family_sync_address(request, pk):
+    """Sync family address to all member addresses."""
+    member = getattr(request.user, 'member_profile', None)
+    if not member or not _is_staff(member):
+        messages.error(request, _('Accès non autorisé.'))
+        return redirect(f'/members/families/{pk}/')
+
+    family = get_object_or_404(Family, pk=pk)
+
+    if request.method == 'POST':
+        family.members.filter(is_active=True).update(
+            address=family.address,
+            city=family.city,
+            province=family.province,
+            postal_code=family.postal_code,
+        )
+        messages.success(request, _('Adresse synchronisée pour tous les membres.'))
+
+    return redirect(f'/members/families/{pk}/')

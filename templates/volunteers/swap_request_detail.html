@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/swap-requests/">Echanges</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Detail</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Demandeur:</strong> {{ swap_request.requested_by.full_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Echanger avec:</strong> {{ swap_request.swap_with.full_name|default:"-" }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Horaire:</strong> {{ swap_request.original_schedule }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Date:</strong> {{ swap_request.original_schedule.date|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Poste:</strong> {{ swap_request.original_schedule.position.name }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Statut:</strong>
+                                {% if swap_request.status == 'pending' %}
+                                    <span class="badge badge-warning">En attente</span>
+                                {% elif swap_request.status == 'approved' %}
+                                    <span class="badge badge-success">Approuve</span>
+                                {% elif swap_request.status == 'declined' %}
+                                    <span class="badge badge-danger">Refuse</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if swap_request.reason %}
+                        <div class="mb-3">
+                            <strong>Raison:</strong>
+                            <p>{{ swap_request.reason }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if request.user.member_profile.role in 'admin,pastor,deacon' and swap_request.status == 'pending' %}
+                        <hr>
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" name="action" value="approve" class="btn btn-success me-2">
+                                <i class="fas fa-check me-1"></i> Approuver
+                            </button>
+                            <button type="submit" name="action" value="decline" class="btn btn-danger">
+                                <i class="fas fa-times me-1"></i> Refuser
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <hr>
+                        <a href="/volunteers/swap-requests/" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

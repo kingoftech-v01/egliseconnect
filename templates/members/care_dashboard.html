@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+        <a href="/members/care/create/" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Nouveau soin
+        </a>
+    </div>
+    <div class="container-fluid">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-1">Cas ouverts</p>
+                            <h3 class="mb-0">{{ open_count }}</h3>
+                        </div>
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
+                            <i class="fas fa-heart text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-1">En retard</p>
+                            <h3 class="mb-0 text-danger">{{ overdue_cares|length }}</h3>
+                        </div>
+                        <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
+                            <i class="fas fa-exclamation-triangle text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-1">Mes cas</p>
+                            <h3 class="mb-0">{{ my_cares|length }}</h3>
+                        </div>
+                        <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Follow-ups -->
+        {% if overdue_cares %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger-light">
+                        <h4 class="heading mb-0 text-danger">Suivis en retard</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Type</th>
+                                        <th>Date de suivi</th>
+                                        <th>Assigne a</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for care in overdue_cares %}
+                                    <tr>
+                                        <td><a href="/members/care/{{ care.pk }}/">{{ care.member.full_name }}</a></td>
+                                        <td>{{ care.get_care_type_display }}</td>
+                                        <td class="text-danger">{{ care.follow_up_date }}</td>
+                                        <td>{{ care.assigned_to.full_name|default:"-" }}</td>
+                                        <td><a href="/members/care/{{ care.pk }}/edit/" class="btn btn-sm btn-outline-primary">Mettre a jour</a></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Care Records -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between">
+                        <h4 class="heading mb-0">Soins recents</h4>
+                        <a href="/members/care/" class="btn btn-sm btn-outline-primary">Voir tout</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for care in recent_cares %}
+                                    <tr>
+                                        <td><a href="/members/care/{{ care.pk }}/">{{ care.member.full_name }}</a></td>
+                                        <td>{{ care.get_care_type_display }}</td>
+                                        <td>{{ care.date }}</td>
+                                        <td>
+                                            {% if care.status == "open" %}
+                                            <span class="badge bg-warning">Ouvert</span>
+                                            {% elif care.status == "follow_up" %}
+                                            <span class="badge bg-info">Suivi</span>
+                                            {% else %}
+                                            <span class="badge bg-success">Ferme</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucun soin recent.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

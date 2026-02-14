@@ -1,11 +1,15 @@
 """Utility functions for number generation, birthday queries, date ranges, and formatting."""
+from __future__ import annotations
+
 from datetime import date, timedelta
+from typing import Optional
 
 from django.conf import settings
+from django.db.models import QuerySet
 from django.utils import timezone
 
 
-def generate_member_number():
+def generate_member_number() -> str:
     """
     Generate unique member number (MBR-YYYY-XXXX).
     Uses select_for_update to prevent race conditions in concurrent requests.
@@ -38,7 +42,7 @@ def generate_member_number():
     return f'{base}-{next_seq:04d}'
 
 
-def generate_donation_number():
+def generate_donation_number() -> str:
     """
     Generate unique donation number (DON-YYYYMM-XXXX).
     Uses select_for_update to prevent race conditions.
@@ -71,7 +75,7 @@ def generate_donation_number():
     return f'{base}-{next_seq:04d}'
 
 
-def generate_request_number():
+def generate_request_number() -> str:
     """
     Generate unique help request number (HR-YYYYMM-XXXX).
     Uses select_for_update to prevent race conditions.
@@ -104,7 +108,7 @@ def generate_request_number():
     return f'{base}-{next_seq:04d}'
 
 
-def generate_receipt_number(year=None):
+def generate_receipt_number(year: Optional[int] = None) -> str:
     """
     Generate unique tax receipt number (REC-YYYY-XXXX).
     Uses select_for_update to prevent race conditions.
@@ -137,7 +141,7 @@ def generate_receipt_number(year=None):
     return f'{base}-{next_seq:04d}'
 
 
-def get_today_birthdays():
+def get_today_birthdays() -> QuerySet:
     """Get members with birthdays today."""
     from apps.members.models import Member
 
@@ -148,7 +152,7 @@ def get_today_birthdays():
     ).order_by('last_name', 'first_name')
 
 
-def get_week_birthdays():
+def get_week_birthdays() -> QuerySet:
     """Get members with birthdays in the next 7 days."""
     from apps.members.models import Member
     from django.db.models import Q
@@ -176,7 +180,7 @@ def get_week_birthdays():
     return Member.objects.filter(current_month_q | next_month_q)
 
 
-def get_month_birthdays(month=None, year=None):
+def get_month_birthdays(month: Optional[int] = None, year: Optional[int] = None) -> QuerySet:
     """Get members with birthdays in a specific month."""
     from apps.members.models import Member
 
@@ -186,7 +190,7 @@ def get_month_birthdays(month=None, year=None):
     ).order_by('birth_date__day', 'last_name', 'first_name')
 
 
-def get_upcoming_birthdays(days=30):
+def get_upcoming_birthdays(days: int = 30) -> list[tuple]:
     """
     Get members with birthdays in the next N days.
     Filters at SQL level to avoid loading all members into Python.
@@ -244,7 +248,7 @@ def get_upcoming_birthdays(days=30):
     return [(m, d) for m, d, _ in upcoming]
 
 
-def get_current_week_range():
+def get_current_week_range() -> tuple[date, date]:
     """Get Monday-Sunday date range for current week."""
     today = date.today()
     start = today - timedelta(days=today.weekday())
@@ -252,7 +256,7 @@ def get_current_week_range():
     return start, end
 
 
-def get_current_month_range():
+def get_current_month_range() -> tuple[date, date]:
     """Get first-last day date range for current month."""
     today = date.today()
     start = today.replace(day=1)
@@ -265,7 +269,7 @@ def get_current_month_range():
     return start, end
 
 
-def get_date_range(period):
+def get_date_range(period: str) -> tuple[date, date]:
     """
     Get date range for period: 'today', 'week', 'month', or 'year'.
     Raises ValueError for invalid period.
@@ -284,7 +288,7 @@ def get_date_range(period):
     raise ValueError(f"Invalid period: {period}")
 
 
-def format_phone(phone):
+def format_phone(phone: Optional[str]) -> str:
     """Format phone number as (XXX) XXX-XXXX for 10 digits or X-(XXX) XXX-XXXX for 11."""
     if not phone:
         return ''
@@ -299,7 +303,7 @@ def format_phone(phone):
     return phone
 
 
-def format_postal_code(postal_code):
+def format_postal_code(postal_code: Optional[str]) -> str:
     """Format Canadian postal code as A1A 1A1."""
     if not postal_code:
         return ''
@@ -311,7 +315,7 @@ def format_postal_code(postal_code):
     return postal_code
 
 
-def format_currency(amount):
+def format_currency(amount: Optional[float]) -> str:
     """Format amount as Canadian currency ($X,XXX.XX)."""
     if amount is None:
         return '$0.00'

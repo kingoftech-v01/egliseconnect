@@ -35,6 +35,9 @@
                                 <td>{{ item.get_donation_type_display }}</td>
                                 <td>{{ item.next_payment_date|date:"d/m/Y"|default:"-" }}</td>
                                 <td>
+                                    <a href="/payments/recurring/{{ item.pk }}/edit/" class="btn btn-outline-primary btn-xs me-1">
+                                        <i class="fa fa-edit me-1"></i>{% trans "Modifier" %}
+                                    </a>
                                     <button class="btn btn-outline-danger btn-xs cancel-btn"
                                             data-id="{{ item.pk }}"
                                             data-amount="{{ item.amount_display }}">
@@ -86,36 +89,65 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger-light">
+                <h5 class="modal-title text-danger">{% trans "Confirmer l'annulation" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {% trans "Voulez-vous vraiment annuler ce don récurrent? Cette action est irréversible." %}
+                </div>
+                <p>{% trans "Montant:" %} <strong id="cancel-amount"></strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Non, garder" %}</button>
+                <button type="button" class="btn btn-danger" id="confirm-cancel-btn">
+                    <i class="fas fa-times me-1"></i>{% trans "Oui, annuler" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block additional_js %}
 <script>
+var cancelId = null;
 document.querySelectorAll('.cancel-btn').forEach(btn => {
-    btn.addEventListener('click', async function() {
-        const id = this.dataset.id;
-        const amount = this.dataset.amount;
-        if (!confirm('Voulez-vous vraiment annuler le don récurrent de ' + amount + '?')) return;
-
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-                          document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-
-        try {
-            const response = await fetch('/api/v1/payments/recurring/' + id + '/cancel/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-            });
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                alert('Erreur lors de l\'annulation.');
-            }
-        } catch (err) {
-            alert('Erreur réseau.');
-        }
+    btn.addEventListener('click', function() {
+        cancelId = this.dataset.id;
+        document.getElementById('cancel-amount').textContent = this.dataset.amount;
+        var modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+        modal.show();
     });
+});
+
+document.getElementById('confirm-cancel-btn').addEventListener('click', async function() {
+    if (!cancelId) return;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                      document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    try {
+        const response = await fetch('/api/v1/payments/recurring/' + cancelId + '/cancel/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+        });
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Erreur lors de l\'annulation.');
+        }
+    } catch (err) {
+        alert('Erreur réseau.');
+    }
 });
 </script>
 {% endblock %}

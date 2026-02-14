@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 me-2">Annee :</label>
+                            <input type="number" name="year" value="{{ year }}" class="form-control form-control-sm" style="width:100px;">
+                            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Objectifs de dons {{ year }}</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Objectif</th>
+                                        <th>Donne</th>
+                                        <th>Reste</th>
+                                        <th>Progression</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for goal in goals %}
+                                    <tr>
+                                        <td>{{ goal.member.full_name }}</td>
+                                        <td>{{ goal.target_amount }} $</td>
+                                        <td><strong>{{ goal.current_amount }} $</strong></td>
+                                        <td>{{ goal.remaining_amount }} $</td>
+                                        <td>
+                                            <div class="progress" style="height:8px;min-width:80px;">
+                                                <div class="progress-bar bg-primary" role="progressbar"
+                                                     style="width:{{ goal.progress_percentage }}%;"
+                                                     aria-valuenow="{{ goal.progress_percentage }}"
+                                                     aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <small class="text-muted">{{ goal.progress_percentage }}%</small>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">Aucun objectif defini pour {{ year }}.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

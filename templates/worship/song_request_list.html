@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Demandes de chants</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <form method="get" class="d-flex gap-2">
+                                {% for value, label in status_choices %}
+                                <a href="/worship/song-requests/?status={{ value }}" class="btn btn-outline-secondary btn-sm">{{ label }}</a>
+                                {% endfor %}
+                                <a href="/worship/song-requests/" class="btn btn-outline-primary btn-sm">Toutes</a>
+                            </form>
+                            <a href="/worship/song-requests/create/" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Demander un chant</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Chant</th>
+                                        <th>Artiste</th>
+                                        <th>Demande par</th>
+                                        <th>Votes</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sr in song_requests %}
+                                    <tr>
+                                        <td><strong>{{ sr.song_title }}</strong></td>
+                                        <td>{{ sr.artist|default:"-" }}</td>
+                                        <td>{{ sr.requested_by.full_name }}</td>
+                                        <td>
+                                            <span class="badge badge-light">{{ sr.votes }}</span>
+                                            <button class="btn btn-outline-primary btn-xs ms-1 btn-vote" data-pk="{{ sr.pk }}" title="Voter"><i class="fas fa-thumbs-up"></i></button>
+                                        </td>
+                                        <td>
+                                            {% if sr.status == 'pending' %}<span class="badge badge-warning">En attente</span>
+                                            {% elif sr.status == 'approved' %}<span class="badge badge-success">Approuve</span>
+                                            {% elif sr.status == 'declined' %}<span class="badge badge-danger">Refuse</span>
+                                            {% elif sr.status == 'scheduled' %}<span class="badge badge-info">Planifie</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if is_staff %}
+                                            <a href="/worship/song-requests/{{ sr.pk }}/moderate/" class="btn btn-outline-warning btn-xs" title="Moderer"><i class="fas fa-gavel"></i></a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center py-4">Aucune demande de chant.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-vote').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var pk = this.getAttribute('data-pk');
+            var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfToken) {
+                // Get CSRF from cookie
+                var cookie = document.cookie.split(';').find(function(c) { return c.trim().startsWith('csrftoken='); });
+                var token = cookie ? cookie.split('=')[1] : '';
+            } else {
+                var token = csrfToken.value;
+            }
+            fetch('/worship/song-requests/' + pk + '/vote/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': token || getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (data.votes !== undefined) {
+                    var badge = btn.closest('td').querySelector('.badge');
+                    if (badge) badge.textContent = data.votes;
+                    btn.disabled = true;
+                } else if (data.error) {
+                    alert(data.error);
+                }
+            });
+        });
+    });
+
+    function getCookie(name) {
+        var value = '; ' + document.cookie;
+        var parts = value.split('; ' + name + '=');
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+    }
+});
+</script>
+{% endblock %}

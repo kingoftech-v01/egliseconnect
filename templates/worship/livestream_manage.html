@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/{{ service.pk }}/">{{ service }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Diffusion</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Existing Livestreams -->
+            <div class="col-xl-7 col-lg-6">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Diffusions en direct</h4></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Plateforme</th>
+                                        <th>URL</th>
+                                        <th>Debut</th>
+                                        <th>Spectateurs</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ls in livestreams %}
+                                    <tr>
+                                        <td>
+                                            {% if ls.platform == 'youtube' %}<span class="badge badge-danger">YouTube</span>
+                                            {% elif ls.platform == 'facebook' %}<span class="badge badge-primary">Facebook</span>
+                                            {% else %}<span class="badge badge-secondary">{{ ls.get_platform_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><a href="{{ ls.stream_url }}" target="_blank" class="small">{{ ls.stream_url|truncatechars:40 }}</a></td>
+                                        <td>{{ ls.start_time|date:"d/m H:i"|default:"-" }}</td>
+                                        <td>{{ ls.viewer_count|default:"-" }}</td>
+                                        <td>
+                                            <a href="/worship/livestreams/{{ ls.pk }}/delete/" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center py-4">Aucune diffusion configuree.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Livestream Form -->
+            <div class="col-xl-5 col-lg-6">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Ajouter une diffusion</h4></div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Ajouter</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -253,4 +253,4 @@ class TestCheckAbsenceAlerts:
         ).first()
         assert notif is not None
         assert notif.notification_type == 'attendance'
-        assert notif.link == '/attendance/sessions/'
+        assert notif.link == '/attendance/alerts/'

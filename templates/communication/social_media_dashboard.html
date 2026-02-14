@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Facebook -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="fab fa-facebook me-2"></i>Facebook</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if facebook_connected %}
+                            <span class="badge badge-success mb-3">Connecte</span>
+                        {% else %}
+                            <span class="badge badge-secondary mb-3">Non connecte</span>
+                        {% endif %}
+                        <p class="text-muted">
+                            Publiez automatiquement le contenu de vos infolettres sur votre page Facebook.
+                        </p>
+                        <button class="btn btn-outline-primary btn-sm" disabled>
+                            Configuration a venir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instagram -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="fab fa-instagram me-2"></i>Instagram</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if instagram_connected %}
+                            <span class="badge badge-success mb-3">Connecte</span>
+                        {% else %}
+                            <span class="badge badge-secondary mb-3">Non connecte</span>
+                        {% endif %}
+                        <p class="text-muted">
+                            Planifiez et publiez des posts Instagram directement depuis EgliseConnect.
+                        </p>
+                        <button class="btn btn-outline-primary btn-sm" disabled>
+                            Configuration a venir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="fab fa-whatsapp me-2"></i>WhatsApp</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if whatsapp_connected %}
+                            <span class="badge badge-success mb-3">Connecte</span>
+                        {% else %}
+                            <span class="badge badge-secondary mb-3">Non connecte</span>
+                        {% endif %}
+                        <p class="text-muted">
+                            Envoyez des messages WhatsApp Business approuves par Meta a vos membres.
+                        </p>
+                        <button class="btn btn-outline-primary btn-sm" disabled>
+                            Configuration a venir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

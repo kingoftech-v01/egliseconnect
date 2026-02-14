@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/{{ service.pk }}/">{{ service }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Planification</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Checklist de planification</h4>
+                        <a href="/worship/services/{{ service.pk }}/" class="btn btn-outline-secondary btn-sm">Retour au culte</a>
+                    </div>
+                    <div class="card-body">
+                        {% for item in checklist %}
+                        <div class="d-flex align-items-center p-3 {% if not forloop.last %}border-bottom{% endif %}">
+                            <div class="me-3">
+                                {% if item.done %}
+                                <span class="badge badge-success rounded-circle" style="width: 32px; height: 32px; line-height: 32px; text-align: center;"><i class="fas fa-check"></i></span>
+                                {% else %}
+                                <span class="badge badge-secondary rounded-circle" style="width: 32px; height: 32px; line-height: 32px; text-align: center;"><i class="fas fa-circle"></i></span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h6 class="mb-0 {% if item.done %}text-success{% endif %}">{{ item.label }}</h6>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-4">Aucun element dans la checklist.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

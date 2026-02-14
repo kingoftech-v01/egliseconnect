@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/help-requests/care/teams/">Equipes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">{{ team.name }}</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>Description :</strong> {{ team.description|default:"-" }}</p>
+                <p><strong>Leader :</strong> {{ team.leader.full_name|default:"Non assigné" }}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="heading mb-0">Membres de l'equipe ({{ memberships|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Membre</th><th>Depuis</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for m in memberships %}
+                        <tr>
+                            <td>{{ m.member.full_name }}</td>
+                            <td>{{ m.joined_at|date:"d/m/Y" }}</td>
+                            <td>
+                                <form method="post" action="/help-requests/care/teams/{{ team.pk }}/remove-member/{{ m.member.pk }}/" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Retirer ce membre?')">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">Aucun membre.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Ajouter un membre</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/help-requests/care/teams/{{ team.pk }}/add-member/">
+                    {% csrf_token %}
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">Membre</label>
+                            {{ member_form.member }}
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary">Ajouter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-4">
+            <a href="/help-requests/care/teams/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

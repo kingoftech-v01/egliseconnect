@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/milestones/">Reconnaissance</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card text-center">
+                    <div class="card-header bg-warning text-white">
+                        <h4 class="heading mb-0"><i class="fas fa-star me-2"></i>{{ page_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if top_volunteer %}
+                        <div class="my-4">
+                            <i class="fas fa-trophy fa-4x text-warning mb-3"></i>
+                            <h2>{{ top_volunteer.member__first_name }} {{ top_volunteer.member__last_name }}</h2>
+                            <h4 class="text-primary">{{ top_volunteer.total_hours }} heures ce mois</h4>
+                            <p class="text-muted">Merci pour votre service devoue!</p>
+                        </div>
+                        {% else %}
+                        <div class="my-4">
+                            <i class="fas fa-clock fa-4x text-muted mb-3"></i>
+                            <p>Aucune heure enregistree ce mois.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="/volunteers/milestones/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Retour</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

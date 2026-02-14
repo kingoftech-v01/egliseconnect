@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 def check_member_inactivity():
     """
     Check member inactivity based on attendance records.
-    - 2 months without any attendance → INACTIVE
-    - 6 months inactive → EXPIRED (must redo onboarding, account conserved)
+    - 2 months without any attendance -> INACTIVE
+    - 6 months inactive -> EXPIRED (must redo onboarding, account conserved)
     """
     from apps.members.models import Member
     from apps.attendance.models import AttendanceRecord
@@ -28,7 +28,7 @@ def check_member_inactivity():
     total_inactive = 0
     total_expired = 0
 
-    # Step 1: Active members with no attendance in 2 months → INACTIVE
+    # Step 1: Active members with no attendance in 2 months -> INACTIVE
     active_members = Member.objects.filter(
         membership_status=MembershipStatus.ACTIVE,
         is_active=True,
@@ -54,7 +54,7 @@ def check_member_inactivity():
                     f'({member.member_number})'
                 )
 
-    # Step 2: Inactive members for 6+ months → EXPIRED
+    # Step 2: Inactive members for 6+ months -> EXPIRED
     inactive_members = Member.objects.filter(
         membership_status=MembershipStatus.INACTIVE,
     )
@@ -170,7 +170,7 @@ def check_absence_alerts():
                     f'au cours des 30 derniers jours.'
                 ),
                 notification_type='attendance',
-                link='/attendance/sessions/',
+                link='/attendance/alerts/',
             )
 
         total_alerts += 1
@@ -180,3 +180,78 @@ def check_absence_alerts():
         )
 
     return total_alerts
+
+
+@shared_task
+def send_visitor_welcome_notifications():
+    """
+    Send welcome notifications to first-time visitors who haven't received one.
+    Auto-creates follow-up task for hospitality team.
+    """
+    from apps.attendance.models import VisitorInfo
+    from apps.members.models import Member
+    from apps.communication.models import Notification
+
+    visitors = VisitorInfo.objects.filter(
+        welcome_sent=False,
+        is_active=True,
+    )
+
+    total_sent = 0
+
+    for visitor in visitors:
+        # Assign follow-up to a hospitality team leader if not assigned
+        if not visitor.follow_up_assigned_to:
+            # Find a member with hospitality volunteer role or admin
+            hospitality_leader = Member.objects.filter(
+                role__in=[Roles.ADMIN, Roles.PASTOR],
+                is_active=True,
+            ).first()
+            if hospitality_leader:
+                visitor.follow_up_assigned_to = hospitality_leader
+
+        # Notify the assigned follower
+        if visitor.follow_up_assigned_to:
+            Notification.objects.create(
+                member=visitor.follow_up_assigned_to,
+                title=f'Nouveau visiteur: {visitor.name}',
+                message=(
+                    f'Un nouveau visiteur ({visitor.name}) a été enregistré. '
+                    f'Veuillez effectuer un suivi.'
+                ),
+                notification_type='general',
+                link='/attendance/visitors/',
+            )
+
+        visitor.welcome_sent = True
+        visitor.save()
+        total_sent += 1
+
+        logger.info(f'Welcome notification sent for visitor: {visitor.name}')
+
+    logger.info(f'Visitor welcome: {total_sent} notifications sent.')
+    return total_sent
+
+
+@shared_task
+def update_attendance_streaks():
+    """
+    Periodic task to check and reset broken streaks.
+    Run weekly to detect members who missed a week.
+    """
+    from apps.attendance.models import AttendanceStreak
+
+    now = timezone.now().date()
+    streaks = AttendanceStreak.objects.filter(current_streak__gt=0)
+    reset_count = 0
+
+    for streak in streaks:
+        if streak.last_attendance_date:
+            days_since = (now - streak.last_attendance_date).days
+            if days_since > 14:  # More than 2 weeks without attendance
+                streak.current_streak = 0
+                streak.save(update_fields=['current_streak', 'updated_at'])
+                reset_count += 1
+
+    logger.info(f'Streak reset: {reset_count} streaks reset.')
+    return reset_count

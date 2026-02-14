@@ -90,6 +90,46 @@
             </ul>
         </nav>
         {% endif %}
+
+        {% if statements %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h4 class="card-title">{% trans "Mes relevés de dons" %}</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Période" %}</th>
+                                <th>{% trans "Type" %}</th>
+                                <th>{% trans "Montant" %}</th>
+                                <th>{% trans "Télécharger" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stmt in statements %}
+                            <tr>
+                                <td>{{ stmt.period_start|date:"d/m/Y" }} - {{ stmt.period_end|date:"d/m/Y" }}</td>
+                                <td>{{ stmt.get_statement_type_display }}</td>
+                                <td>{{ stmt.total_amount }} CAD</td>
+                                <td>
+                                    {% if stmt.pdf_file %}
+                                    <a href="/payments/statements/{{ stmt.pk }}/download/" class="btn btn-outline-primary btn-xs">
+                                        <i class="fa fa-download me-1"></i>{% trans "PDF" %}
+                                    </a>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

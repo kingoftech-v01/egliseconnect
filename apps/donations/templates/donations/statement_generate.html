@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/donations/statements/">Releves</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-6 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Generer des releves de dons</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Generer des releves pour tous les membres ayant fait des dons dans la periode selectionnee.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            {% if not field.is_hidden %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            {{ field }}
+                            {% endif %}
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-file-pdf me-1"></i> Generer
+                            </button>
+                            <a href="/donations/statements/" class="btn btn-outline-secondary ms-2">Annuler</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

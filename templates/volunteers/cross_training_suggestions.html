@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/cross-training/">Formations croisees</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Suggestions</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        {% for suggestion in suggestions %}
+        <div class="card mb-3">
+            <div class="card-header"><h4 class="heading mb-0">{{ suggestion.position.name }}</h4></div>
+            <div class="card-body p-0">
+                <table class="table">
+                    <thead><tr><th>Benevole forme</th><th>Poste original</th><th>Certifie le</th></tr></thead>
+                    <tbody>
+                        {% for ct in suggestion.cross_trained_volunteers %}
+                        <tr>
+                            <td>{{ ct.member.full_name }}</td>
+                            <td>{{ ct.original_position.name }}</td>
+                            <td>{{ ct.certified_at|date:"d/m/Y"|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center text-muted">Aucune suggestion disponible.</div>
+        </div>
+        {% endfor %}
+
+        <a href="/volunteers/cross-training/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Retour</a>
+    </div>
+</div>
+{% endblock %}

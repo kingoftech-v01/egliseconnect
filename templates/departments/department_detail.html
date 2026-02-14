@@ -91,6 +91,7 @@
                                         <th>Membre</th>
                                         <th>Role</th>
                                         <th>Depuis</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -109,6 +110,14 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ ms.joined_date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <form method="post" action="/members/departments/{{ department.pk }}/remove-member/{{ ms.pk }}/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Retirer du departement" onclick="return confirm('Retirer {{ ms.member.full_name }} du departement?')">
+                                                    <i class="fas fa-user-minus"></i>
+                                                </button>
+                                            </form>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

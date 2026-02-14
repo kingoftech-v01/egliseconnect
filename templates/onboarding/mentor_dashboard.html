@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Tableau de bord mentor{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Tableau de bord mentor</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mentor</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0"><i class="fas fa-user-friends me-2"></i>Mes mentorats</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nouveau membre</th>
+                                        <th>Statut</th>
+                                        <th>Date de debut</th>
+                                        <th>Suivis</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for a in assignments %}
+                                    <tr>
+                                        <td><strong>{{ a.new_member.full_name }}</strong></td>
+                                        <td>
+                                            {% if a.status == 'active' %}
+                                            <span class="badge bg-success">Actif</span>
+                                            {% elif a.status == 'completed' %}
+                                            <span class="badge bg-primary">Termine</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">{{ a.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ a.start_date|date:"d/m/Y" }}</td>
+                                        <td>{{ a.check_in_count }}</td>
+                                        <td>
+                                            <a href="/onboarding/mentor/checkin/{{ a.pk }}/" class="btn btn-primary btn-xs">
+                                                <i class="fas fa-clipboard-check me-1"></i>Suivi
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="fas fa-user-friends mb-2" style="font-size:2rem;"></i>
+                                            <p>Aucun mentorat assigne.</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

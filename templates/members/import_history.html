@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/import/">Importer</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Historique</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Fichier</th>
+                                        <th>Importe par</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Reussis</th>
+                                        <th>Erreurs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for h in history %}
+                                    <tr>
+                                        <td>{{ h.filename }}</td>
+                                        <td>{{ h.imported_by.full_name|default:"-" }}</td>
+                                        <td>{{ h.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ h.total_rows }}</td>
+                                        <td><span class="text-success">{{ h.success_count }}</span></td>
+                                        <td><span class="text-danger">{{ h.error_count }}</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Aucun historique d'importation.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

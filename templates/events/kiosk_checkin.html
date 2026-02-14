@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kiosque - {{ event.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #1a1a2e; color: #fff; font-family: sans-serif; }
+        .kiosk-container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .kiosk-title { font-size: 2.5rem; font-weight: bold; text-align: center; margin-bottom: 1rem; }
+        .kiosk-subtitle { font-size: 1.2rem; text-align: center; color: #aaa; margin-bottom: 2rem; }
+        .search-input { font-size: 1.5rem; padding: 1rem; border-radius: 12px; }
+        .result-btn { font-size: 1.3rem; padding: 1rem 1.5rem; margin: 0.5rem 0; border-radius: 12px; width: 100%; text-align: left; }
+        .count-display { font-size: 4rem; font-weight: bold; text-align: center; color: #28a745; }
+        .count-label { font-size: 1.2rem; text-align: center; color: #aaa; }
+        .success-msg { font-size: 2rem; text-align: center; color: #28a745; padding: 2rem; }
+    </style>
+    <meta http-equiv="refresh" content="120">
+</head>
+<body>
+    <div class="kiosk-container">
+        <div class="kiosk-title">{{ event.title }}</div>
+        <div class="kiosk-subtitle">{{ event.start_datetime|date:"d/m/Y H:i" }}</div>
+
+        <div class="text-center mb-4">
+            <div class="count-display">{{ attendee_count }}</div>
+            <div class="count-label">participants enregistrés</div>
+        </div>
+
+        {% if checked_in %}
+        <div class="success-msg">
+            <i class="fas fa-check-circle"></i> Enregistrement réussi!
+        </div>
+        <script>setTimeout(function(){ window.location.reload(); }, 3000);</script>
+        {% else %}
+        <form method="post" class="mb-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <input type="text" name="search" class="form-control search-input" placeholder="Rechercher par nom..." value="{{ search_query }}" autofocus autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-search me-2"></i>Rechercher
+            </button>
+        </form>
+
+        {% if search_results %}
+        <h4 class="mb-3">Sélectionnez votre nom :</h4>
+        {% for member in search_results %}
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="member_id" value="{{ member.pk }}">
+            <button type="submit" class="btn btn-outline-light result-btn">
+                <i class="fas fa-user me-2"></i>{{ member.full_name }}
+            </button>
+        </form>
+        {% endfor %}
+        {% elif search_query %}
+        <div class="text-center text-muted mt-3">
+            <p>Aucun résultat pour "{{ search_query }}"</p>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <div class="text-center mt-5">
+            <a href="/events/{{ event.pk }}/" class="text-muted small">Retour à l'événement</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,13 +1,21 @@
 """Statistics and analytics for the onboarding pipeline."""
 from datetime import timedelta
 
-from django.db.models import Avg, Count, Q, F
+from django.db.models import Avg, Count, Q, F, Sum
 from django.utils import timezone
 
-from apps.core.constants import MembershipStatus, InterviewStatus
+from apps.core.constants import (
+    MembershipStatus, InterviewStatus,
+    MentorAssignmentStatus, VisitorFollowUpStatus,
+)
 from apps.members.models import Member
 from apps.attendance.models import AttendanceRecord, AttendanceSession, AbsenceAlert
-from .models import MemberTraining, Interview
+from .models import (
+    MemberTraining, Interview,
+    MentorAssignment, MentorCheckIn,
+    VisitorFollowUp,
+    OnboardingTrackModel, MemberAchievement,
+)
 
 
 class OnboardingStats:
@@ -187,3 +195,135 @@ class OnboardingStats:
                 'count': count,
             })
         return result
+
+    # ─── P1: Mentor Statistics ───────────────────────────────────────────
+
+    @staticmethod
+    def mentor_stats():
+        """Statistics about mentor assignments."""
+        total = MentorAssignment.objects.count()
+        active = MentorAssignment.objects.filter(
+            status=MentorAssignmentStatus.ACTIVE
+        ).count()
+        completed = MentorAssignment.objects.filter(
+            status=MentorAssignmentStatus.COMPLETED
+        ).count()
+        total_checkins = MentorCheckIn.objects.count()
+
+        avg_checkins = 0
+        if total > 0:
+            avg_checkins = round(total_checkins / total, 1)
+
+        # Top mentors by assignment count
+        top_mentors = (
+            MentorAssignment.objects
+            .values('mentor__first_name', 'mentor__last_name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+
+        return {
+            'total': total,
+            'active': active,
+            'completed': completed,
+            'total_checkins': total_checkins,
+            'avg_checkins': avg_checkins,
+            'top_mentors': list(top_mentors),
+        }
+
+    # ─── P2: Visitor Statistics ──────────────────────────────────────────
+
+    @staticmethod
+    def visitor_stats():
+        """Statistics about visitor follow-ups and conversion."""
+        total = VisitorFollowUp.objects.count()
+        converted = VisitorFollowUp.objects.filter(
+            converted_at__isnull=False
+        ).count()
+        pending = VisitorFollowUp.objects.filter(
+            status=VisitorFollowUpStatus.PENDING
+        ).count()
+        in_progress = VisitorFollowUp.objects.filter(
+            status=VisitorFollowUpStatus.IN_PROGRESS
+        ).count()
+
+        # Monthly visitors
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        recent_visitors = VisitorFollowUp.objects.filter(
+            first_visit_date__gte=thirty_days_ago.date()
+        ).count()
+
+        return {
+            'total': total,
+            'converted': converted,
+            'pending': pending,
+            'in_progress': in_progress,
+            'recent_visitors': recent_visitors,
+            'conversion_rate': round((converted / total) * 100, 1) if total > 0 else 0,
+        }
+
+    # ─── P3: Track Comparison Analytics ──────────────────────────────────
+
+    @staticmethod
+    def track_comparison():
+        """Compare onboarding tracks by completion rates and durations."""
+        tracks = OnboardingTrackModel.objects.filter(is_active=True)
+        result = []
+
+        for track in tracks:
+            enrollments = MemberTraining.objects.filter(track=track)
+            total = enrollments.count()
+            completed = enrollments.filter(is_completed=True).count()
+
+            # Calculate average completion days for this track
+            avg_days = 0
+            completed_trainings = enrollments.filter(
+                is_completed=True,
+                completed_at__isnull=False,
+            )
+            if completed_trainings.exists():
+                total_days = 0
+                count = 0
+                for t in completed_trainings:
+                    if t.assigned_at:
+                        delta = t.completed_at - t.assigned_at
+                        total_days += delta.days
+                        count += 1
+                if count > 0:
+                    avg_days = round(total_days / count, 1)
+
+            result.append({
+                'track': track,
+                'total_enrollments': total,
+                'completed': completed,
+                'completion_rate': round((completed / total) * 100, 1) if total > 0 else 0,
+                'avg_completion_days': avg_days,
+                'courses_count': track.courses.count(),
+                'documents_count': track.documents.count(),
+            })
+
+        return result
+
+    # ─── P3: Gamification Stats ──────────────────────────────────────────
+
+    @staticmethod
+    def gamification_stats():
+        """Statistics about achievement distribution."""
+        total_earned = MemberAchievement.objects.count()
+        unique_earners = MemberAchievement.objects.values('member').distinct().count()
+
+        top_achievers = (
+            MemberAchievement.objects
+            .values('member__first_name', 'member__last_name')
+            .annotate(
+                total_points=Sum('achievement__points'),
+                badge_count=Count('id'),
+            )
+            .order_by('-total_points')[:10]
+        )
+
+        return {
+            'total_earned': total_earned,
+            'unique_earners': unique_earners,
+            'top_achievers': list(top_achievers),
+        }

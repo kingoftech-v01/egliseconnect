@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/import/">Importer</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mappage</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Etape 2: Mappage des colonnes</h4></div>
+                    <div class="card-body">
+                        <p class="text-muted">Associez chaque colonne du fichier a un champ membre. Les colonnes non associees seront ignorees.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Colonne du fichier</th>
+                                            <th>Champ membre</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for field in form %}
+                                        <tr>
+                                            <td><strong>{{ field.label }}</strong></td>
+                                            <td>{{ field }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-primary">Apercu</button>
+                                <a href="/members/import/" class="btn btn-outline-secondary ms-2">Retour</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

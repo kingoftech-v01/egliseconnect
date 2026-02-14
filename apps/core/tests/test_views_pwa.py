@@ -17,10 +17,10 @@ class TestServiceWorkerView:
         assert response.status_code == 200
 
     def test_contains_cache_name_v2(self, client):
-        """Service worker uses updated v2 cache name."""
+        """Service worker uses updated cache name."""
         response = client.get('/sw.js')
         content = response.content.decode('utf-8')
-        assert 'egliseconnect-v2' in content
+        assert 'egliseconnect-v3' in content
 
     def test_contains_key_pages_list(self, client):
         """Service worker includes KEY_PAGES for offline caching."""

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/songs/">Chants</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Top chants</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card h-auto">
+                    <div class="card-body">
+                        <form method="get" class="d-flex align-items-end gap-2">
+                            <div>
+                                <label class="form-label small mb-0">Nombre</label>
+                                <select name="limit" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="10" {% if limit == 10 %}selected{% endif %}>Top 10</option>
+                                    <option value="20" {% if limit == 20 %}selected{% endif %}>Top 20</option>
+                                    <option value="50" {% if limit == 50 %}selected{% endif %}>Top 50</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Titre</th>
+                                        <th>Artiste</th>
+                                        <th>Tonalite</th>
+                                        <th>Fois jouee</th>
+                                        <th>Derniere utilisation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for song in songs %}
+                                    <tr>
+                                        <td><span class="badge badge-primary">{{ forloop.counter }}</span></td>
+                                        <td><a href="/worship/songs/{{ song.pk }}/" class="fw-bold">{{ song.title }}</a></td>
+                                        <td>{{ song.artist|default:"-" }}</td>
+                                        <td>{{ song.song_key|default:"-" }}</td>
+                                        <td><strong>{{ song.play_count }}</strong></td>
+                                        <td>{{ song.last_played|date:"d/m/Y"|default:"Jamais" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center py-4">Aucun chant joue.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

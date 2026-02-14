@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/members/custom-fields/">Champs personnalises</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for f in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>
+                                {{ f }}
+                                {% if f.help_text %}
+                                <small class="form-text text-muted">{{ f.help_text }}</small>
+                                {% endif %}
+                                {% for error in f.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endfor %}
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                <a href="/members/custom-fields/" class="btn btn-outline-secondary">Annuler</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

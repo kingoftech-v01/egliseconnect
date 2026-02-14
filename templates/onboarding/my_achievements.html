@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Mes accomplissements{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Mes accomplissements</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/dashboard/">Mon parcours</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Accomplissements</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star mb-2" style="font-size:2rem;"></i>
+                        <h3 class="mb-0">{{ total_points }}</h3>
+                        <p class="mb-0">Points totaux</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-award mb-2" style="font-size:2rem;"></i>
+                        <h3 class="mb-0">{{ earned|length }}</h3>
+                        <p class="mb-0">Badges obtenus</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <a href="/onboarding/leaderboard/" class="text-white text-decoration-none">
+                            <i class="fas fa-trophy mb-2" style="font-size:2rem;"></i>
+                            <h5 class="mb-0">Voir le classement</h5>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            {% for ma in earned %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        {% if ma.achievement.badge_image %}
+                        <img src="{{ ma.achievement.badge_image.url }}" class="mb-2" width="64" height="64" alt="{{ ma.achievement.name }}">
+                        {% else %}
+                        <i class="{{ ma.achievement.icon|default:'fas fa-award' }} text-primary mb-2" style="font-size:3rem;"></i>
+                        {% endif %}
+                        <h5 class="mb-1">{{ ma.achievement.name }}</h5>
+                        <p class="text-muted small mb-2">{{ ma.achievement.description|truncatewords:15 }}</p>
+                        <span class="badge bg-primary">+{{ ma.achievement.points }} pts</span>
+                        <br>
+                        <small class="text-muted">Obtenu le {{ ma.earned_at|date:"d/m/Y" }}</small>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-award text-muted mb-3" style="font-size:3rem;"></i>
+                        <h5 class="text-muted">Aucun accomplissement pour le moment</h5>
+                        <p class="text-muted">Continuez votre parcours pour obtenir des badges!</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1728,3 +1728,80 @@ class TestAdminPipelineSearch:
         train_names = [m.first_name for m in training]
         assert 'UniqueFirst' not in reg_names
         assert 'UniqueFirst' in train_names
+
+
+# ---------------------------------------------------------------------------
+# Sprint 9: Schedule lessons auto-creates AttendanceSession
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestAdminScheduleLessonsAutoSession:
+    """Test that scheduling lessons auto-creates AttendanceSession."""
+
+    def test_schedule_lessons_creates_attendance_sessions(self, client):
+        from apps.attendance.models import AttendanceSession
+        from apps.members.tests.factories import MemberWithUserFactory, MemberFactory
+        admin = MemberWithUserFactory(role=Roles.ADMIN)
+        client.force_login(admin.user)
+
+        # Create a course with a lesson
+        course = TrainingCourse.objects.create(name='Parcours Alpha', total_lessons=1, created_by=admin)
+        from apps.onboarding.models import Lesson
+        lesson = Lesson.objects.create(course=course, order=1, title='Lecon 1', duration_minutes=60)
+
+        # Create a member training with scheduled lesson
+        new_member = MemberFactory(membership_status='in_training')
+        training = MemberTraining.objects.create(member=new_member, course=course, assigned_by=admin)
+        sl = ScheduledLesson.objects.create(
+            training=training, lesson=lesson,
+            scheduled_date=timezone.now(), status='upcoming',
+        )
+
+        # Schedule the lesson
+        future_dt = timezone.now() + timedelta(days=3)
+        response = client.post(
+            f'/onboarding/admin/schedule-lessons/{training.pk}/',
+            {f'date_{sl.pk}': future_dt.strftime('%Y-%m-%dT%H:%M'),
+             f'location_{sl.pk}': 'Salle A'},
+        )
+        assert response.status_code == 302
+
+        # AttendanceSession should have been created
+        att_session = AttendanceSession.objects.filter(scheduled_lesson=sl).first()
+        assert att_session is not None
+        assert att_session.session_type == 'lesson'
+        assert att_session.date == future_dt.date()
+
+    def test_reschedule_updates_existing_session(self, client):
+        from apps.attendance.models import AttendanceSession
+        from apps.members.tests.factories import MemberWithUserFactory, MemberFactory
+        admin = MemberWithUserFactory(role=Roles.ADMIN)
+        client.force_login(admin.user)
+
+        course = TrainingCourse.objects.create(name='Parcours Beta', total_lessons=1, created_by=admin)
+        from apps.onboarding.models import Lesson
+        lesson = Lesson.objects.create(course=course, order=1, title='Lecon 1', duration_minutes=60)
+        new_member = MemberFactory(membership_status='in_training')
+        training = MemberTraining.objects.create(member=new_member, course=course, assigned_by=admin)
+        sl = ScheduledLesson.objects.create(
+            training=training, lesson=lesson,
+            scheduled_date=timezone.now(), status='upcoming',
+        )
+
+        # First schedule
+        dt1 = timezone.now() + timedelta(days=3)
+        client.post(
+            f'/onboarding/admin/schedule-lessons/{training.pk}/',
+            {f'date_{sl.pk}': dt1.strftime('%Y-%m-%dT%H:%M'), f'location_{sl.pk}': 'Salle A'},
+        )
+        assert AttendanceSession.objects.filter(scheduled_lesson=sl).count() == 1
+
+        # Reschedule — should update, not create a new one
+        dt2 = timezone.now() + timedelta(days=5)
+        client.post(
+            f'/onboarding/admin/schedule-lessons/{training.pk}/',
+            {f'date_{sl.pk}': dt2.strftime('%Y-%m-%dT%H:%M'), f'location_{sl.pk}': 'Salle B'},
+        )
+        assert AttendanceSession.objects.filter(scheduled_lesson=sl).count() == 1
+        att_session = AttendanceSession.objects.get(scheduled_lesson=sl)
+        assert att_session.date == dt2.date()

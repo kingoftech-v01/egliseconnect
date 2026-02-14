@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/events/">Événements</a></li>
+            <li class="breadcrumb-item"><a href="/events/{{ event.pk }}/">{{ event.title }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Bénévoles</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <!-- Add Need Form (staff) -->
+                {% if is_staff and form %}
+                <div class="card h-auto mb-4">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Ajouter un besoin de bénévole</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/events/{{ event.pk }}/volunteers/create/">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                {% for field in form %}
+                                <div class="col-md-{% if forloop.first %}4{% elif forloop.counter == 2 %}2{% else %}6{% endif %}">
+                                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-success btn-sm mt-3">
+                                <i class="fa fa-plus me-1"></i>Ajouter
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+                <!-- Needs List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Besoins de bénévoles - {{ event.title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        {% for need in needs %}
+                        <div class="card mb-3 border">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="mb-0">{{ need.position_name }}</h5>
+                                    <span class="badge badge-{% if need.is_filled %}success{% else %}warning{% endif %} light">
+                                        {{ need.filled_count }} / {{ need.required_count }}
+                                    </span>
+                                </div>
+                                {% if need.description %}
+                                <p class="text-muted mb-2">{{ need.description }}</p>
+                                {% endif %}
+                                <!-- Signups -->
+                                {% if need.signups.all %}
+                                <ul class="list-group list-group-flush mb-2">
+                                    {% for signup in need.signups.all %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        {{ signup.member.full_name }}
+                                        <span class="badge badge-{% if signup.status == 'confirmed' %}success{% elif signup.status == 'pending' %}warning{% else %}secondary{% endif %} light">
+                                            {{ signup.get_status_display }}
+                                        </span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                                {% if not need.is_filled %}
+                                <form method="post" action="/events/{{ event.pk }}/volunteers/{{ need.pk }}/signup/" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-success btn-sm">
+                                        <i class="fas fa-hand-paper me-1"></i>S'inscrire ({{ need.remaining }} restant{{ need.remaining|pluralize:"s" }})
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted py-4">Aucun besoin de bénévole enregistré pour cet événement.</p>
+                        {% endfor %}
+                        <a href="/events/{{ event.pk }}/" class="btn btn-outline-secondary btn-sm mt-3">
+                            <i class="fas fa-arrow-left me-1"></i>Retour à l'événement
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

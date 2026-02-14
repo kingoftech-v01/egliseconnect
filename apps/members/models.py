@@ -8,6 +8,8 @@ from apps.core.models import BaseModel, SoftDeleteModel
 from apps.core.constants import (
     Roles, FamilyStatus, GroupType, PrivacyLevel, Province, MembershipStatus,
     DepartmentRole, DisciplinaryType, ApprovalStatus, ModificationRequestStatus,
+    CareType, CareStatus, BackgroundCheckStatus, GroupLifecycleStage,
+    CustomFieldType,
 )
 from apps.core.validators import validate_image_file
 
@@ -437,6 +439,13 @@ class Group(BaseModel):
         verbose_name=_('Courriel du groupe')
     )
 
+    lifecycle_stage = models.CharField(
+        max_length=20,
+        choices=GroupLifecycleStage.CHOICES,
+        default=GroupLifecycleStage.ACTIVE,
+        verbose_name=_('Étape du cycle de vie')
+    )
+
     class Meta:
         verbose_name = _('Groupe')
         verbose_name_plural = _('Groupes')
@@ -837,3 +846,462 @@ class ProfileModificationRequest(BaseModel):
 
     def __str__(self):
         return f'Demande pour {self.target_member.full_name} par {self.requested_by}'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Child / Dependent Profiles
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class Child(BaseModel):
+    """Child or dependent linked to a family (not a church member)."""
+
+    first_name = models.CharField(
+        max_length=100,
+        verbose_name=_('Prénom')
+    )
+
+    last_name = models.CharField(
+        max_length=100,
+        verbose_name=_('Nom')
+    )
+
+    family = models.ForeignKey(
+        Family,
+        on_delete=models.CASCADE,
+        related_name='children',
+        verbose_name=_('Famille')
+    )
+
+    date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date de naissance')
+    )
+
+    allergies = models.TextField(
+        blank=True,
+        verbose_name=_('Allergies'),
+        help_text=_('Liste des allergies connues')
+    )
+
+    medical_notes = models.TextField(
+        blank=True,
+        verbose_name=_('Notes médicales'),
+        help_text=_('Conditions médicales, médicaments, etc.')
+    )
+
+    authorized_pickups = models.TextField(
+        blank=True,
+        verbose_name=_('Personnes autorisées'),
+        help_text=_('Personnes autorisées à récupérer l\'enfant')
+    )
+
+    photo = models.ImageField(
+        upload_to='members/children/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name=_('Photo'),
+        validators=[validate_image_file],
+    )
+
+    class Meta:
+        verbose_name = _('Enfant')
+        verbose_name_plural = _('Enfants')
+        ordering = ['last_name', 'first_name']
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name}'
+
+    @property
+    def full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
+    @property
+    def age(self):
+        if not self.date_of_birth:
+            return None
+        from datetime import date
+        today = date.today()
+        return today.year - self.date_of_birth.year - (
+            (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Pastoral Care & Follow-Up
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class PastoralCare(BaseModel):
+    """Pastoral care visits and follow-up tracking."""
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='pastoral_care_records',
+        verbose_name=_('Membre')
+    )
+
+    care_type = models.CharField(
+        max_length=30,
+        choices=CareType.CHOICES,
+        verbose_name=_('Type de soin')
+    )
+
+    assigned_to = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_care_records',
+        verbose_name=_('Assigné à')
+    )
+
+    date = models.DateField(
+        verbose_name=_('Date')
+    )
+
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_('Notes')
+    )
+
+    follow_up_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date de suivi')
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=CareStatus.CHOICES,
+        default=CareStatus.OPEN,
+        verbose_name=_('Statut')
+    )
+
+    class Meta:
+        verbose_name = _('Soin pastoral')
+        verbose_name_plural = _('Soins pastoraux')
+        ordering = ['-date']
+
+    def __str__(self):
+        return f'{self.get_care_type_display()} - {self.member.full_name} ({self.date})'
+
+    @property
+    def is_overdue(self):
+        """Is the follow-up date in the past and still open?"""
+        if not self.follow_up_date or self.status == CareStatus.CLOSED:
+            return False
+        from datetime import date
+        return self.follow_up_date < date.today()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Background Check
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class BackgroundCheck(BaseModel):
+    """Background check record for volunteers and leaders."""
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='background_checks',
+        verbose_name=_('Membre')
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=BackgroundCheckStatus.CHOICES,
+        default=BackgroundCheckStatus.PENDING,
+        verbose_name=_('Statut')
+    )
+
+    check_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date de vérification')
+    )
+
+    expiry_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date d\'expiration')
+    )
+
+    provider = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=_('Fournisseur')
+    )
+
+    reference_number = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('Numéro de référence')
+    )
+
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_('Notes')
+    )
+
+    class Meta:
+        verbose_name = _('Vérification des antécédents')
+        verbose_name_plural = _('Vérifications des antécédents')
+        ordering = ['-check_date']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.get_status_display()}'
+
+    @property
+    def is_expired(self):
+        if not self.expiry_date:
+            return False
+        from datetime import date
+        return self.expiry_date < date.today()
+
+    @property
+    def days_until_expiry(self):
+        if not self.expiry_date:
+            return None
+        from datetime import date
+        delta = self.expiry_date - date.today()
+        return delta.days
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Import History
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ImportHistory(BaseModel):
+    """Tracks member import operations."""
+
+    imported_by = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='import_operations',
+        verbose_name=_('Importé par')
+    )
+
+    filename = models.CharField(
+        max_length=255,
+        verbose_name=_('Fichier')
+    )
+
+    total_rows = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Total de lignes')
+    )
+
+    success_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Réussis')
+    )
+
+    error_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Erreurs')
+    )
+
+    errors_json = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_('Détails des erreurs')
+    )
+
+    class Meta:
+        verbose_name = _('Historique d\'importation')
+        verbose_name_plural = _('Historiques d\'importation')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.filename} - {self.success_count}/{self.total_rows}'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Member Merge Audit
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class MemberMergeLog(BaseModel):
+    """Audit trail for member merge operations."""
+
+    primary_member = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='merge_primary_logs',
+        verbose_name=_('Membre principal')
+    )
+
+    merged_member_data = models.JSONField(
+        default=dict,
+        verbose_name=_('Données du membre fusionné'),
+        help_text=_('Snapshot des données avant fusion')
+    )
+
+    merged_by = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='performed_merges',
+        verbose_name=_('Fusionné par')
+    )
+
+    class Meta:
+        verbose_name = _('Journal de fusion')
+        verbose_name_plural = _('Journaux de fusion')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        primary = self.primary_member.full_name if self.primary_member else 'N/A'
+        return f'Fusion vers {primary}'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Custom Member Fields
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class CustomField(BaseModel):
+    """Church-configurable custom field definition."""
+
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_('Nom du champ')
+    )
+
+    field_type = models.CharField(
+        max_length=20,
+        choices=CustomFieldType.CHOICES,
+        verbose_name=_('Type de champ')
+    )
+
+    options_json = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_('Options'),
+        help_text=_('Options pour liste déroulante (format JSON)')
+    )
+
+    is_required = models.BooleanField(
+        default=False,
+        verbose_name=_('Obligatoire')
+    )
+
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Ordre d\'affichage')
+    )
+
+    class Meta:
+        verbose_name = _('Champ personnalisé')
+        verbose_name_plural = _('Champs personnalisés')
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class CustomFieldValue(BaseModel):
+    """Value of a custom field for a specific member."""
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='custom_field_values',
+        verbose_name=_('Membre')
+    )
+
+    custom_field = models.ForeignKey(
+        CustomField,
+        on_delete=models.CASCADE,
+        related_name='values',
+        verbose_name=_('Champ personnalisé')
+    )
+
+    value = models.TextField(
+        blank=True,
+        verbose_name=_('Valeur')
+    )
+
+    class Meta:
+        verbose_name = _('Valeur de champ personnalisé')
+        verbose_name_plural = _('Valeurs de champs personnalisés')
+        unique_together = ['member', 'custom_field']
+
+    def __str__(self):
+        return f'{self.custom_field.name}: {self.value}'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Member Engagement Score
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class MemberEngagementScore(BaseModel):
+    """Composite engagement score for a member."""
+
+    member = models.OneToOneField(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='engagement_score',
+        verbose_name=_('Membre')
+    )
+
+    attendance_score = models.FloatField(
+        default=0,
+        verbose_name=_('Score de présence')
+    )
+
+    giving_score = models.FloatField(
+        default=0,
+        verbose_name=_('Score de dons')
+    )
+
+    volunteering_score = models.FloatField(
+        default=0,
+        verbose_name=_('Score de bénévolat')
+    )
+
+    group_score = models.FloatField(
+        default=0,
+        verbose_name=_('Score de groupe')
+    )
+
+    total_score = models.FloatField(
+        default=0,
+        verbose_name=_('Score total')
+    )
+
+    calculated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Calculé le')
+    )
+
+    class Meta:
+        verbose_name = _('Score d\'engagement')
+        verbose_name_plural = _('Scores d\'engagement')
+        ordering = ['-total_score']
+
+    def __str__(self):
+        return f'{self.member.full_name} - {self.total_score:.1f}'
+
+    @property
+    def level(self):
+        """Return engagement level category."""
+        if self.total_score >= 80:
+            return _('Très engagé')
+        elif self.total_score >= 60:
+            return _('Engagé')
+        elif self.total_score >= 40:
+            return _('Modéré')
+        elif self.total_score >= 20:
+            return _('Faible')
+        return _('Inactif')

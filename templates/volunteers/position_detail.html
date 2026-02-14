@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/volunteers/positions/">Postes</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ position.name }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Position Info -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">{{ position.name }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Type:</strong> {{ position.get_role_type_display }}</p>
+                        <p><strong>Min requis:</strong> {{ position.min_volunteers }}</p>
+                        <p><strong>Max:</strong> {{ position.max_volunteers|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Description:</strong> {{ position.description|default:"-" }}</p>
+                        <p><strong>Competences requises:</strong> {{ position.skills_required|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Volunteers -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Benevoles actuels ({{ volunteers|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Membre</th>
+                            <th>Frequence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for avail in volunteers %}
+                        <tr>
+                            <td>{{ avail.member.full_name }}</td>
+                            <td>{{ avail.get_frequency_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2" class="text-center">Aucun benevole assigne.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Upcoming Schedules -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Horaires a venir</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Membre</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in upcoming_schedules %}
+                        <tr>
+                            <td>{{ schedule.date|date:"d/m/Y" }}</td>
+                            <td>{{ schedule.member.full_name }}</td>
+                            <td>{{ schedule.get_status_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center">Aucun horaire a venir.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Skill Gap -->
+        {% if skill_gap.required_skills %}
+        <div class="card">
+            <div class="card-header">
+                <h4 class="heading mb-0">Analyse des competences</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>Requises:</strong> {{ skill_gap.required_skills|join:", " }}</p>
+                <p><strong>Couvertes:</strong>
+                    {% if skill_gap.covered_skills %}
+                        <span class="text-success">{{ skill_gap.covered_skills|join:", " }}</span>
+                    {% else %}
+                        <span class="text-muted">Aucune</span>
+                    {% endif %}
+                </p>
+                <p><strong>Manquantes:</strong>
+                    {% if skill_gap.missing_skills %}
+                        <span class="text-danger">{{ skill_gap.missing_skills|join:", " }}</span>
+                    {% else %}
+                        <span class="text-success">Toutes couvertes</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="mb-4">
+            <a href="/volunteers/positions/" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour
+            </a>
+            <a href="/volunteers/onboarding/{{ position.pk }}/" class="btn btn-info">
+                <i class="fas fa-clipboard-check me-1"></i> Checklist d'integration
+            </a>
+            {% if request.user.member_profile.role == 'admin' or request.user.member_profile.role == 'pastor' %}
+            <a href="/volunteers/positions/{{ position.pk }}/checklist/" class="btn btn-warning">
+                <i class="fas fa-list me-1"></i> Gerer la checklist
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

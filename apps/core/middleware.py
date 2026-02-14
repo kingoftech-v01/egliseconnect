@@ -61,6 +61,8 @@ class MembershipAccessMiddleware:
         '/offline/',
         '/payments/',
         '/audit/',
+        '/settings/',
+        '/search/',
     ]
 
     # Paths that require ACTIVE membership status

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/">Cultes</a></li>
+            <li class="breadcrumb-item"><a href="/worship/services/{{ service.pk }}/">{{ service }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Liste de chants</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Current Setlist -->
+            <div class="col-xl-7 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Liste de chants</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table mb-0" id="setlist-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Chant</th>
+                                        <th>Tonalite</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="setlist-body">
+                                    {% for ss in setlist_songs %}
+                                    <tr data-id="{{ ss.pk }}">
+                                        <td><span class="badge badge-light">{{ ss.order }}</span></td>
+                                        <td>
+                                            <strong>{{ ss.song.title }}</strong>
+                                            <br><small class="text-muted">{{ ss.song.artist|default:"" }}</small>
+                                        </td>
+                                        <td>{{ ss.key_override|default:ss.song.song_key|default:"-" }}</td>
+                                        <td><small>{{ ss.notes|default:"" }}</small></td>
+                                        <td>
+                                            {% if ss.song.chord_chart %}
+                                            <a href="/worship/songs/{{ ss.song.pk }}/chord-chart/" class="btn btn-info btn-xs" title="Grille"><i class="fas fa-music"></i></a>
+                                            {% endif %}
+                                            <form method="post" action="/worship/setlist-songs/{{ ss.pk }}/remove/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-xs" title="Retirer"><i class="fas fa-times"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center py-4">Aucun chant dans la liste.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Song Form -->
+            <div class="col-xl-5 col-lg-6">
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Ajouter un chant</h4></div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Ajouter</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="card">
+                    <div class="card-header"><h4 class="heading mb-0">Exportation</h4></div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="/worship/services/{{ service.pk }}/export/propresenter/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-export me-1"></i> ProPresenter</a>
+                            <a href="/worship/services/{{ service.pk }}/export/easyworship/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-export me-1"></i> EasyWorship</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

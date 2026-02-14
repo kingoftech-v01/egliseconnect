@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        {% if is_admin %}
+                        <a href="/payments/statements/generate/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> {% trans "Générer des relevés" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                {% if is_admin %}<th>{% trans "Membre" %}</th>{% endif %}
+                                <th>{% trans "Période" %}</th>
+                                <th>{% trans "Type" %}</th>
+                                <th>{% trans "Montant" %}</th>
+                                <th>{% trans "Envoyé" %}</th>
+                                <th>{% trans "Télécharger" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stmt in statements %}
+                            <tr>
+                                {% if is_admin %}<td>{{ stmt.member.full_name }}</td>{% endif %}
+                                <td>{{ stmt.period_start|date:"d/m/Y" }} - {{ stmt.period_end|date:"d/m/Y" }}</td>
+                                <td>{{ stmt.get_statement_type_display }}</td>
+                                <td>{{ stmt.total_amount }} CAD</td>
+                                <td>
+                                    {% if stmt.sent_at %}
+                                    <span class="badge badge-success">{{ stmt.sent_at|date:"d/m/Y" }}</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">{% trans "Non envoyé" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if stmt.pdf_file %}
+                                    <a href="/payments/statements/{{ stmt.pk }}/download/" class="btn btn-outline-primary btn-xs">
+                                        <i class="fa fa-download"></i>
+                                    </a>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if is_admin %}6{% else %}5{% endif %}" class="text-center">
+                                    {% trans "Aucun relevé disponible." %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% if statements.has_other_pages %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if statements.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ statements.previous_page_number }}">{% trans "Précédent" %}</a></li>
+                {% endif %}
+                {% for num in statements.paginator.page_range %}
+                <li class="page-item {% if statements.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+                {% if statements.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ statements.next_page_number }}">{% trans "Suivant" %}</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

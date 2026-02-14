@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/help-requests/care/">Soins pastoraux</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Equipes</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">Equipes de soins</h4>
+                        <a href="/help-requests/care/teams/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouvelle equipe
+                        </a>
+                    </div>
+                    <table class="table">
+                        <thead><tr><th>Nom</th><th>Leader</th><th>Membres</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {% for team in teams %}
+                            <tr>
+                                <td><a href="/help-requests/care/teams/{{ team.pk }}/">{{ team.name }}</a></td>
+                                <td>{{ team.leader.full_name|default:"-" }}</td>
+                                <td>{{ team.memberships.count }}</td>
+                                <td>
+                                    <a href="/help-requests/care/teams/{{ team.pk }}/" class="btn btn-sm btn-outline-primary">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted">Aucune equipe.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-4">
+            <a href="/help-requests/care/" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

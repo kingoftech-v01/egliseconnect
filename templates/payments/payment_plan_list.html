@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        <a href="/payments/plans/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> {% trans "Nouveau plan" %}
+                        </a>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Montant total" %}</th>
+                                <th>{% trans "Versement" %}</th>
+                                <th>{% trans "Fréquence" %}</th>
+                                <th>{% trans "Restant" %}</th>
+                                <th>{% trans "Progression" %}</th>
+                                <th>{% trans "Statut" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in plans %}
+                            <tr>
+                                <td>{{ plan.total_amount }} CAD</td>
+                                <td>{{ plan.installment_amount }} CAD</td>
+                                <td>{{ plan.get_frequency_display }}</td>
+                                <td>{{ plan.remaining_amount }} CAD</td>
+                                <td>
+                                    <div class="progress" style="height: 15px;">
+                                        <div class="progress-bar bg-success" style="width: {{ plan.progress_percentage }}%">
+                                            {{ plan.progress_percentage }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if plan.status == 'active' %}
+                                    <span class="badge badge-primary">{{ plan.get_status_display }}</span>
+                                    {% elif plan.status == 'completed' %}
+                                    <span class="badge badge-success">{{ plan.get_status_display }}</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">{{ plan.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if plan.status == 'active' %}
+                                    <a href="/payments/plans/{{ plan.pk }}/complete/" class="btn btn-outline-success btn-xs">
+                                        <i class="fa fa-check me-1"></i>{% trans "Compléter" %}
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">{% trans "Aucun plan de paiement." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+        <div>
+            <a href="/members/care/dashboard/" class="btn btn-info btn-sm me-2">
+                <i class="fas fa-tachometer-alt me-1"></i>Tableau de bord
+            </a>
+            <a href="/members/care/create/" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Nouveau soin
+            </a>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Statut</label>
+                                <select name="status" class="form-select">
+                                    <option value="">Tous</option>
+                                    <option value="open" {% if status_filter == "open" %}selected{% endif %}>Ouvert</option>
+                                    <option value="follow_up" {% if status_filter == "follow_up" %}selected{% endif %}>Suivi</option>
+                                    <option value="closed" {% if status_filter == "closed" %}selected{% endif %}>Ferme</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Type</label>
+                                <select name="care_type" class="form-select">
+                                    <option value="">Tous</option>
+                                    <option value="hospital_visit" {% if care_type_filter == "hospital_visit" %}selected{% endif %}>Visite hopital</option>
+                                    <option value="home_visit" {% if care_type_filter == "home_visit" %}selected{% endif %}>Visite domicile</option>
+                                    <option value="phone_call" {% if care_type_filter == "phone_call" %}selected{% endif %}>Appel</option>
+                                    <option value="counseling" {% if care_type_filter == "counseling" %}selected{% endif %}>Counseling</option>
+                                    <option value="prayer_meeting" {% if care_type_filter == "prayer_meeting" %}selected{% endif %}>Priere</option>
+                                    <option value="other" {% if care_type_filter == "other" %}selected{% endif %}>Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary">Filtrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Membre</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Assigne a</th>
+                                        <th>Suivi</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for care in cares %}
+                                    <tr>
+                                        <td><a href="/members/care/{{ care.pk }}/">{{ care.member.full_name }}</a></td>
+                                        <td>{{ care.get_care_type_display }}</td>
+                                        <td>{{ care.date }}</td>
+                                        <td>{{ care.assigned_to.full_name|default:"-" }}</td>
+                                        <td>
+                                            {% if care.follow_up_date %}
+                                                {{ care.follow_up_date }}
+                                                {% if care.is_overdue %}
+                                                <span class="badge bg-danger">En retard</span>
+                                                {% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if care.status == "open" %}
+                                            <span class="badge bg-warning">Ouvert</span>
+                                            {% elif care.status == "follow_up" %}
+                                            <span class="badge bg-info">Suivi</span>
+                                            {% else %}
+                                            <span class="badge bg-success">Ferme</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Aucun soin pastoral.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% if cares.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if cares.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ cares.previous_page_number }}&status={{ status_filter }}&care_type={{ care_type_filter }}">Precedent</a></li>
+                        {% endif %}
+                        {% for num in cares.paginator.page_range %}
+                        {% if cares.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > cares.number|add:'-3' and num < cares.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}&status={{ status_filter }}&care_type={{ care_type_filter }}">{{ num }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+                        {% if cares.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ cares.next_page_number }}&status={{ status_filter }}&care_type={{ care_type_filter }}">Suivant</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

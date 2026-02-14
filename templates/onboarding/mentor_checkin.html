@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block title %}Suivi mentor{% endblock %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">Suivi - {{ assignment.new_member.full_name }}</h5></li>
+            <li class="breadcrumb-item"><a href="/onboarding/mentor/dashboard/">Mentor</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Suivi</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xl-8 col-lg-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Enregistrer un suivi</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label">Date</label>
+                                {{ form.date }}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                {{ form.notes }}
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <a href="/onboarding/mentor/dashboard/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Enregistrer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if checkins %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">Historique des suivis</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Notes</th>
+                                        <th>Par</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in checkins %}
+                                    <tr>
+                                        <td>{{ c.date|date:"d/m/Y" }}</td>
+                                        <td>{{ c.notes|truncatewords:20 }}</td>
+                                        <td>{{ c.logged_by.full_name|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

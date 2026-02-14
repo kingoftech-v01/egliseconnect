@@ -69,6 +69,7 @@
                                         <th>Nom</th>
                                         <th>Date de naissance</th>
                                         <th>Mois</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -79,10 +80,17 @@
                                         </td>
                                         <td>{% if m.birth_date %}{{ m.birth_date }}{% else %}-{% endif %}</td>
                                         <td>{% if m.birth_date %}{{ m.birth_date|date:"F" }}{% else %}-{% endif %}</td>
+                                        <td>
+                                            {% if m.email %}
+                                            <a href="mailto:{{ m.email }}?subject=Joyeux anniversaire!" class="btn btn-outline-primary btn-sm" title="Envoyer des voeux">
+                                                <i class="fas fa-envelope me-1"></i>Voeux
+                                            </a>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted">Aucun anniversaire pour cette periode.</td>
+                                        <td colspan="4" class="text-center text-muted">Aucun anniversaire pour cette periode.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

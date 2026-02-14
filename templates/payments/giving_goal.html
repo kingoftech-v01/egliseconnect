@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load i18n static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">{% trans "Accueil" %}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-10">
+                {% if progress %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h4 class="card-title">{% trans "Progression" %} {{ current_year }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div class="progress-bar {% if progress.percentage >= 100 %}bg-success{% elif progress.percentage >= 50 %}bg-primary{% else %}bg-warning{% endif %}"
+                                 role="progressbar" style="width: {{ progress.percentage }}%"
+                                 aria-valuenow="{{ progress.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ progress.percentage }}%
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h5 class="text-primary">{{ progress.given }} CAD</h5>
+                                <small class="text-muted">{% trans "Donné" %}</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h5>{{ progress.target }} CAD</h5>
+                                <small class="text-muted">{% trans "Objectif" %}</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="text-warning">{{ progress.remaining }} CAD</h5>
+                                <small class="text-muted">{% trans "Restant" %}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">{% if goal %}{% trans "Modifier l'objectif" %}{% else %}{% trans "Définir un objectif" %}{% endif %}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                <div class="text-danger">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> {% trans "Enregistrer" %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

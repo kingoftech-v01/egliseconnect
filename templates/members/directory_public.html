@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ page_title }}</a></li>
+        </ol>
+        <a href="/members/directory/export-pdf/" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-file-pdf me-1"></i>Exporter PDF
+        </a>
+    </div>
+    <div class="container-fluid">
+        <!-- Search & Filters -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label">Rechercher</label>
+                                <input type="text" name="search" class="form-control" placeholder="Nom, prenom..." value="{{ search }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Groupe</label>
+                                <select name="group" class="form-select">
+                                    <option value="">Tous les groupes</option>
+                                    {% for g in groups %}
+                                    <option value="{{ g.pk }}">{{ g.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Affichage</label>
+                                <select name="view" class="form-select">
+                                    <option value="grid" {% if view_mode == "grid" %}selected{% endif %}>Grille</option>
+                                    <option value="list" {% if view_mode == "list" %}selected{% endif %}>Liste</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary">Filtrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if view_mode == "grid" %}
+        <!-- Photo Grid View -->
+        <div class="row">
+            {% for m in members %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        {% if m.photo %}
+                        <img src="{{ m.photo.url }}" alt="{{ m.full_name }}" class="rounded-circle mb-3" width="80" height="80" style="object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <span class="text-white fs-4">{{ m.first_name.0 }}{{ m.last_name.0 }}</span>
+                        </div>
+                        {% endif %}
+                        <h6 class="mb-1">{{ m.full_name }}</h6>
+                        <p class="text-muted small mb-0">{{ m.get_role_display }}</p>
+                        {% if m.privacy_settings.show_email and m.email %}
+                        <p class="text-muted small mb-0">{{ m.email }}</p>
+                        {% endif %}
+                        {% if m.privacy_settings.show_phone and m.phone %}
+                        <p class="text-muted small mb-0">{{ m.phone }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <p class="text-muted">Aucun membre dans l'annuaire public.</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- List View -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive active-projects style-1">
+                            <div class="tbl-caption">
+                                <h4 class="heading mb-0">Annuaire ({{ members.paginator.count }} membres)</h4>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Nom</th>
+                                        <th>Courriel</th>
+                                        <th>Telephone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in members %}
+                                    <tr>
+                                        <td>
+                                            {% if m.photo %}
+                                            <img src="{{ m.photo.url }}" alt="" class="rounded-circle" width="35" height="35" style="object-fit: cover;">
+                                            {% else %}
+                                            <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                                                <span class="text-white small">{{ m.first_name.0 }}{{ m.last_name.0 }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ m.full_name }}</td>
+                                        <td>
+                                            {% if m.privacy_settings.show_email %}
+                                            {{ m.email|default:"-" }}
+                                            {% else %}-{% endif %}
+                                        </td>
+                                        <td>
+                                            {% if m.privacy_settings.show_phone %}
+                                            {{ m.phone|default:"-" }}
+                                            {% else %}-{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Aucun membre.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if members.has_other_pages %}
+        <nav aria-label="Pagination de l'annuaire">
+            <ul class="pagination justify-content-center">
+                {% if members.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ members.previous_page_number }}&search={{ search }}&view={{ view_mode }}">Precedent</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Precedent</span>
+                </li>
+                {% endif %}
+
+                {% for num in members.paginator.page_range %}
+                {% if members.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > members.number|add:'-3' and num < members.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&search={{ search }}&view={{ view_mode }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if members.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ members.next_page_number }}&search={{ search }}&view={{ view_mode }}">Suivant</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Suivant</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

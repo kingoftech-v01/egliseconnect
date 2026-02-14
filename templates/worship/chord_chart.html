@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/worship/songs/">Chants</a></li>
+            <li class="breadcrumb-item"><a href="/worship/songs/{{ song.pk }}/">{{ song.title }}</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Grille d'accords</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="heading mb-0">{{ song.title }} {% if song.song_key %}<span class="badge badge-info">{{ song.song_key }}</span>{% endif %} {% if song.bpm %}<span class="badge badge-light">{{ song.bpm }} BPM</span>{% endif %}</h4>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm" id="btn-auto-scroll"><i class="fas fa-arrow-down me-1"></i> Auto-scroll</button>
+                            <button class="btn btn-outline-secondary btn-sm" id="btn-nashville"><i class="fas fa-hashtag me-1"></i> Nashville</button>
+                            <a href="/worship/songs/{{ song.pk }}/chord-chart/print/" class="btn btn-outline-secondary btn-sm" target="_blank"><i class="fas fa-print me-1"></i> Imprimer</a>
+                        </div>
+                    </div>
+                    <div class="card-body" id="chord-display">
+                        {% if song.chord_chart %}
+                        <pre id="chord-content" style="font-family: 'Courier New', monospace; font-size: 16px; line-height: 1.8; white-space: pre-wrap;">{{ song.chord_chart }}</pre>
+                        {% else %}
+                        <p class="text-muted">Aucune grille d'accords disponible.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-scroll functionality
+(function() {
+    var scrolling = false;
+    var scrollInterval = null;
+    var speed = 1;
+    var btn = document.getElementById('btn-auto-scroll');
+    if (!btn) return;
+
+    btn.addEventListener('click', function() {
+        if (scrolling) {
+            clearInterval(scrollInterval);
+            scrolling = false;
+            btn.innerHTML = '<i class="fas fa-arrow-down me-1"></i> Auto-scroll';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        } else {
+            scrolling = true;
+            btn.innerHTML = '<i class="fas fa-pause me-1"></i> Pause';
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-primary');
+            scrollInterval = setInterval(function() {
+                window.scrollBy(0, speed);
+                if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+                    clearInterval(scrollInterval);
+                    scrolling = false;
+                    btn.innerHTML = '<i class="fas fa-arrow-down me-1"></i> Auto-scroll';
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                }
+            }, 50);
+        }
+    });
+
+    // Speed controls with keyboard
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowUp') { speed = Math.max(0.5, speed - 0.5); }
+        if (e.key === 'ArrowDown') { speed = Math.min(5, speed + 0.5); }
+        if (e.key === ' ' && scrolling) {
+            e.preventDefault();
+            btn.click();
+        }
+    });
+})();
+
+// Nashville Number System toggle
+(function() {
+    var btn = document.getElementById('btn-nashville');
+    var content = document.getElementById('chord-content');
+    if (!btn || !content) return;
+    var original = content.textContent;
+    var nashvilleMode = false;
+
+    var NASHVILLE_MAP = {
+        'C': '1', 'C#': '#1', 'Db': 'b2', 'D': '2', 'D#': '#2', 'Eb': 'b3',
+        'E': '3', 'F': '4', 'F#': '#4', 'Gb': 'b5', 'G': '5', 'G#': '#5',
+        'Ab': 'b6', 'A': '6', 'A#': '#6', 'Bb': 'b7', 'B': '7'
+    };
+
+    btn.addEventListener('click', function() {
+        if (nashvilleMode) {
+            content.textContent = original;
+            nashvilleMode = false;
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-outline-secondary');
+        } else {
+            var text = original;
+            // Replace chords with Nashville numbers (simple approach)
+            var chords = Object.keys(NASHVILLE_MAP).sort(function(a, b) { return b.length - a.length; });
+            chords.forEach(function(chord) {
+                var regex = new RegExp('\\b' + chord.replace('#', '\\#') + '(m|maj|dim|aug|sus|7|9|11|13)?\\b', 'g');
+                text = text.replace(regex, function(match, suffix) {
+                    return NASHVILLE_MAP[chord] + (suffix || '');
+                });
+            });
+            content.textContent = text;
+            nashvilleMode = true;
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-secondary');
+        }
+    });
+})();
+</script>
+{% endblock %}

@@ -14,8 +14,11 @@
         <div class="card">
             <div class="card-body p-0">
                 <div class="table-responsive active-projects style-1">
-                    <div class="tbl-caption">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
                         <h4 class="heading mb-0">{{ page_title|default:"Mon planning" }}</h4>
+                        <a href="/volunteers/mobile-schedule/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-mobile-alt me-1"></i> Vue mobile
+                        </a>
                     </div>
                     <table id="my-schedule-table" class="table">
                         <thead>
@@ -23,6 +26,7 @@
                                 <th>Date</th>
                                 <th>Poste</th>
                                 <th>Statut</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -32,19 +36,35 @@
                                 <td>{{ schedule.position.name }}</td>
                                 <td>
                                     {% if schedule.status == 'confirmed' %}
-                                        <span class="badge badge-success">Confirmé</span>
-                                    {% elif schedule.status == 'pending' %}
-                                        <span class="badge badge-warning">En attente</span>
-                                    {% elif schedule.status == 'cancelled' %}
-                                        <span class="badge badge-danger">Annulé</span>
+                                        <span class="badge badge-success">Confirme</span>
+                                    {% elif schedule.status == 'scheduled' %}
+                                        <span class="badge badge-warning">Planifie</span>
+                                    {% elif schedule.status == 'declined' %}
+                                        <span class="badge badge-danger">Decline</span>
+                                    {% elif schedule.status == 'completed' %}
+                                        <span class="badge badge-info">Complete</span>
                                     {% else %}
                                         <span class="badge badge-secondary">{{ schedule.get_status_display|default:schedule.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if schedule.status == 'scheduled' %}
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="schedule_id" value="{{ schedule.pk }}">
+                                        <button type="submit" name="action" value="confirm" class="btn btn-success btn-xs" title="Confirmer">
+                                            <i class="fas fa-check"></i> Confirmer
+                                        </button>
+                                        <button type="submit" name="action" value="decline" class="btn btn-danger btn-xs" title="Decliner">
+                                            <i class="fas fa-times"></i> Decliner
+                                        </button>
+                                    </form>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="3" class="text-center">Vous n'avez aucun planning prévu.</td>
+                                <td colspan="4" class="text-center">Vous n'avez aucun planning prevu.</td>
                             </tr>
                             {% endfor %}
                         </tbody>

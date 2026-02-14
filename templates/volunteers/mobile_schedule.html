@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/volunteers/my-schedule/">Mon horaire</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mobile</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <!-- Day navigation -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="/volunteers/mobile-schedule/?date={{ prev_date }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    <h4 class="mb-0">{{ current_date|date:"l d/m/Y" }}</h4>
+                    <a href="/volunteers/mobile-schedule/?date={{ next_date }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedules for the day -->
+        {% for schedule in schedules %}
+        <div class="card mb-2">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ schedule.position.name }}</h5>
+                        <small class="text-muted">{{ schedule.notes|default:"" }}</small>
+                    </div>
+                    <div>
+                        {% if schedule.status == 'confirmed' %}
+                            <span class="badge badge-success">Confirme</span>
+                        {% elif schedule.status == 'scheduled' %}
+                            <span class="badge badge-warning">Planifie</span>
+                        {% elif schedule.status == 'declined' %}
+                            <span class="badge badge-danger">Decline</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ schedule.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center text-muted">
+                <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                <p>Aucun service prevu pour cette journee.</p>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="text-center mt-3">
+            <a href="/volunteers/my-schedule/" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-1"></i> Vue liste
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

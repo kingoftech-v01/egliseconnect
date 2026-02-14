@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Mur de prière</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="mb-3">
+            <a href="/help-requests/prayer/create/" class="btn btn-primary btn-sm">
+                <i class="fa fa-plus me-1"></i> Nouvelle demande de prière
+            </a>
+        </div>
+
+        <div class="row">
+            {% for prayer in prayers %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ prayer.title }}</h5>
+                        <p class="card-text">{{ prayer.description|truncatewords:30 }}</p>
+                        {% if prayer.status == 'answered' %}
+                            <span class="badge badge-success"><i class="fa fa-check me-1"></i>Exaucée</span>
+                        {% elif prayer.status == 'active' %}
+                            <span class="badge badge-primary">Active</span>
+                        {% endif %}
+                        <div class="mt-2">
+                            {% if prayer.is_anonymous %}
+                                <small class="text-muted">Anonyme</small>
+                            {% else %}
+                                <small class="text-muted">{{ prayer.member.full_name }}</small>
+                            {% endif %}
+                            <small class="text-muted float-end">{{ prayer.created_at|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a href="/help-requests/prayer/{{ prayer.pk }}/" class="btn btn-sm btn-outline-primary">Détails</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center text-muted">
+                        Aucune demande de prière pour le moment.
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

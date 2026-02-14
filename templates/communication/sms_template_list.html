@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static custom_tags %}
+
+{% block content %}
+<div class="content-body">
+    <div class="page-titles">
+        <ol class="breadcrumb">
+            <li><h5 class="bc-title">{{ page_title }}</h5></li>
+            <li class="breadcrumb-item"><a href="/reports/">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/communication/sms/">SMS</a></li>
+            <li class="breadcrumb-item active"><a href="javascript:void(0)">Modeles</a></li>
+        </ol>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive active-projects style-1">
+                    <div class="tbl-caption d-flex justify-content-between align-items-center">
+                        <h4 class="heading mb-0">{{ page_title }}</h4>
+                        <a href="/communication/sms/templates/create/" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Nouveau modele
+                        </a>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Corps</th>
+                                <th>Actif</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tpl in templates %}
+                            <tr>
+                                <td><strong>{{ tpl.name }}</strong></td>
+                                <td>{{ tpl.body_template|truncatewords:15 }}</td>
+                                <td>
+                                    {% if tpl.is_active %}
+                                        <span class="badge badge-success">Actif</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/communication/sms/templates/{{ tpl.pk }}/edit/" class="btn btn-sm btn-outline-primary">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Aucun modele SMS.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
