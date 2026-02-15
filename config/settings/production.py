@@ -15,8 +15,13 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 # SSL redirect is handled by nginx, not Django
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# Trust X-Forwarded-* headers from nginx
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # CSRF trusted origins for reverse proxy
 CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
@@ -33,7 +38,7 @@ DATABASES = {
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])  # noqa: F405
 
 
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 
 # Use console backend if SMTP is not configured

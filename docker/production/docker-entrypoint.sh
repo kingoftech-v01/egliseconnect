@@ -11,9 +11,13 @@ while ! pg_isready -h ${DB_HOST:-db} -p ${DB_PORT:-5432} -U ${DB_USER:-eglise_ad
 done
 echo "PostgreSQL is up!"
 
-# Wait for Redis
+# Wait for Redis (with auth if password set)
 echo "Waiting for Redis..."
-while ! redis-cli -h ${REDIS_HOST:-redis} ping > /dev/null 2>&1; do
+REDIS_AUTH=""
+if [ -n "${REDIS_PASSWORD}" ]; then
+    REDIS_AUTH="-a ${REDIS_PASSWORD}"
+fi
+while ! redis-cli -h ${REDIS_HOST:-redis} ${REDIS_AUTH} ping > /dev/null 2>&1; do
     echo "Redis is unavailable - sleeping"
     sleep 2
 done

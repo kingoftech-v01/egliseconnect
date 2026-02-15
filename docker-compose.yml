@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
@@ -28,7 +26,7 @@ services:
     networks:
       - chms_network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,6 +49,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - DATABASE_URL=postgresql://${DB_USER:-eglise_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-egliseconnect}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
@@ -99,6 +98,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - DATABASE_URL=postgresql://${DB_USER:-eglise_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-egliseconnect}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
@@ -129,6 +129,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - DATABASE_URL=postgresql://${DB_USER:-eglise_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-egliseconnect}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
