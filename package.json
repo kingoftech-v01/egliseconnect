@@ -1,0 +1,23 @@
+{
+  "name": "egliseconnect",
+  "private": true,
+  "workspaces": [
+    "web",
+    "mobile",
+    "showcase",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "dev:web": "cd web && npm run dev",
+    "dev:showcase": "cd showcase && npm run dev",
+    "dev:backend": "cd backend && python manage.py runserver 8080"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

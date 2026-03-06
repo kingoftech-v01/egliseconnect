@@ -1,0 +1,18 @@
+{
+  "name": "@egliseconnect/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@egliseconnect/types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
